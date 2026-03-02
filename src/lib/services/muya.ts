@@ -157,12 +157,32 @@ class MuyaService {
     try { this.muya.setOptions(opts, silent); } catch (e) { console.debug('[Muya] setOptions:', e); }
   }
 
+  /** Promote heading level on the current block: plain→h6→h5→…→h1 (stops at h1). */
+  shiftHeadingUp(): void {
+    if (!this.muya) return;
+    try { (this.muya as unknown as { updateParagraph: (t: string) => void }).updateParagraph('upgrade heading'); }
+    catch (e) { console.debug('[Muya] shiftHeadingUp:', e); }
+  }
+
+  /** Demote heading level: h1→h2→…→h6→plain (stops at plain). */
+  shiftHeadingDown(): void {
+    if (!this.muya) return;
+    try { (this.muya as unknown as { updateParagraph: (t: string) => void }).updateParagraph('degrade heading'); }
+    catch (e) { console.debug('[Muya] shiftHeadingDown:', e); }
+  }
+
+  /** Reset any heading on the current block back to a plain paragraph. */
+  resetToParagraph(): void {
+    if (!this.muya) return;
+    try { (this.muya as unknown as { updateParagraph: (t: string) => void }).updateParagraph('paragraph'); }
+    catch (e) { console.debug('[Muya] resetToParagraph:', e); }
+  }
+
   /** Apply all preference changes to the running Muya instance */
   applyPreferences(p: Preferences): void {
     if (!this.muya) return;
     try {
-      const zoom = p.zoom || 1.0;
-      this.muya.setFont({ fontSize: Math.round((p.fontSize || 16) * zoom), lineHeight: p.lineHeight || 1.6 });
+      this.muya.setFont({ fontSize: p.fontSize || 16, lineHeight: p.lineHeight || 1.6 });
       this.muya.setFocusMode(p.focusMode || false);
       this.muya.setOptions({
         tabSize: p.tabSize,

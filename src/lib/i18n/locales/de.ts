@@ -33,7 +33,7 @@ const translations: Record<string, string> = {
     placeholder: '@ eingeben zum Einfügen...', placeholder_heading: 'Überschrift',
     general_startup: 'Start', start_up_action: 'Startaktion',
     startup_blank: 'Leere Seite', startup_last_state: 'Letzter Zustand', startup_folder: 'Ordner',
-    zoom_label: 'Zoom', file_sort_by: 'Dateien sortieren nach',
+    zoom_label: 'Zoom', zoom_reset_tooltip: 'Klicken zum Zurücksetzen des Zooms', file_sort_by: 'Dateien sortieren nach',
     sort_modified: 'Änderungsdatum', sort_created: 'Erstellungsdatum', sort_title: 'Titel',
     hide_scrollbar: 'Scrollleisten ausblenden', hide_scrollbar_desc: 'Blendet die Scrollleisten des Editors aus',
     word_wrap_in_toc: 'Zeilenumbruch im Inhaltsverzeichnis', word_wrap_in_toc_desc: 'Aktiviert Zeilenumbruch im Inhaltsverzeichnis',

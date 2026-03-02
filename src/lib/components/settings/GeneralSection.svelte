@@ -63,7 +63,7 @@
   </div>
   <div class="setting-row">
     <span class="setting-label">{tr('zoom_label')}</span>
-    <div class="setting-control"><input type="range" min="0.5" max="2.0" step="0.1" bind:value={prefs.zoom} oninput={applyPrefs} /><span class="setting-val">{Math.round(prefs.zoom * 100)}%</span></div>
+    <div class="setting-control"><input type="range" min="0.5" max="2.0" step="0.1" bind:value={prefs.zoom} onchange={applyPrefs} /><span class="setting-val">{Math.round(prefs.zoom * 100)}%</span></div>
   </div>
   <div class="setting-row">
     <span class="setting-label">{tr('file_sort_by')}</span>

@@ -35,7 +35,6 @@
     if (!open) return;
     document.documentElement.setAttribute('data-theme', prefs.theme);
     document.documentElement.setAttribute('lang', prefs.language);
-    document.documentElement.style.setProperty('--font-size', `${Math.round((prefs.fontSize || 16) * (prefs.zoom || 1.0))}px`);
     document.documentElement.style.setProperty('--line-height', `${prefs.lineHeight}`);
     document.documentElement.style.setProperty('--font-family', prefs.fontFamily);
     // Debounced save to Rust backend

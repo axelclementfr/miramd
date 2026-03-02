@@ -40,7 +40,7 @@ const translations: Record<string, string> = {
     // New general settings
     general_startup: 'Startup', start_up_action: 'Startup action',
     startup_blank: 'Blank page', startup_last_state: 'Last state', startup_folder: 'Folder',
-    zoom_label: 'Zoom', file_sort_by: 'Sort files by',
+    zoom_label: 'Zoom', zoom_reset_tooltip: 'Click to reset zoom', file_sort_by: 'Sort files by',
     sort_modified: 'Modified date', sort_created: 'Created date', sort_title: 'Title',
     hide_scrollbar: 'Hide scrollbars', hide_scrollbar_desc: 'Hide editor scrollbars',
     word_wrap_in_toc: 'Word wrap in TOC', word_wrap_in_toc_desc: 'Enable word wrap in table of contents',

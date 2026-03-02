@@ -1,116 +1,82 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// Mock Tauri invoke
+// Mock Tauri invoke. preferences.patch internally calls save_preferences via
+// the same invoke channel, so tests filter on the set_app_zoom command only.
+const mockInvoke = vi.fn().mockResolvedValue({});
 vi.mock('@tauri-apps/api/core', () => ({
-  invoke: vi.fn().mockResolvedValue({}),
-}));
-
-// Mock muyaService
-const mockSetFont = vi.fn();
-const mockIsReady = vi.fn().mockReturnValue(false);
-vi.mock('$lib/services/muya', () => ({
-  muyaService: {
-    isReady: (...args: any[]) => mockIsReady(...args),
-    setFont: (...args: any[]) => mockSetFont(...args),
-  },
+  invoke: (...args: any[]) => mockInvoke(...args),
 }));
 
 const { preferences } = await import('$lib/stores/preferences');
 const { zoomService } = await import('$lib/services/zoom');
 
-describe('ZoomService', () => {
+function zoomCalls(): Array<[string, unknown]> {
+  return mockInvoke.mock.calls
+    .filter((c) => c[0] === 'set_app_zoom')
+    .map((c) => [c[0] as string, c[1] as unknown]);
+}
+
+describe('ZoomService (app zoom only)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    preferences.patch({ fontSize: 16, zoom: 1.0, lineHeight: 1.6, editorLineWidth: '' });
+    preferences.patch({ zoom: 1.0 });
   });
 
   afterEach(() => {
     zoomService.destroy();
   });
 
-  describe('init', () => {
-    it('subscribes to preferences and calls setFont when muya is ready', () => {
-      mockIsReady.mockReturnValue(true);
-      zoomService.init();
-
-      // Subscription fires immediately with current prefs
-      expect(mockSetFont).toHaveBeenCalledWith({
-        fontSize: 16,
-        lineHeight: 1.6,
-      });
-    });
-
-    it('does not call setFont when muya is not ready', () => {
-      mockIsReady.mockReturnValue(false);
-      zoomService.init();
-
-      expect(mockSetFont).not.toHaveBeenCalled();
-    });
-
-    it('applies zoom factor to font size', () => {
-      mockIsReady.mockReturnValue(true);
-      preferences.patch({ fontSize: 16, zoom: 1.5 });
-      zoomService.init();
-
-      expect(mockSetFont).toHaveBeenCalledWith({
-        fontSize: 24, // Math.round(16 * 1.5)
-        lineHeight: 1.6,
-      });
-    });
-
-    it('applies editorLineWidth as CSS variable', () => {
-      preferences.patch({ editorLineWidth: '800px' });
-      zoomService.init();
-
-      expect(document.documentElement.style.getPropertyValue('--editorAreaWidth')).toBe('800px');
-    });
-
-    it('removes CSS variable when editorLineWidth is empty', () => {
-      document.documentElement.style.setProperty('--editorAreaWidth', '600px');
-      preferences.patch({ editorLineWidth: '' });
-      zoomService.init();
-
-      expect(document.documentElement.style.getPropertyValue('--editorAreaWidth')).toBe('');
-    });
+  it('forwards the current zoom to the Rust set_app_zoom command on init', () => {
+    zoomService.init();
+    expect(zoomCalls()).toContainEqual(['set_app_zoom', { scale: 1.0 }]);
   });
 
-  describe('destroy', () => {
-    it('unsubscribes from preferences', () => {
-      mockIsReady.mockReturnValue(true);
-      zoomService.init();
-      vi.clearAllMocks();
+  it('forwards a new zoom value when preferences.zoom changes', () => {
+    zoomService.init();
+    mockInvoke.mockClear();
 
-      zoomService.destroy();
-
-      // After destroy, changing prefs should not trigger setFont
-      preferences.patch({ fontSize: 20 });
-      expect(mockSetFont).not.toHaveBeenCalled();
-    });
+    preferences.patch({ zoom: 1.5 });
+    expect(zoomCalls()).toContainEqual(['set_app_zoom', { scale: 1.5 }]);
   });
 
-  describe('zoom calculations', () => {
-    it('rounds font size correctly', () => {
-      mockIsReady.mockReturnValue(true);
-      preferences.patch({ fontSize: 15, zoom: 1.3 });
-      zoomService.init();
+  it('clamps below MIN_ZOOM (0.5)', () => {
+    zoomService.init();
+    mockInvoke.mockClear();
 
-      // Math.round(15 * 1.3) = Math.round(19.5) = 20
-      expect(mockSetFont).toHaveBeenCalledWith({
-        fontSize: 20,
-        lineHeight: 1.6,
-      });
-    });
+    preferences.patch({ zoom: 0.1 });
+    expect(zoomCalls()).toContainEqual(['set_app_zoom', { scale: 0.5 }]);
+  });
 
-    it('uses default values when prefs are falsy', () => {
-      mockIsReady.mockReturnValue(true);
-      preferences.patch({ fontSize: 0, zoom: 0, lineHeight: 0 });
-      zoomService.init();
+  it('clamps above MAX_ZOOM (2.0)', () => {
+    zoomService.init();
+    mockInvoke.mockClear();
 
-      // Defaults: fontSize=16, zoom=1.0, lineHeight=1.6
-      expect(mockSetFont).toHaveBeenCalledWith({
-        fontSize: 16, // Math.round(16 * 1.0)
-        lineHeight: 1.6,
-      });
-    });
+    preferences.patch({ zoom: 5.0 });
+    expect(zoomCalls()).toContainEqual(['set_app_zoom', { scale: 2.0 }]);
+  });
+
+  it('deduplicates identical zoom values', () => {
+    zoomService.init();
+    mockInvoke.mockClear();
+
+    preferences.patch({ zoom: 1.5 });
+    preferences.patch({ zoom: 1.5 });
+    preferences.patch({ zoom: 1.5 });
+    expect(zoomCalls()).toHaveLength(1);
+  });
+
+  it('stops forwarding after destroy', () => {
+    zoomService.init();
+    zoomService.destroy();
+    mockInvoke.mockClear();
+
+    preferences.patch({ zoom: 1.7 });
+    expect(zoomCalls()).toHaveLength(0);
+  });
+
+  it('does not crash if set_app_zoom rejects', async () => {
+    mockInvoke.mockRejectedValueOnce(new Error('zoom unsupported'));
+    expect(() => zoomService.init()).not.toThrow();
+    await new Promise((r) => setTimeout(r, 0));
   });
 });

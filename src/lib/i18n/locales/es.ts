@@ -33,7 +33,7 @@ const translations: Record<string, string> = {
     placeholder: 'Escribe @ para insertar...', placeholder_heading: 'Título',
     general_startup: 'Inicio', start_up_action: 'Acción al iniciar',
     startup_blank: 'Página en blanco', startup_last_state: 'Último estado', startup_folder: 'Carpeta',
-    zoom_label: 'Zoom', file_sort_by: 'Ordenar archivos por',
+    zoom_label: 'Zoom', zoom_reset_tooltip: 'Clic para restablecer el zoom', file_sort_by: 'Ordenar archivos por',
     sort_modified: 'Fecha de modificación', sort_created: 'Fecha de creación', sort_title: 'Título',
     hide_scrollbar: 'Ocultar barras de desplazamiento', hide_scrollbar_desc: 'Oculta las barras de desplazamiento del editor',
     word_wrap_in_toc: 'Ajuste de línea en TDC', word_wrap_in_toc_desc: 'Activa el ajuste de línea en la tabla de contenidos',

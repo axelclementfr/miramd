@@ -36,6 +36,10 @@
     }
     preferences.patch(patch);
   }
+
+  function resetZoom() {
+    preferences.patch({ zoom: 1.0 });
+  }
 </script>
 
 <footer class="statusbar">
@@ -95,6 +99,15 @@
     >
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
       <span>Split</span>
+    </button>
+    <span class="sep">|</span>
+    <button
+      class="zoom-indicator"
+      class:active={prefs.zoom !== 1.0}
+      onclick={resetZoom}
+      title={tr('zoom_reset_tooltip')}
+    >
+      {Math.round((prefs.zoom ?? 1) * 100)}%
     </button>
     <span class="sep">|</span>
     <button class="theme-toggle" onclick={toggleTheme} title={tr('change_theme')}>
@@ -183,5 +196,29 @@
   .theme-name {
     font-size: 10px;
     opacity: 0.7;
+  }
+
+  .zoom-indicator {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 11px;
+    font-family: var(--font-mono, var(--font-family));
+    padding: 1px 5px;
+    border-radius: 3px;
+    opacity: 0.6;
+    transition: all .12s ease;
+  }
+
+  .zoom-indicator:hover {
+    background: var(--floatHoverColor, var(--bg-hover));
+    color: var(--text-primary);
+    opacity: 1;
+  }
+
+  .zoom-indicator.active {
+    opacity: 1;
+    color: var(--accent);
   }
 </style>

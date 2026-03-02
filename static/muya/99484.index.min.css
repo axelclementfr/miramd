@@ -1,0 +1,13 @@
+/** js sequence diagrams
+ *  https://bramp.github.io/js-sequence-diagrams/
+ *  (c) 2012-2017 Andrew Brampton (bramp.net)
+ *  Simplified BSD license.
+ */
+@font-face {
+    font-family: 'danielbd';
+    src: url(fonts/danielbd.381345e7.woff2) format('woff2'),
+         url(fonts/danielbd.54113dd1.woff) format('woff');
+    font-weight: normal;
+    font-style: normal;
+}
+

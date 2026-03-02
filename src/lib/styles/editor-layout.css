@@ -1,0 +1,109 @@
+/* ===========================================
+   MiraMD Editor Layout Styles
+
+   Shared layout rules for the editor container,
+   panes, and Muya content area overrides.
+   These are imported globally so :global() selectors
+   in component <style> blocks can work without !important.
+   =========================================== */
+
+/* --- Read-only mode global overrides --- */
+
+/* Copy buttons always visible and clickable in read-only */
+.read-only .ag-code-copy,
+.read-only .ag-code-copy * {
+  pointer-events: auto;
+  cursor: pointer;
+  display: block;
+  opacity: 1;
+}
+
+/* Hide ALL editing affordances in read-only */
+.read-only .ag-container-icon,
+.read-only .ag-front-icon,
+.read-only .ag-front-menu,
+.read-only .ag-drag-handler,
+.read-only .ag-table-bar,
+.read-only .ag-tool-bar {
+  display: none !important;
+}
+
+/* Disable all table cell editing in read-only */
+.read-only .ag-cell-content {
+  pointer-events: none;
+}
+
+/* Allow text selection in read-only */
+.read-only .muya-editor {
+  user-select: text;
+  -webkit-user-select: text;
+  cursor: text;
+}
+
+.read-only [contenteditable="false"] {
+  pointer-events: auto;
+  user-select: text;
+  -webkit-user-select: text;
+  cursor: text;
+}
+
+/* Keep lock toggle clickable in read-only */
+.read-only .lock-toggle {
+  pointer-events: auto;
+}
+
+/* --- Muya content area padding --- */
+
+/* Standard mode: centered with max-width */
+.wysiwyg-pane > div[contenteditable],
+#ag-editor-id {
+  padding: 20px clamp(15px, 4vw, 15px) 100px clamp(15px, 4vw, 15px);
+  max-width: var(--editorAreaWidth, 750px);
+  min-width: 0;
+  margin: 0 auto;
+  outline: none;
+}
+
+/* Split mode: full-width with fixed padding */
+.split-active .wysiwyg-pane > div[contenteditable],
+.split-active .wysiwyg-pane > div,
+.split-active #ag-editor-id {
+  max-width: 100%;
+  padding: 20px 50px 100px 50px;
+  margin: 0;
+}
+
+/* --- Muya float menus --- */
+.ag-float-wrapper {
+  z-index: 10000;
+  pointer-events: auto;
+}
+
+.ag-float-wrapper * {
+  pointer-events: auto;
+}
+
+/* Table picker needs more width for the 6x8 grid */
+.ag-table-picker {
+  min-width: 155px;
+}
+
+/* --- Split mode: preview is read-only reflection --- */
+
+/* Hide placeholder "Type @ to insert..." */
+.split-active .wysiwyg-pane .ag-paragraph > span.ag-paragraph-content:empty::after {
+  display: none;
+}
+
+/* Hide editing icons */
+.split-active .wysiwyg-pane .ag-front-icon,
+.split-active .wysiwyg-pane .ag-front-menu,
+.split-active .wysiwyg-pane .ag-drag-handler {
+  display: none;
+}
+
+/* Make preview non-interactive */
+.split-active .wysiwyg-pane {
+  pointer-events: none;
+  user-select: none;
+}

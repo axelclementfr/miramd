@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="fr" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%sveltekit.assets%/favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MiraMD</title>
+    <style>
+      /* Instant dark background on BOTH html and body — no white flash on resize */
+      html, body { margin: 0; padding: 0; background: #282828 !important; color: #e0e0e0; }
+      html[data-theme='light'], html[data-theme='light'] body { background: #fff !important; color: #1e1e1e; }
+      html[data-theme='graphite'], html[data-theme='graphite'] body { background: #f7f7f7 !important; }
+      html[data-theme='ulysses'], html[data-theme='ulysses'] body { background: #f3f3f3 !important; }
+      html[data-theme='material-dark'], html[data-theme='material-dark'] body { background: #34393f !important; }
+      html[data-theme='one-dark'], html[data-theme='one-dark'] body { background: #282c34 !important; }
+    </style>
+    <link rel="stylesheet" href="%sveltekit.assets%/file-icons-scoped.css" />
+    <link rel="stylesheet" href="%sveltekit.assets%/muya/index.min.css" />
+    <link rel="stylesheet" href="%sveltekit.assets%/muya/theme-base.css" />
+    <link rel="stylesheet" href="%sveltekit.assets%/muya/theme-structure.css" />
+    <link id="muya-theme" rel="stylesheet" href="%sveltekit.assets%/muya/theme-dark.css" />
+    <script src="%sveltekit.assets%/muya/index.min.js"></script>
+    <script>
+      // Dynamically switch Muya theme CSS when data-theme changes
+      const themeMap = {
+        'dark': 'theme-dark.css',
+        'light': 'theme-base.css',
+        'one-dark': 'theme-one-dark.css',
+        'graphite': 'theme-graphite.css',
+        'material-dark': 'theme-material-dark.css',
+        'ulysses': 'theme-ulysses.css'
+      };
+      new MutationObserver(() => {
+        const theme = document.documentElement.getAttribute('data-theme') || 'dark';
+        const link = document.getElementById('muya-theme');
+        if (link) link.href = '/muya/' + (themeMap[theme] || 'theme-dark.css');
+      }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    </script>
+    %sveltekit.head%
+  </head>
+  <body data-sveltekit-preload-data="hover">
+    <div style="display: contents">%sveltekit.body%</div>
+  </body>
+</html>

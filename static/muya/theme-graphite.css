@@ -1,0 +1,81 @@
+:root {
+  --themeColor: rgb(104, 134, 170);
+  --themeColor90: rgba(104, 134, 170, .9);
+  --themeColor80: rgba(104, 134, 170, .8);
+  --themeColor70: rgba(104, 134, 170, .7);
+  --themeColor60: rgba(104, 134, 170, .6);
+  --themeColor50: rgba(104, 134, 170, .5);
+  --themeColor40: rgba(104, 134, 170, .4);
+  --themeColor30: rgba(104, 134, 170, .3);
+  --themeColor20: rgba(104, 134, 170, .2);
+  --themeColor10: rgba(104, 134, 170, .1);
+
+  --highlightColor: rgba(104, 134, 170, .4);
+  --selectionColor: rgba(0, 0, 0, .1);
+  --editorColor: rgba(43, 48, 50, .7);
+  --editorColor80: rgba(43, 48, 50, .8);
+  --editorColor60: rgba(43, 48, 50, .6);
+  --editorColor50: rgba(43, 48, 50, .5);
+  --editorColor40: rgba(43, 48, 50, .4);
+  --editorColor30: rgba(150, 150, 150, .8);
+  --editorColor10: rgba(43, 48, 50, .1);
+  --editorColor04: rgba(43, 48, 50, .04);
+  --editorBgColor: #f7f7f7;
+  --deleteColor: #ff6969;
+  --iconColor: rgba(150, 150, 150, .8);
+  --codeBgColor: #d8d8d869;
+  --codeBlockBgColor: rgba(104, 134, 170, .05);
+  --footnoteBgColor: rgba(0, 0, 0, .03);
+  --inputBgColor: rgba(0, 0, 0, .06);
+  --focusColor: var(--themeColor);
+
+  --buttonFontColor: var(--editorColor);
+  --buttonBgColor: #ffffff;
+  --buttonBorder: 1px solid #dcdfe6;
+  --buttonShadow: none;
+  --buttonFontColorHover: var(--buttonFontColor);
+  --buttonBgColorHover: linear-gradient(#fafafa, #f5f5f5);
+  --buttonBorderHover: var(--buttonBorder);
+  --buttonFontColorActive: var(--buttonFontColor);
+  --buttonBgColorActive: #f5f5f5;
+  --buttonBorderActive: var(--buttonBorder);
+  --buttonFocusBorder: 1px solid var(--themeColor);
+
+  --buttonPrimaryFontColor: #ffffff;
+  --buttonPrimaryBgColor: var(--themeColor);
+  --buttonPrimaryBorder: none;
+  --buttonPrimaryShadow: 0 0 8px 0 rgba(0, 0, 0, .1);
+  --buttonPrimaryFontColorHover: var(--buttonPrimaryFontColor);
+  --buttonPrimaryBgColorHover: var(--buttonPrimaryBgColor);
+  --buttonPrimaryBorderHover: var(--buttonPrimaryBorder);
+  --buttonPrimaryFontColorActive: var(--buttonPrimaryFontColor);
+  --buttonPrimaryBgColorActive: var(--buttonPrimaryBgColor);
+  --buttonPrimaryBorderActive: var(--buttonPrimaryBorder);
+  --buttonPrimaryFocusBorder: none;
+  --buttonPrimaryFocusShadow: inset 0 0 0 1px rgba(53, 74, 99, 0.5), 0 0 0 1px var(--themeColor);
+  --tableBorderColor: #e5e5e5;
+
+  --sideBarColor: rgba(188, 193, 197, .8);
+  --sideBarIconColor: rgba(175, 175, 175, .8);
+  --sideBarTitleColor: rgba(255, 255, 255, 1);
+  --sideBarTextColor: rgba(188, 193, 197, .4);
+  --sideBarBgColor: rgba(69, 75, 80, 1);
+  --sideBarItemHoverBgColor: rgba(255, 255, 255, .03);
+  --itemBgColor: rgba(43, 48, 50, .5);
+
+  --floatFontColor: rgba(43, 48, 50, .7);
+  --floatBgColor: rgb(237, 237, 238);
+  --floatHoverColor: rgba(43, 48, 50, .04);
+  --floatBorderColor: rgba(0, 0, 0, .03);
+  --maskColor: rgba(232, 232, 232, .8);
+  --editorAreaWidth: 750px;
+
+  /* structural variables */
+  --scrollbarThumbColor: rgba(0, 0, 0, .15);
+  --scrollbarThumbHoverColor: rgba(0, 0, 0, .25);
+  --titlebarSvgFill: #333333;
+  --titlebarButtonHoverBg: rgba(0, 0, 0, .05);
+  --sideBarBorderColor: transparent;
+  --editorTabsBgColor: #f3f3f3;
+  --editorTabsBorderColor: #dddddd;
+}

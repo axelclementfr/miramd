@@ -55,6 +55,7 @@ pub fn run() {
             preferences::save_preferences,
             get_cli_file,
             debug_log,
+            set_app_zoom,
         ])
         .setup(|app| {
             // Store CLI file path
@@ -163,4 +164,13 @@ fn debug_log(message: &str) {
     log::info!("[WebView] {}", message);
     #[cfg(not(debug_assertions))]
     let _ = message;
+}
+
+/// Set the WebKit-level zoom factor on the main window. Scales everything
+/// (text, icons, paddings, scrollbars, images) responsively, like Ctrl+= in
+/// a browser or webContents.setZoomFactor in Electron.
+/// Note: Tauri devtools have their own zoom, independent of this.
+#[tauri::command]
+fn set_app_zoom(window: tauri::WebviewWindow, scale: f64) -> Result<(), String> {
+    window.set_zoom(scale).map_err(|e| e.to_string())
 }

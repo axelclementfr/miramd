@@ -23,6 +23,7 @@ Légende des statuts :
 | Table des matières (sidebar, sync scroll) | ⚠️ | [`table-des-matieres.md`](table-des-matieres.md) |
 | Recherche dans le document (regex, casse, mot entier) | ✓ | [`recherche.md`](recherche.md) |
 | Modes d'affichage (source, focus, machine à écrire, split, lecture seule) | ⚠️ | [`modes-affichage.md`](modes-affichage.md) |
+| Zoom global responsive (Ctrl+molette, slider, indicateur status bar) + raccourcis heading | ✓ | [`zoom.md`](zoom.md) |
 
 ## Comment lire ces pages
 

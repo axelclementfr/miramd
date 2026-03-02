@@ -37,7 +37,7 @@ Au total, **plus de 60 préférences** sont exposées.
   - `load()` — appelle `invoke('load_preferences')` au démarrage et hydrate le store.
   - `save(prefs)` — remplace tout, persiste sur disque (await).
   - `patch(partial)` — fusionne un patch partiel, persiste **fire-and-forget** (le `.catch()` log seulement, ne notifie pas).
-- `src/lib/services/shortcuts.ts` — bind `Ctrl+,` à l'ouverture du panneau, `Ctrl++/-/0` au zoom (modifie la préférence `zoom`).
+- `src/lib/services/shortcuts.ts` — bind `Ctrl+,` à l'ouverture du panneau. Le zoom n'a plus de raccourci clavier dédié : il se règle via `Ctrl+molette`, le slider Settings, ou l'indicateur de la status bar (cf. [`zoom.md`](zoom.md)). `Ctrl+=`, `Ctrl+-`, `Ctrl+0` sont désormais réassignés aux changements de niveau de heading dans l'éditeur.
 - `src/lib/services/zoom.ts` — applique le zoom à l'éditeur.
 - `src/lib/services/muya.ts` — `applyPreferences(p)` propage tous les réglages d'édition à l'instance [Muya](../01-decouverte/glossaire.md#muya) en cours (taille de police, auto-pairing, options Markdown, etc.).
 

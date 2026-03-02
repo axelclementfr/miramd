@@ -1,6 +1,7 @@
 # Problèmes connus
 
 > Inventaire des bugs et limites identifiés dans MiraMD au 2026-04-29, après analyse profonde du code.
+> Dernière mise à jour : 2026-05-08 (5 entrées ajoutées : TOC clic, zoom système, mode Lecture, typewriter, code blocks bash. Le bug "Slider de zoom système" a été résolu le même jour par la refonte du zoom — voir section "Résolus").
 > Pour chaque entrée : symptôme observable, où ça vit dans le code, hypothèse de cause, piste de fix, et statut.
 > À tenir à jour : marquer comme **résolu** quand un fix est mergé.
 
@@ -48,10 +49,12 @@
 
 ### Table des matières instable / pas toujours fonctionnelle
 
-- **Symptôme** : la TOC affichée dans la sidebar peut sauter des titres, en lister des inexistants, ou ne pas se synchroniser avec le scroll de l'éditeur.
+- **Symptôme** :
+  - La TOC affichée dans la sidebar peut sauter des titres, en lister des inexistants, ou ne pas se synchroniser avec le scroll de l'éditeur.
+  - **Cliquer sur un élément de la TOC ne fait pas naviguer l'éditeur** vers le titre correspondant (le scroll Muya ne bouge pas, ou bouge vers une mauvaise position).
 - **Périmètre** :
   - `src/lib/stores/editor.ts` (extraction TOC via regex sur le markdown brut, debounce 300 ms)
-  - `src/lib/components/sidebar/TocPane.svelte` (affichage)
+  - `src/lib/components/sidebar/TocPane.svelte` (affichage et handler de clic)
   - Lien TOC ↔ scroll Muya
 - **Cause probable** : l'extraction utilise une regex naïve `^(#{1,6})\s+(.+)$` sur le markdown brut. Cas qui cassent :
   - Lignes commençant par `#` à l'intérieur d'un bloc de code triple-backtick.
@@ -59,11 +62,13 @@
   - HTML brut avec des heading comme `<h2>...</h2>`.
   - Texte indenté avec espaces avant le `#`.
   De plus, le debounce 300 ms peut produire des intermédiaires incohérents si l'utilisateur tape vite.
+  Pour le clic sans navigation : `TocPane.svelte` ne semble pas appeler une API Muya (`scrollIntoView` sur l'ancre, ou `muya.jumpToBlock`) — ou alors elle appelle une ancre inexistante car la regex liste un titre que Muya n'a pas.
 - **Piste de fix** :
   - Remplacer la regex par un parsing AST. Deux options :
     a) Réutiliser `comrak` côté backend via une nouvelle commande IPC `extract_headings(markdown) -> Vec<{level, text, line}>`.
     b) Côté frontend, utiliser une lib JS dédiée (`unified` + `remark-parse`) — coût bundle.
-  - Synchroniser la position du clic TOC avec le scroll Muya en utilisant les ancres natives Muya.
+  - Synchroniser la position du clic TOC avec le scroll Muya en utilisant les ancres natives Muya. Inspecter dans `static/muya/` les méthodes `scrollIntoView` / `getAnchor` exposées par l'instance Muya, et appeler depuis `TocPane.svelte` plutôt qu'un scroll manuel via offset DOM.
+  - Ajouter un test d'intégration : "ouvrir un fichier avec 5 H2, cliquer sur le 4ème dans la TOC, vérifier que le scroll de l'éditeur se positionne sur ce H2".
 - **Statut** : ouvert.
 
 ---
@@ -96,6 +101,60 @@
   - Réduire le debounce ou passer à throttle.
   - Test d'intégration pour ce scénario.
 - **Statut** : ouvert.
+
+---
+
+### Mode Lecture (lock) : sélection affiche la toolbar Muya, et marqueurs source visibles
+
+- **Symptôme** : quand `preferences.readOnly = true` (verrou activé via `LockToggle`) :
+  - Sélectionner du texte fait apparaître la toolbar flottante Muya (formatting tools : gras, italique, lien…), alors qu'en lecture seule aucune action d'édition ne devrait être possible — la toolbar devrait être masquée.
+  - Les marqueurs de la vue "Source" restent visibles dans le rendu (astérisques `**` autour du gras, backticks autour de l'inline code, `~~` autour du barré, etc.). Cela parasite la lecture en mode lock, qui devrait afficher un rendu propre style "preview".
+- **Périmètre** :
+  - `src/lib/components/editor/LockToggle.svelte` (toggle `readOnly`)
+  - `src/lib/services/muya.ts` (configuration Muya, options `mutedSelection` / `hideQuickInsertHint` / `bulletListMarker` non exposées en runtime)
+  - `src/lib/components/editor/MuyaPane.svelte` (où `readOnly` devrait être propagé à l'instance Muya)
+  - `static/muya/` — les options `setOptions({ readOnly })` ou équivalent ne semblent pas câblées
+- **Cause probable** : `LockToggle` ne fait que basculer la préférence ; aucun composant ne consomme `preferences.readOnly` pour configurer Muya en mode lecture pure. Muya supporte un mode "preview" (rendu sans marqueurs) via son option de cursor ou via une API `setReadOnly`/`togglePreview`, mais cette API n'est pas appelée. Résultat : le DOM reste éditable, la toolbar de sélection reste active, et les marqueurs (astérisques, etc.) restent affichés.
+- **Piste de fix** :
+  - Identifier dans `static/muya/` l'option d'instance qui désactive l'édition et passe en preview (probablement `muya.setOptions({ readOnly: true })` ou un mode dédié — à vérifier dans le source vendored).
+  - Dans `MuyaPane.svelte`, souscrire à `preferences.readOnly` et appeler l'API correspondante.
+  - Si Muya n'expose pas un vrai mode preview : appliquer en CSS `pointer-events: none` sur l'éditeur + masquer `.ag-tool` (la toolbar flottante) en mode lock, et utiliser une classe `.muya-readonly` qui cache les `.ag-gray` / marqueurs source via les sélecteurs Prism/Muya.
+  - Test manuel : activer le lock, sélectionner du texte → la toolbar ne doit pas apparaître ; vérifier qu'aucun astérisque ne soit visible autour des spans `<strong>`.
+- **Statut** : ouvert, priorité haute (le mode lock ne remplit pas son rôle aujourd'hui).
+
+---
+
+### Mode Typewriter : le centrage ne suit pas après un saut de ligne
+
+- **Symptôme** : en mode typewriter (où la ligne courante doit rester centrée verticalement), appuyer sur Entrée pour créer une nouvelle ligne ne déclenche pas le re-centrage. Le curseur descend visuellement vers le bas de l'écran au lieu de rester au milieu, jusqu'à ce qu'on tape un caractère ou qu'on bouge le curseur autrement.
+- **Périmètre** :
+  - `src/lib/services/typewriterScroller.ts` (logique de centrage)
+  - `src/lib/components/editor/MuyaPane.svelte` (intégration des listeners Muya)
+  - Événements Muya écoutés pour déclencher le re-centrage (`selectionChange`, `contentChange` …)
+- **Cause probable** : le scroller écoute probablement uniquement les événements de **changement de sélection** ou de **frappe de caractère**, mais pas l'insertion d'un block-break (Enter qui crée un nouveau paragraphe). Dans Muya, Enter crée un nouveau bloc et la sélection se déplace, mais l'événement émis peut être un `block-create` plutôt qu'un `selectionChange`, ou bien le `selectionChange` est émis avant que le DOM du nouveau bloc soit positionné — donc le calcul du `top` cible est fait sur l'ancienne géométrie.
+- **Piste de fix** :
+  - Logger dans `typewriterScroller.ts` chaque événement reçu et la position calculée, reproduire sur 5 sauts de ligne et observer la divergence.
+  - S'abonner aussi à un événement de type `content-change` ou utiliser un `MutationObserver` sur le container Muya pour déclencher le re-centrage après un layout commit.
+  - Wrapper le calcul de position dans un `requestAnimationFrame` (voire double rAF) pour s'assurer que le DOM est à jour avant de mesurer.
+- **Statut** : ouvert.
+
+---
+
+### Code blocks bash : police et style trop accentués vs autres langages
+
+- **Symptôme** : les blocs de code identifiés comme `bash` (ou `sh`, `shell`) sont rendus avec une police différente et des effets visuels (gras, couleurs très saturées, possibles backgrounds spécifiques) plus marqués que les autres blocs de code (`js`, `python`, etc.). Visuellement parasite et incohérent. L'objectif : **garder une coloration spécifique au bash** (ex. couleur dédiée pour les commandes/options) **mais aligner la police, la taille et l'intensité** sur les autres blocs.
+- **Périmètre** :
+  - `src/lib/muya/dist/index.min.css` (CSS bundlé Muya — contient les classes Prism `.token.*` et les sélecteurs spécifiques `language-bash`)
+  - `src/lib/muya/themes/default.css` (overrides de thème)
+  - `src/lib/muya/lib/assets/styles/index.css` (source non minifiée — éditable plus facilement)
+  - Plus généralement les sélecteurs Prism `code[class*="language-bash"]` ou `.token.builtin` propres au tokenizer bash
+- **Cause probable** : le tokenizer Prism pour bash classe certains tokens (`function`, `builtin`, `keyword`) avec des styles agressifs (`font-weight: bold`, couleurs très saturées) qui ne sont pas neutralisés par le thème par défaut de Muya. Pour les autres langages, soit le tokenizer Prism produit moins de tokens "agressifs", soit le thème par défaut a déjà des règles qui les calment — mais bash passe au travers.
+- **Piste de fix** :
+  - Inspecter dans le navigateur le DOM d'un bloc `bash` vs un bloc `js` : identifier les classes `.token.*` spécifiques au bash et les règles CSS qui les ciblent.
+  - Ajouter dans `src/lib/styles/themes.css` ou un fichier dédié des overrides : `code[class*="language-bash"] .token { font-weight: normal; font-family: var(--font-monospace); font-size: inherit; }`, puis ne re-définir que les couleurs voulues.
+  - Vérifier que le fix n'altère pas les autres langages.
+  - Documenter le choix dans `docs/05-fonctionnalites/themes.md` ou équivalent.
+- **Statut** : ouvert, priorité basse (cosmétique).
 
 ---
 
@@ -178,6 +237,17 @@ Ces points ne sont pas des bugs à fixer mais des choix documentés.
 - **I/O Rust synchrone** : `read_file`, `write_file`, `list_directory_entries` sont synchrones. Acceptable pour des fichiers usuels, peut bloquer sur des cas extrêmes (fichier 50 MB, dossier 10 000 entrées).
 - **Pas de virtualisation** dans `TabBar` et `FileTreePane` : tous les éléments rendus dans le DOM. Pas de problème pour l'usage courant.
 - **Muya vendored sans sync upstream** : les fixes du repo MarkText/Muya doivent être rapatriés manuellement.
+
+---
+
+## Résolus
+
+### Slider de zoom système : pas de "preview puis commit" comme les autres réglages
+
+- **Résolu le** : 2026-05-08 (refonte complète du zoom, voir [`docs/superpowers/specs/2026-05-08-zoom-redesign-design.md`](../superpowers/specs/2026-05-08-zoom-redesign-design.md) et [`docs/05-fonctionnalites/zoom.md`](../05-fonctionnalites/zoom.md)).
+- **Symptôme initial** : le slider de zoom dans Settings appliquait/persistait la valeur dès le moindre mouvement (`oninput`), alors que les autres sliders (font size, line height, line width) commitaient au relâchement (`onchange`). Pattern incohérent.
+- **Cause** : `bind:value={prefs.zoom} oninput={applyPrefs}` dans `src/lib/components/settings/GeneralSection.svelte:66`, alors que les autres sliders utilisent `onchange`.
+- **Fix** : `oninput` → `onchange` sur le slider zoom. La refonte plus large a aussi remplacé le mécanisme sous-jacent : le zoom n'est plus un multiplicateur de `fontSize` appliqué via une CSS variable, mais le vrai zoom WebKit natif appelé via une nouvelle commande Tauri `set_app_zoom`. Voir la spec et la doc liées pour le détail.
 
 ---
 

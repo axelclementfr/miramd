@@ -19,8 +19,9 @@
   import { setLanguage, t, type TranslationKey } from '$lib/i18n/index';
   import { openFileDialog, saveCurrentFile, closeTabWithConfirm, openFileFromPath, getCurrentTabId, getCurrentTab } from '$lib/services/fileOperations';
   import { showToast } from '$lib/stores/toast';
-  import { setupKeyboardShortcuts, zoomIn, zoomOut, resetZoom } from '$lib/services/shortcuts';
+  import { setupKeyboardShortcuts } from '$lib/services/shortcuts';
   import { startAutoSave } from '$lib/services/autoSave';
+  import { initAppZoomWheel } from '$lib/services/appZoomWheel';
   import { initWindow } from '$lib/services/windowInit';
   import { SIDEBAR_WIDTH, MIN_WIDTH, MIN_HEIGHT, THEME_BG_MAP, DEFAULT_BG } from '$lib/constants';
   import '$lib/styles/global.css';
@@ -57,8 +58,7 @@
       document.documentElement.setAttribute('data-theme', p.theme);
       document.documentElement.setAttribute('lang', p.language);
       setLanguage(p.language);
-      // Apply editor preferences as CSS variables
-      document.documentElement.style.setProperty('--font-size', `${Math.round((p.fontSize || 16) * (p.zoom || 1.0))}px`);
+      // Apply editor preferences as CSS variables (font-size is no longer dynamic — it's a static :root value scaled by app zoom instead)
       document.documentElement.style.setProperty('--line-height', `${p.lineHeight}`);
       document.documentElement.style.setProperty('--font-family', p.fontFamily);
       // Sync background color to prevent white flash on resize (WebKitGTK issue)
@@ -102,12 +102,12 @@
       closeTab: async () => { const id = getCurrentTabId(); if (id) await closeTabWithConfirm(id, tr); },
       toggleSidebar,
       openSettings: () => { settingsOpen = true; },
-      zoomIn,
-      zoomOut,
-      resetZoom,
       isSettingsOpen: () => settingsOpen,
     });
     unsubs.push(removeShortcuts);
+
+    // Ctrl+wheel → app zoom (fine increments). Listener stays on window.
+    unsubs.push(initAppZoomWheel());
   });
 
   onDestroy(() => {

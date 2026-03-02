@@ -33,7 +33,7 @@ const translations: Record<string, string> = {
     placeholder: '@を入力して挿入...', placeholder_heading: '見出し',
     general_startup: '起動', start_up_action: '起動時のアクション',
     startup_blank: '空白ページ', startup_last_state: '前回の状態', startup_folder: 'フォルダ',
-    zoom_label: 'ズーム', file_sort_by: 'ファイルの並び順',
+    zoom_label: 'ズーム', zoom_reset_tooltip: 'クリックしてズームをリセット', file_sort_by: 'ファイルの並び順',
     sort_modified: '更新日', sort_created: '作成日', sort_title: 'タイトル',
     hide_scrollbar: 'スクロールバーを非表示', hide_scrollbar_desc: 'エディタのスクロールバーを非表示にします',
     word_wrap_in_toc: '目次での折り返し', word_wrap_in_toc_desc: '目次で折り返しを有効にします',

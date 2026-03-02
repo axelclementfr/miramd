@@ -43,7 +43,7 @@ const translations = {
     // New general settings
     general_startup: 'Démarrage', start_up_action: 'Action au démarrage',
     startup_blank: 'Page vide', startup_last_state: 'Dernier état', startup_folder: 'Dossier',
-    zoom_label: 'Zoom', file_sort_by: 'Trier les fichiers par',
+    zoom_label: 'Zoom', zoom_reset_tooltip: 'Cliquer pour réinitialiser le zoom', file_sort_by: 'Trier les fichiers par',
     sort_modified: 'Date de modification', sort_created: 'Date de création', sort_title: 'Titre',
     hide_scrollbar: 'Masquer les barres de défilement', hide_scrollbar_desc: 'Masque les barres de défilement de l\'éditeur',
     word_wrap_in_toc: 'Retour à la ligne dans la TDM', word_wrap_in_toc_desc: 'Active le retour à la ligne dans la table des matières',

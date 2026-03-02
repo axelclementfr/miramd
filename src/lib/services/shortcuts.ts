@@ -1,7 +1,3 @@
-import { get } from 'svelte/store';
-import { preferences } from '$lib/stores/preferences';
-import { MAX_ZOOM, MIN_ZOOM, ZOOM_STEP, DEFAULT_ZOOM } from '$lib/constants';
-
 export interface ShortcutHandlers {
   newFile: () => void;
   openFile: () => Promise<void>;
@@ -9,15 +5,14 @@ export interface ShortcutHandlers {
   closeTab: () => Promise<void>;
   toggleSidebar: () => void;
   openSettings: () => void;
-  zoomIn: () => void;
-  zoomOut: () => void;
-  resetZoom: () => void;
   isSettingsOpen: () => boolean;
 }
 
 /**
  * Sets up global keyboard shortcuts (Ctrl+N, Ctrl+O, Ctrl+S, etc.).
- * Editor shortcuts (Ctrl+Z, Ctrl+A) are handled in MuyaPane directly.
+ * Editor shortcuts (Ctrl+Z, Ctrl+A, Ctrl+=/-/0 for headings) are handled
+ * in MuyaPane directly. App zoom is driven by Ctrl+wheel + slider + status
+ * bar, not keyboard.
  * Returns an unsubscribe function to remove the listener.
  */
 export function setupKeyboardShortcuts(handlers: ShortcutHandlers): () => void {
@@ -51,35 +46,9 @@ export function setupKeyboardShortcuts(handlers: ShortcutHandlers): () => void {
     } else if (mod && e.key === ',') {
       e.preventDefault();
       handlers.openSettings();
-    } else if (mod && (e.key === '=' || e.key === '+')) {
-      e.preventDefault();
-      handlers.zoomIn();
-    } else if (mod && e.key === '-') {
-      e.preventDefault();
-      handlers.zoomOut();
-    } else if (mod && e.key === '0') {
-      e.preventDefault();
-      handlers.resetZoom();
     }
   }
 
   window.addEventListener('keydown', handleKeydown);
   return () => window.removeEventListener('keydown', handleKeydown);
-}
-
-/** Zoom in by one step, clamped to MAX_ZOOM */
-export function zoomIn(): void {
-  const p = get(preferences);
-  preferences.patch({ zoom: Math.min(MAX_ZOOM, Math.round((p.zoom + ZOOM_STEP) * 10) / 10) });
-}
-
-/** Zoom out by one step, clamped to MIN_ZOOM */
-export function zoomOut(): void {
-  const p = get(preferences);
-  preferences.patch({ zoom: Math.max(MIN_ZOOM, Math.round((p.zoom - ZOOM_STEP) * 10) / 10) });
-}
-
-/** Reset zoom to default (1.0) */
-export function resetZoom(): void {
-  preferences.patch({ zoom: DEFAULT_ZOOM });
 }

@@ -19,8 +19,11 @@ export const MAX_ZOOM = 2.0;
 /** Minimum zoom level */
 export const MIN_ZOOM = 0.5;
 
-/** Zoom step increment */
+/** Zoom step increment for slider and discrete commands */
 export const ZOOM_STEP = 0.1;
+
+/** Finer zoom step for Ctrl+wheel — smoother feel */
+export const ZOOM_STEP_WHEEL = 0.05;
 
 /** Default zoom level */
 export const DEFAULT_ZOOM = 1.0;

@@ -29,7 +29,7 @@ const translations: Record<string, string> = {
     placeholder: '输入 @ 插入...', placeholder_heading: '标题',
     general_startup: '启动', start_up_action: '启动时操作',
     startup_blank: '空白页', startup_last_state: '上次状态', startup_folder: '文件夹',
-    zoom_label: '缩放', file_sort_by: '文件排序方式',
+    zoom_label: '缩放', zoom_reset_tooltip: '点击重置缩放', file_sort_by: '文件排序方式',
     sort_modified: '修改日期', sort_created: '创建日期', sort_title: '标题',
     hide_scrollbar: '隐藏滚动条', hide_scrollbar_desc: '隐藏编辑器滚动条',
     word_wrap_in_toc: '目录自动换行', word_wrap_in_toc_desc: '在目录中启用自动换行',

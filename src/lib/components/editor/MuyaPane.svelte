@@ -8,6 +8,7 @@
   import { editorModes } from '$lib/services/editorModes';
   import { updateStats } from '$lib/services/stats';
   import { zoomService } from '$lib/services/zoom';
+  import { fontSizeService } from '$lib/services/fontSize';
   import { lineNumbersService } from '$lib/services/lineNumbers';
   import { historyCache } from '$lib/services/historyCache';
   import { initTypewriterScroller } from '$lib/services/typewriterScroller';
@@ -34,8 +35,9 @@
     // Suppress change events during initial load
     setTimeout(() => { loadingTab = false; }, 50);
 
-    // Initialize zoom and line numbers services
+    // Initialize zoom (app-wide WebKit zoom), editor font size, and line numbers
     zoomService.init();
+    fontSizeService.init();
     lineNumbersService.init(paneElement);
 
     // Editor keyboard shortcuts — capture phase to intercept before WebKitGTK.
@@ -64,6 +66,18 @@
         e.preventDefault();
         e.stopPropagation();
         muyaService.selectAll();
+      } else if (e.key === '=' || e.key === '+') {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        muyaService.shiftHeadingUp();
+      } else if (e.key === '-') {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        muyaService.shiftHeadingDown();
+      } else if (e.key === '0') {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        muyaService.resetToParagraph();
       }
     };
     paneElement.addEventListener('keydown', editorKeydown, true);
@@ -169,6 +183,7 @@
   onDestroy(() => {
     unsubs.forEach((u) => u());
     zoomService.destroy();
+    fontSizeService.destroy();
     lineNumbersService.destroy();
     muyaService.destroy();
   });

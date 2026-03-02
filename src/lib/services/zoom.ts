@@ -1,42 +1,40 @@
+import { invoke } from '@tauri-apps/api/core';
 import { preferences } from '$lib/stores/preferences';
-import { muyaService } from './muya';
+import { MIN_ZOOM, MAX_ZOOM, DEFAULT_ZOOM } from '$lib/constants';
 
 /**
- * Zoom service — scales Muya editor font size based on preferences.zoom.
- * Uses Muya's setFont() API, NOT CSS zoom (which breaks WebKitGTK layout).
- * Singleton with init/destroy lifecycle.
+ * App zoom service — controls the WebKit-level zoom factor of the entire
+ * window via Tauri's WebviewWindow::set_zoom. Independent of editor font size.
+ *
+ * Source of truth: preferences.zoom. This service subscribes and forwards
+ * every change to the Rust backend, which calls webkit_web_view_set_zoom_level
+ * under the hood. Effect: text, icons, paddings, scrollbars and images all
+ * scale uniformly — same behavior as Ctrl+= in a browser.
  */
 class ZoomService {
   private unsub: (() => void) | null = null;
+  private lastApplied: number | null = null;
 
-  /** Subscribes to preferences and applies zoom/font changes to the Muya editor. */
   init(): void {
     this.unsub = preferences.subscribe((p) => {
-      const baseSize = p.fontSize || 16;
-      const zoom = p.zoom || 1.0;
-      const lineHeight = p.lineHeight || 1.6;
-
-      if (muyaService.isReady()) {
-        muyaService.setFont({
-          fontSize: Math.round(baseSize * zoom),
-          lineHeight,
-        });
-      }
-
-      // Also apply editorLineWidth as CSS variable
-      if (p.editorLineWidth) {
-        document.documentElement.style.setProperty('--editorAreaWidth', p.editorLineWidth);
-      } else {
-        document.documentElement.style.removeProperty('--editorAreaWidth');
-      }
+      const scale = clamp(p.zoom ?? DEFAULT_ZOOM);
+      if (scale === this.lastApplied) return;
+      this.lastApplied = scale;
+      invoke('set_app_zoom', { scale }).catch((e) => {
+        console.warn('[zoom] set_app_zoom failed:', e);
+      });
     });
   }
 
-  /** Unsubscribes from preferences updates. */
   destroy(): void {
     this.unsub?.();
     this.unsub = null;
+    this.lastApplied = null;
   }
+}
+
+function clamp(scale: number): number {
+  return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, scale));
 }
 
 export const zoomService = new ZoomService();

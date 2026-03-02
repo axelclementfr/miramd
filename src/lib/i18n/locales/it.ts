@@ -33,7 +33,7 @@ const translations: Record<string, string> = {
     placeholder: 'Digita @ per inserire...', placeholder_heading: 'Titolo',
     general_startup: 'Avvio', start_up_action: 'Azione all\'avvio',
     startup_blank: 'Pagina vuota', startup_last_state: 'Ultimo stato', startup_folder: 'Cartella',
-    zoom_label: 'Zoom', file_sort_by: 'Ordina file per',
+    zoom_label: 'Zoom', zoom_reset_tooltip: 'Clicca per ripristinare lo zoom', file_sort_by: 'Ordina file per',
     sort_modified: 'Data di modifica', sort_created: 'Data di creazione', sort_title: 'Titolo',
     hide_scrollbar: 'Nascondi barre di scorrimento', hide_scrollbar_desc: 'Nasconde le barre di scorrimento dell\'editor',
     word_wrap_in_toc: 'A capo nell\'indice', word_wrap_in_toc_desc: 'Attiva l\'a capo nell\'indice',

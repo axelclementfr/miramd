@@ -1,0 +1,48 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "MiraMD",
+  "version": "0.1.0",
+  "identifier": "com.axel.miramd",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../build"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "MiraMD",
+        "width": 1200,
+        "height": 800,
+        "minWidth": 480,
+        "minHeight": 555,
+        "decorations": false,
+        "resizable": true,
+        "backgroundColor": [40, 40, 40, 255]
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' asset: https: data:; font-src 'self' data:; connect-src 'self'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "category": "Utility",
+    "shortDescription": "A minimal, elegant Markdown editor",
+    "fileAssociations": [
+      {
+        "ext": ["md", "markdown", "mmd", "mdx", "mkd"],
+        "mimeType": "text/markdown"
+      }
+    ]
+  }
+}

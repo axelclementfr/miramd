@@ -1,0 +1,18 @@
+/*!*********************************************************************************************************************************************************************************************************!*\
+  !*** css ./node_modules/css-loader/dist/cjs.js??ruleSet[1].rules[2].use[1]!./node_modules/postcss-loader/dist/cjs.js??ruleSet[1].rules[2].use[2]!./src/lib/muya/lib/assets/styles/sequence-diagram.css ***!
+  \*********************************************************************************************************************************************************************************************************/
+/** js sequence diagrams
+ *  https://bramp.github.io/js-sequence-diagrams/
+ *  (c) 2012-2017 Andrew Brampton (bramp.net)
+ *  Simplified BSD license.
+ */
+@font-face {
+    font-family: 'danielbd';
+    src: url(fonts/danielbd.381345e7.woff2) format('woff2'),
+         url(fonts/danielbd.54113dd1.woff) format('woff');
+    font-weight: normal;
+    font-style: normal;
+}
+
+
+/*# sourceMappingURL=src_lib_muya_lib_parser_render_sequence_js.index.min.css.map*/

@@ -1,0 +1,269 @@
+/* ===========================================
+   MiraMD Themes — Exact MarkText color values
+   =========================================== */
+
+/* ---- Light (MarkText default — green accent) ---- */
+:root[data-theme='light'] {
+  --themeColor: rgba(33, 181, 111, 1);
+  --highlightColor: rgba(33, 181, 111, .4);
+  --selectionColor: rgba(0, 0, 0, .1);
+
+  --bg-primary: #ffffff;
+  --bg-secondary: rgba(242, 242, 242, 0.9);
+  --bg-sidebar: rgba(242, 242, 242, 0.9);
+  --bg-sidebar-icons: rgba(230, 230, 230, 0.9);
+  --bg-tab: #ffffff;
+  --bg-tab-active: rgba(255, 255, 255, 0.6);
+  --bg-hover: rgba(0, 0, 0, .03);
+  --text-primary: rgba(0, 0, 0, .7);
+  --text-secondary: rgba(0, 0, 0, .5);
+  --text-muted: rgba(0, 0, 0, .3);
+  --border: #e5e5e5;
+  --accent: rgba(33, 181, 111, 1);
+  --accent-hover: rgba(33, 181, 111, 0.8);
+  --danger: #ff6969;
+  --success: #21b56f;
+  --warning: #ff8800;
+  --scrollbar-thumb: rgba(0, 0, 0, .1);
+
+  --iconColor: #6B737B;
+  --sideBarColor: rgba(0, 0, 0, .6);
+  --sideBarTitleColor: rgba(0, 0, 0, 1);
+  --sideBarTextColor: rgba(0, 0, 0, .4);
+  --sideBarItemHoverBgColor: rgba(0, 0, 0, .03);
+  --itemBgColor: rgba(255, 255, 255, 0.6);
+
+  --floatBgColor: #fff;
+  --floatHoverColor: rgba(0, 0, 0, .04);
+  --floatBorderColor: rgba(0, 0, 0, .1);
+  --floatShadow: rgba(15, 15, 15, 0.03) 0px 0px 0px 1px, rgba(15, 15, 15, 0.04) 0px 3px 6px, rgba(15, 15, 15, 0.05) 0px 9px 24px;
+
+  --codeBgColor: #d8d8d869;
+  --codeBlockBgColor: rgba(0, 0, 0, 0.03);
+  --inputBgColor: rgba(0, 0, 0, .06);
+}
+
+/* ---- Dark (MarkText — blue accent) ---- */
+:root[data-theme='dark'] {
+  --themeColor: #409eff;
+  --highlightColor: rgba(102, 177, 255, .6);
+  --selectionColor: rgba(102, 177, 255, .3);
+
+  --bg-primary: #282828;
+  --bg-secondary: #1e1e1e;
+  --bg-sidebar: #1e1e1e;
+  --bg-sidebar-icons: #191919;
+  --bg-tab: #282828;
+  --bg-tab-active: #282828;
+  --bg-hover: rgba(255, 255, 255, .03);
+  --text-primary: rgba(255, 255, 255, .7);
+  --text-secondary: rgba(255, 255, 255, .5);
+  --text-muted: rgba(255, 255, 255, .3);
+  --border: #1d1d1d;
+  --accent: #409eff;
+  --accent-hover: #5aabff;
+  --danger: #ff6969;
+  --success: #67c23a;
+  --warning: #ff8800;
+  --scrollbar-thumb: rgba(255, 255, 255, .1);
+
+  --iconColor: rgba(255, 255, 255, .56);
+  --sideBarColor: rgba(255, 255, 255, .6);
+  --sideBarTitleColor: rgba(255, 255, 255, .8);
+  --sideBarTextColor: rgba(255, 255, 255, .4);
+  --sideBarItemHoverBgColor: rgba(255, 255, 255, .03);
+  --itemBgColor: #3f3f3f;
+
+  --floatBgColor: #3f3f3f;
+  --floatHoverColor: rgba(255, 255, 255, .04);
+  --floatBorderColor: rgba(0, 0, 0, .05);
+  --floatShadow: rgba(0, 0, 0, 0.2);
+
+  --codeBgColor: #424344;
+  --codeBlockBgColor: #424344;
+  --inputBgColor: #2f3336;
+}
+
+/* ---- One Dark (Atom-inspired — blue accent) ---- */
+:root[data-theme='one-dark'] {
+  --themeColor: rgba(77, 120, 204, 1);
+  --highlightColor: #ffffff10;
+  --highlightThemeColor: #e2c08d;
+  --selectionColor: #67769660;
+
+  --bg-primary: #282c34;
+  --bg-secondary: #21252b;
+  --bg-sidebar: #21252b;
+  --bg-sidebar-icons: #1b1e24;
+  --bg-tab: #282c34;
+  --bg-tab-active: #282c34;
+  --bg-hover: #3a3f4b;
+  --text-primary: #9da5b4;
+  --text-secondary: rgba(157, 165, 180, .6);
+  --text-muted: rgba(157, 165, 180, .3);
+  --border: #181a1f;
+  --accent: #4D78CC;
+  --accent-hover: #6b93db;
+  --danger: #ff6969;
+  --success: #98c379;
+  --warning: #e2c08d;
+  --scrollbar-thumb: #414956;
+
+  --iconColor: rgba(215, 218, 224, .6);
+  --sideBarColor: #9da5b4;
+  --sideBarTitleColor: #9da5b4;
+  --sideBarTextColor: #9da5b4;
+  --sideBarItemHoverBgColor: #3a3f4b;
+  --itemBgColor: #21252b;
+
+  --floatBgColor: #21252b;
+  --floatHoverColor: #3a3f4b;
+  --floatBorderColor: #181a1f;
+  --floatShadow: rgba(0, 0, 0, 0.3);
+
+  --codeBgColor: #3a3f4b;
+  --codeBlockBgColor: #3a3f4b;
+  --inputBgColor: #1b1d23;
+}
+
+/* ---- Graphite (Light editor with dark sidebar) ---- */
+:root[data-theme='graphite'] {
+  --themeColor: rgb(104, 134, 170);
+  --highlightColor: rgba(104, 134, 170, .4);
+  --selectionColor: rgba(0, 0, 0, .1);
+
+  --bg-primary: #f7f7f7;
+  --bg-secondary: #f3f3f3;
+  --bg-sidebar: rgba(69, 75, 80, 1);
+  --bg-sidebar-icons: rgba(57, 62, 67, 1);
+  --bg-tab: transparent;
+  --bg-tab-active: rgb(237, 237, 238);
+  --bg-hover: rgba(0, 0, 0, .04);
+  --text-primary: rgba(43, 48, 50, .7);
+  --text-secondary: rgba(43, 48, 50, .5);
+  --text-muted: rgba(43, 48, 50, .3);
+  --border: #dddddd;
+  --accent: #6886AA;
+  --accent-hover: #5a7899;
+  --danger: #ff6969;
+  --success: #5cb85c;
+  --warning: #f0ad4e;
+  --scrollbar-thumb: rgba(43, 48, 50, .1);
+
+  --iconColor: rgba(175, 175, 175, .8);
+  --sideBarColor: rgba(188, 193, 197, .8);
+  --sideBarTitleColor: rgba(255, 255, 255, 1);
+  --sideBarTextColor: rgba(188, 193, 197, .4);
+  --sideBarItemHoverBgColor: rgba(255, 255, 255, .03);
+  --itemBgColor: rgba(43, 48, 50, .5);
+
+  --floatBgColor: rgb(237, 237, 238);
+  --floatHoverColor: rgba(43, 48, 50, .04);
+  --floatBorderColor: rgba(0, 0, 0, .03);
+
+  --codeBgColor: #d8d8d869;
+  --codeBlockBgColor: rgba(104, 134, 170, .05);
+  --inputBgColor: rgba(0, 0, 0, .06);
+}
+
+/* Graphite: dark sidebar needs light text */
+:root[data-theme='graphite'] .sidebar,
+:root[data-theme='graphite'] .sidebar-icons {
+  --text-primary: #e0e0e0;
+  --text-secondary: rgba(188, 193, 197, .8);
+  --text-muted: rgba(175, 175, 175, .8);
+  --bg-hover: rgba(255, 255, 255, .06);
+  --border: rgba(255, 255, 255, .08);
+  color: #e0e0e0;
+}
+
+:root[data-theme='graphite'] .sidebar .search-input,
+:root[data-theme='graphite'] .sidebar .panel-header {
+  color: #e0e0e0;
+}
+
+:root[data-theme='graphite'] .sidebar .search-input {
+  background: rgba(57, 62, 67, 1);
+  border-color: rgba(255, 255, 255, .08);
+}
+
+/* ---- Material Dark (Orange accent) ---- */
+:root[data-theme='material-dark'] {
+  --themeColor: #f48237;
+  --highlightColor: rgba(244, 130, 55, .4);
+  --selectionColor: rgba(255, 255, 255, .2);
+
+  --bg-primary: #34393f;
+  --bg-secondary: rgba(26, 33, 41, 0.9);
+  --bg-sidebar: rgba(26, 33, 41, 0.9);
+  --bg-sidebar-icons: rgba(20, 26, 33, 0.9);
+  --bg-tab: transparent;
+  --bg-tab-active: #3c4650;
+  --bg-hover: rgba(255, 255, 255, .04);
+  --text-primary: rgba(171, 178, 191, .8);
+  --text-secondary: rgba(171, 178, 191, .6);
+  --text-muted: rgba(171, 178, 191, .3);
+  --border: #383d44;
+  --accent: #f48237;
+  --accent-hover: #f5914f;
+  --danger: #ff6969;
+  --success: #66bb6a;
+  --warning: #ffa726;
+  --scrollbar-thumb: rgba(171, 178, 191, .15);
+
+  --iconColor: rgba(255, 255, 255, .56);
+  --sideBarColor: rgba(255, 255, 255, .6);
+  --sideBarTitleColor: rgba(255, 255, 255, 1);
+  --sideBarTextColor: rgba(255, 255, 255, .4);
+  --sideBarItemHoverBgColor: rgba(255, 255, 255, .03);
+  --itemBgColor: rgba(71, 78, 86, 0.6);
+
+  --floatBgColor: #3c4650;
+  --floatHoverColor: rgba(255, 255, 255, .04);
+  --floatBorderColor: rgba(0, 0, 0, .03);
+  --floatShadow: rgba(0, 0, 0, 0.2);
+
+  --codeBgColor: #d8d8d869;
+  --codeBlockBgColor: #3f454c;
+  --inputBgColor: rgba(0, 0, 0, .1);
+}
+
+/* ---- Ulysses (Clean light, teal accent) ---- */
+:root[data-theme='ulysses'] {
+  --themeColor: rgb(12, 139, 186);
+  --highlightColor: rgba(12, 139, 186, .4);
+  --selectionColor: rgba(0, 0, 0, .1);
+
+  --bg-primary: #f3f3f3;
+  --bg-secondary: rgba(248, 248, 248, 0.9);
+  --bg-sidebar: rgba(248, 248, 248, 0.9);
+  --bg-sidebar-icons: rgba(239, 239, 239, 0.9);
+  --bg-tab: #f3f3f3;
+  --bg-tab-active: rgba(245, 245, 245, 0.6);
+  --bg-hover: rgba(101, 101, 101, .04);
+  --text-primary: rgba(101, 101, 101, .7);
+  --text-secondary: rgba(101, 101, 101, .5);
+  --text-muted: rgba(101, 101, 101, .3);
+  --border: #e5e5e5;
+  --accent: #0C8BBA;
+  --accent-hover: #0a7aa5;
+  --danger: #ff6969;
+  --success: #388e3c;
+  --warning: #f9a825;
+  --scrollbar-thumb: rgba(101, 101, 101, .15);
+
+  --iconColor: rgba(101, 101, 101, .8);
+  --sideBarColor: rgba(101, 101, 101, .6);
+  --sideBarTitleColor: rgba(101, 101, 101, 1);
+  --sideBarTextColor: rgba(101, 101, 101, .4);
+  --sideBarItemHoverBgColor: rgba(101, 101, 101, .03);
+  --itemBgColor: rgba(245, 245, 245, 0.6);
+
+  --floatBgColor: #ffffff;
+  --floatHoverColor: rgba(101, 101, 101, .04);
+  --floatBorderColor: rgba(0, 0, 0, .03);
+
+  --codeBgColor: #d8d8d869;
+  --codeBlockBgColor: rgba(12, 139, 186, .05);
+  --inputBgColor: rgba(0, 0, 0, .06);
+}

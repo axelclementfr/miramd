@@ -1,0 +1,231 @@
+/*
+ * theme-structure.css
+ * Unified structural overrides for ALL themes.
+ * Only CSS variables should change between themes — this file provides
+ * the identical structural look (borders, shadows, scrollbars, code blocks,
+ * tabs, sidebar, task lists, hr) using those variables.
+ *
+ * Reference: material-dark theme.
+ */
+
+/* --- Scrollbar ------------------------------------------------- */
+
+::-webkit-scrollbar,
+::-webkit-scrollbar-corner {
+  background: var(--editorBgColor);
+}
+::-webkit-scrollbar:vertical {
+  width: 10px;
+}
+::-webkit-scrollbar:vertical:hover {
+  width: 12px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbarThumbColor, rgba(0, 0, 0, .15));
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbarThumbHoverColor, rgba(0, 0, 0, .25));
+}
+
+/* --- Float menus / wrappers ------------------------------------ */
+
+.ag-front-menu .submenu,
+.ag-float-wrapper {
+  box-shadow: 0 4px 8px 0 var(--floatShadow) !important;
+}
+
+/* --- Titlebar -------------------------------------------------- */
+
+.title-bar .frameless-titlebar-button > div > svg {
+  fill: var(--titlebarSvgFill, #333333);
+}
+.title-bar .frameless-titlebar-minimize:hover,
+.title-bar .frameless-titlebar-toggle:hover {
+  background-color: var(--titlebarButtonHoverBg, rgba(0, 0, 0, .05));
+}
+
+/* --- Sidebar --------------------------------------------------- */
+
+.side-bar {
+  border-right: 1px solid var(--sideBarBorderColor, transparent) !important;
+}
+
+/* --- Recent files / open project ------------------------------- */
+
+.recent-files-projects a,
+.open-project a {
+  box-shadow: none !important;
+}
+
+.open-project button,
+.recent-files-projects button {
+  box-shadow: none !important;
+}
+
+/* --- Editor tabs ----------------------------------------------- */
+
+.editor-tabs {
+  background: var(--editorTabsBgColor, none) !important;
+  box-shadow: none !important;
+}
+.editor-tabs:after {
+  position: absolute;
+  content: '';
+  border-bottom: 1px solid var(--editorTabsBorderColor, transparent);
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1;
+}
+.editor-tabs ul.tabs-container:after {
+  position: absolute;
+  content: '';
+  border-bottom: 1px solid var(--editorTabsBorderColor, transparent);
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+}
+.title-bar-editor-bg.tabs-visible {
+  background: var(--editorTabsBgColor, none) !important;
+}
+
+.tabs-container > li {
+  background: none !important;
+}
+.tabs-container > li.active {
+  background: var(--floatBgColor) !important;
+}
+
+/* --- Code blocks ----------------------------------------------- */
+
+:not(pre) > code[class*="language-"],
+pre:not(.CodeMirror-line),
+pre[class*="language-"],
+pre.ag-paragraph {
+  background: var(--codeBlockBgColor) !important;
+  border: none !important;
+}
+
+/* --- Container block preview ----------------------------------- */
+
+figure.ag-active.ag-container-block > div.ag-container-preview {
+  box-shadow: 0 3px 8px 0 var(--floatShadow) !important;
+}
+
+/* --- Horizontal rule ------------------------------------------- */
+
+p:not(.ag-active)[data-role="hr"]::before {
+  border-top: 2px dashed var(--editorColor10) !important;
+  background: none !important;
+}
+
+/* --- Task list checkboxes -------------------------------------- */
+
+li.ag-task-list-item {
+  list-style-type: none;
+  position: relative;
+}
+li.ag-task-list-item > input[type=checkbox] {
+  position: absolute;
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+  top: .1em;
+  transform: rotate(-90deg);
+  margin: 0;
+  left: -24px;
+  transform-origin: center;
+  transition: all .2s ease;
+}
+li.ag-task-list-item > input.ag-checkbox-checked {
+  transform: rotate(0);
+  opacity: .6;
+}
+li.ag-task-list-item > input[type=checkbox]::before {
+  content: '';
+  width: 16px;
+  height: 16px;
+  box-sizing: border-box;
+  display: inline-block;
+  border: 2px solid var(--editorColor);
+  border-radius: 2px;
+  background-color: var(--editorBgColor);
+  position: absolute;
+  top: 0;
+  left: 0;
+  transition: all .2s ease;
+}
+li.ag-task-list-item > input.ag-checkbox-checked::before {
+  border: transparent;
+  background-color: var(--editorColor);
+}
+li.ag-task-list-item > input::after {
+  content: '';
+  transform: rotate(-45deg) scale(0);
+  width: 9px;
+  height: 5px;
+  border: 2px solid #fff;
+  border-top: none;
+  border-right: none;
+  position: absolute;
+  display: inline-block;
+  top: 1px;
+  left: 5px;
+  transition: all .2s ease;
+}
+li.ag-task-list-item > input.ag-checkbox-checked::after {
+  transform: rotate(-45deg) scale(1);
+}
+
+/* --- List paragraph color -------------------------------------- */
+
+li.ag-paragraph {
+  color: var(--editorColor);
+}
+
+/* --- SVG illustration tinting per theme -------------------------
+   Illustrations are tinted to match the sidebar background color
+   of each theme for visual harmony. -------------------------------- */
+
+.empty-illustration,
+.welcome-illustration,
+.empty-search-svg {
+  opacity: 0.6;
+}
+
+:root[data-theme="dark"] .empty-illustration,
+:root[data-theme="dark"] .welcome-illustration,
+:root[data-theme="dark"] .empty-search-svg {
+  filter: brightness(0.5) saturate(0.3);
+}
+
+:root[data-theme="one-dark"] .empty-illustration,
+:root[data-theme="one-dark"] .welcome-illustration,
+:root[data-theme="one-dark"] .empty-search-svg {
+  filter: brightness(0.5) saturate(0.4) hue-rotate(200deg);
+}
+
+:root[data-theme="material-dark"] .empty-illustration,
+:root[data-theme="material-dark"] .welcome-illustration,
+:root[data-theme="material-dark"] .empty-search-svg {
+  filter: brightness(0.6) saturate(0.5) sepia(0.3);
+}
+
+:root[data-theme="graphite"] .empty-illustration,
+:root[data-theme="graphite"] .welcome-illustration,
+:root[data-theme="graphite"] .empty-search-svg {
+  filter: brightness(0.8) saturate(0.4) hue-rotate(190deg);
+}
+
+:root[data-theme="ulysses"] .empty-illustration,
+:root[data-theme="ulysses"] .welcome-illustration,
+:root[data-theme="ulysses"] .empty-search-svg {
+  filter: brightness(0.9) saturate(0.5) hue-rotate(170deg);
+}
+
+:root[data-theme="light"] .empty-illustration,
+:root[data-theme="light"] .welcome-illustration,
+:root[data-theme="light"] .empty-search-svg {
+  filter: brightness(1.0) saturate(0.4);
+}

@@ -1,0 +1,77 @@
+{
+  "name": "miramd",
+  "version": "0.1.0",
+  "description": "",
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+    "tauri": "tauri",
+    "lint": "biome check src/",
+    "lint:fix": "biome check --write src/",
+    "format": "biome format --write src/",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,js}": [
+      "biome check --write --no-errors-on-unmatched"
+    ],
+    "*.rs": [
+      "cargo fmt --check"
+    ]
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@marktext/file-icons": "^1.0.6",
+    "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-dialog": "^2.6.0",
+    "@tauri-apps/plugin-fs": "^2.4.5",
+    "@tauri-apps/plugin-opener": "^2",
+    "dompurify": "^3.3.3",
+    "dragula": "^3.7.3",
+    "element-resize-detector": "^1.2.4",
+    "execall": "^3.0.0",
+    "flowchart.js": "^1.18.0",
+    "fuzzaldrin": "^2.1.0",
+    "github-markdown-css": "^5.9.0",
+    "html-tags": "^3.2.0",
+    "joplin-turndown-plugin-gfm": "^1.0.12",
+    "katex": "^0.16.40",
+    "mermaid": "^11.13.0",
+    "popper.js": "^1.16.1",
+    "prismjs": "^1.30.0",
+    "snabbdom": "^3.6.3",
+    "snabbdom-to-html": "^7.1.0",
+    "turndown": "^7.2.2",
+    "underscore": "^1.13.8",
+    "unsplash-js": "^7.0.20",
+    "vega": "^6.2.0",
+    "vega-embed": "^7.1.0",
+    "vega-lite": "^6.4.2",
+    "webfontloader": "^1.6.28"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.0.0",
+    "@sveltejs/adapter-static": "^3.0.6",
+    "@sveltejs/kit": "^2.9.0",
+    "@sveltejs/vite-plugin-svelte": "^5.0.0",
+    "@tauri-apps/cli": "^2",
+    "@testing-library/svelte": "^5.3.1",
+    "@vitest/coverage-v8": "^4.1.0",
+    "jsdom": "^29.0.1",
+    "path-browserify": "^1.0.1",
+    "svelte": "^5.0.0",
+    "svelte-check": "^4.0.0",
+    "husky": "^9.1.0",
+    "lint-staged": "^15.4.0",
+    "typescript": "~5.6.2",
+    "vite": "^6.0.3",
+    "vitest": "^4.1.0"
+  }
+}

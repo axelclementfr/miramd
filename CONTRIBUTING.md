@@ -80,6 +80,17 @@ Tests live in the `tests/` directory:
 4. Fill out the PR template.
 5. Wait for review -- a maintainer will review your changes.
 
+## Documentation
+
+MiraMD has a comprehensive documentation in [`docs/`](docs/) covering architecture, features, technical choices, and known issues — ~45 files in 6 numbered subfolders.
+
+**Before contributing**, read at least:
+- [`docs/04-architecture/vue-densemble.md`](docs/04-architecture/vue-densemble.md) — the mental model
+- [`docs/06-references/audit.md`](docs/06-references/audit.md) — what works, what doesn't, what's the dette
+- [`docs/06-references/problemes-connus.md`](docs/06-references/problemes-connus.md) — known bugs to avoid duplicating reports
+
+**When you contribute code, update the relevant doc files.** See [`CLAUDE.md`](CLAUDE.md) § *Documentation Maintenance Policy* for the mapping (which doc to update for which type of change). The same rules apply whether you're a human contributor or using an AI agent.
+
 ## Note on Muya
 
-The Muya editor bundle lives in `static/muya/` as a pre-built UMD file. You do not need to rebuild it during development or in CI.
+The Muya editor bundle lives in `static/muya/` as a pre-built UMD file. You do not need to rebuild it during development or in CI. For details on how Muya is integrated, see [`docs/04-architecture/integration-muya.md`](docs/04-architecture/integration-muya.md).

@@ -1,0 +1,97 @@
+# Modes d'affichage
+
+MiraMD propose plusieurs **modes d'affichage** qui changent la façon dont l'éditeur se présente : voir le code Markdown brut, atténuer ce qui n'est pas le paragraphe courant, garder le curseur centré verticalement, afficher source et preview côte à côte, ou verrouiller l'édition.
+
+## Vue utilisateur
+
+Cinq modes, indépendants ou combinables selon les compatibilités.
+
+**Mode source.**
+
+- Affiche le Markdown brut (avec toutes les balises `**`, `# `, `- `, etc.) dans un textarea simple, à la place du rendu [WYSIWYG](edition-wysiwyg.md).
+- Activable depuis les [préférences](preferences.md) → section "Vue", ou via un bouton dans l'interface (à vérifier).
+- En entrant en mode source, MiraMD reprend le contenu courant de [Muya](../01-decouverte/glossaire.md#muya), normalise les lignes vides, et l'affiche dans le textarea. En sortant, le contenu modifié est repoussé vers Muya.
+- Entrer en mode source désactive automatiquement les modes **focus** et **machine à écrire** (incompatibles).
+
+**Mode focus.**
+
+- Atténue visuellement (réduction d'opacité) tous les paragraphes **sauf celui où se trouve le curseur**. Aide à la concentration sur le passage en cours d'écriture.
+- Activable depuis les préférences → section "Vue".
+- Géré par Muya en interne (option `focusMode: true` passée à l'instance).
+
+**Mode machine à écrire (typewriter).**
+
+- Garde le curseur **vertical centré** au milieu de l'écran. Quand tu tapes, le texte défile vers le haut au lieu de descendre vers le bas. C'est l'effet "rouleau" d'une machine à écrire.
+- Activable depuis les préférences → section "Vue".
+- Implémenté côté MiraMD (pas de Muya) avec un *throttle* à 50 ms pour éviter les ralentissements lors de la frappe rapide.
+
+**Vue scindée (split).**
+
+- Disponible uniquement quand le mode source est actif.
+- Affiche le textarea source à gauche **et** le rendu Muya à droite, en parallèle. Tu écris dans la source, tu vois le rendu en preview.
+- Le pane Muya est en mode lecture seule pendant le split (le contenteditable est désactivé).
+- La sync source → preview passe par un debounce 400 ms.
+
+**Mode lecture seule.**
+
+- Verrouille toute édition. Le curseur reste mais aucune frappe n'est acceptée (sauf navigation et copie).
+- Activable via le toggle cadenas (composant `LockToggle.svelte`) ou via les préférences.
+- Bloque les événements `keydown`, `beforeinput`, `paste` au niveau document avec une whitelist : Ctrl+C, Ctrl+A, Ctrl+B (réservé pour la sidebar), Ctrl+,, et toutes les flèches / Page Up/Down / Home / End sont autorisés.
+
+## Implémentation
+
+La machine à états des modes est centralisée dans un service dédié, qui dérive son état des [préférences](preferences.md) et expose des toggles cohérents.
+
+**Composants Svelte concernés** :
+
+- `src/lib/components/editor/EditorContainer.svelte` — orchestre l'affichage des deux panes (source et WYSIWYG) selon le mode courant.
+- `src/lib/components/editor/MuyaPane.svelte` — pane WYSIWYG, met à jour son attribut `contenteditable` selon les modes (en split + source actif → désactivé). Initialise le typewriter scroller.
+- `src/lib/components/editor/SourcePane.svelte` — le textarea source, debounce 400 ms vers Muya.
+- `src/lib/components/editor/LockToggle.svelte` — l'icône cadenas pour activer/désactiver la lecture seule.
+- `src/lib/components/settings/ViewSection.svelte` — la section "Vue" des préférences, où on toggle tous les modes.
+
+**Services concernés** :
+
+- `src/lib/services/editorModes.ts` — la **machine à états**. Singleton qui :
+  - Expose un store `state` dérivé des préférences (`readOnly`, `sourceCode`, `splitView`, `focusMode`, `typewriterMode`).
+  - Expose un store `sourceContent` qui est la source de vérité du textarea source.
+  - Fournit les toggles `toggleReadOnly`, `toggleSource`, `toggleSplit`, `toggleFocus`, `toggleTypewriter`.
+  - Gère la transition entrée/sortie du mode source (récupère contenu Muya → normalize → affiche, et inversement).
+  - Installe les handlers `keydown` / `beforeinput` / `paste` en capture phase pour le mode lecture seule.
+  - Propage les changements de préférences à Muya via `MuyaService.applyPreferences(p)`.
+- `src/lib/services/typewriterScroller.ts` — gestion du mode machine à écrire.
+  - `initTypewriterScroller(getPaneElement, isEnabled)` retourne une liste de cleanups.
+  - Throttle 50 ms : si un scroll est déjà programmé, ignore les events suivants.
+  - Calcule la position du curseur via `window.getSelection().getRangeAt(0).getBoundingClientRect()`, calcule l'offset par rapport au centre du pane, applique `scrollBy({ top: offset, behavior: 'smooth' })`.
+  - Branche aussi sur `keyup` et `mouseup` pour rattraper les événements que `selectionChange` ne capture pas toujours.
+
+**Backend Rust impliqué** : aucun directement. Les modes sont des préférences, persistées via `save_preferences` (cf. [`preferences.md`](preferences.md)).
+
+**Stores impactés** :
+
+- `preferences` — chaque mode a son champ booléen (`sourceCodeMode`, `splitView`, `focusMode`, `typewriterMode`, `readOnly`).
+- `editorModes.state` — store dérivé qui expose une vue aplatie des cinq modes.
+- `editorModes.sourceContent` — le contenu courant du textarea source.
+
+**Comment les modes interagissent** :
+
+- Source ⇒ désactive automatiquement Focus et Typewriter (incompatibles).
+- Split ⇒ exige que Source soit actif. Le pane Muya bascule en lecture seule.
+- ReadOnly est indépendant : il peut être combiné avec n'importe quel autre mode (sauf source qui désactive l'édition de toute façon).
+
+## Pièges connus
+
+- **Désynchronisation source ↔ WYSIWYG en mode split** ⚠️ : le textarea source est non contrôlé pour permettre une frappe fluide ; sa propagation vers Muya passe par un debounce 400 ms. Pendant cette fenêtre, les deux panes peuvent diverger si tu tapes très vite ou si tu changes de pane. Voir [`problemes-connus.md#désynchronisation-source--wysiwyg-en-mode-split`](../06-references/problemes-connus.md#désynchronisation-source--wysiwyg-en-mode-split).
+
+- **Pas de bouton clairement identifié pour basculer en mode source dans toutes les vues** : à vérifier visuellement. Le toggle existe dans la section "Vue" des préférences ; un raccourci direct (Ctrl+/) n'est pas implémenté dans `services/shortcuts.ts` à la lecture du code.
+
+- **Mode lecture seule + sidebar Ctrl+B** : la whitelist des touches autorisées en read-only laisse passer Ctrl+B (volontairement, pour permettre le toggle sidebar quand l'éditeur n'est pas focus). Mais cela peut produire un comportement contre-intuitif si l'utilisateur s'attendait à ce que tout raccourci soit bloqué.
+
+- **Throttle typewriter** : 50 ms. Sur une machine très lente, le scroll peut sauter une frappe (rare, mais possible).
+
+## Pour aller plus loin
+
+- [`04-architecture/vue-densemble.md`](../04-architecture/vue-densemble.md) — modèle des trois couches, où vit `editorModes` dans la couche de services frontend.
+- [`preferences.md`](preferences.md) — comment les modes sont persistés et synchronisés.
+- [`edition-wysiwyg.md`](edition-wysiwyg.md) — la couche d'édition par défaut dont les modes sont des variantes.
+- [`onglets-et-historique.md`](onglets-et-historique.md) — au tab switch, certains modes (focus, typewriter) sont préservés ; le mode source rebascule sur le contenu du nouvel onglet.

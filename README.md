@@ -22,6 +22,17 @@ MarkText est un excellent éditeur Markdown, mais il repose sur Electron 18 (fin
 
 ---
 
+## Documentation
+
+La documentation détaillée se trouve dans [`docs/`](docs/), organisée en 6 dossiers numérotés pour une lecture progressive.
+
+- **Tu découvres MiraMD** → commence par [`docs/01-decouverte/`](docs/01-decouverte/) puis avance dans l'ordre.
+- **Tu veux contribuer ou comprendre le code** → [`docs/04-architecture/`](docs/04-architecture/) et [`docs/05-fonctionnalites/`](docs/05-fonctionnalites/).
+- **Tu veux juger l'état du projet** → [`docs/06-references/audit.md`](docs/06-references/audit.md) (audit complet) et [`docs/06-references/problemes-connus.md`](docs/06-references/problemes-connus.md) (bugs identifiés).
+- **Un terme te paraît obscur** → [`docs/01-decouverte/glossaire.md`](docs/01-decouverte/glossaire.md).
+
+---
+
 ## Fonctionnalités
 
 ### Édition Markdown WYSIWYG
@@ -99,28 +110,17 @@ Saisie utilisateur → Muya (WYSIWYG) → MuyaService → Stores Svelte → IPC 
 
 ---
 
-## Installation (Ubuntu/Debian)
+## Installation
 
-### Depuis les sources
+Instructions complètes (Linux, macOS, Windows, build from source) : [`docs/01-decouverte/installation.md`](docs/01-decouverte/installation.md).
+
+Quick start Ubuntu/Debian depuis les sources :
 
 ```bash
-# Prérequis: Rust (stable), Node.js (v20+), dépendances Tauri
 cd MiraMD
 npm install
 npm run tauri build
 sudo dpkg -i src-tauri/target/release/bundle/deb/MiraMD_0.1.0_amd64.deb
-```
-
-### Définir comme application par défaut pour les .md
-
-```bash
-xdg-mime default MiraMD.desktop text/markdown
-```
-
-### Désinstallation
-
-```bash
-sudo dpkg -r miramd
 ```
 
 ---

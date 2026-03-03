@@ -8,12 +8,14 @@
   let stats: DocumentStats = $state({ words: 0, chars: 0, lines: 0, paragraphs: 0 });
   let prefs: Preferences = $state({} as Preferences);
   let tr: (key: TranslationKey) => string = $state((k: TranslationKey) => k);
+  let activeTabReadOnly: boolean = $state(false);
 
   let unsubs: (() => void)[] = [];
 
   onMount(() => {
     unsubs.push(editor.stats.subscribe((s) => (stats = s)));
     unsubs.push(preferences.subscribe((p) => (prefs = { ...p })));
+    unsubs.push(editor.activeTab.subscribe((tab) => (activeTabReadOnly = !!tab?.readOnly)));
     unsubs.push(t.subscribe((fn) => (tr = fn)));
   });
 
@@ -53,16 +55,16 @@
   <div class="statusbar-right">
     <button
       class="mode-btn"
-      class:active={prefs.readOnly}
-      onclick={() => preferences.patch({ readOnly: !prefs.readOnly })}
+      class:active={activeTabReadOnly}
+      onclick={() => editor.toggleActiveTabReadOnly()}
       title={tr('read_only_tooltip')}
     >
-      {#if prefs.readOnly}
+      {#if activeTabReadOnly}
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
       {:else}
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
       {/if}
-      <span>{prefs.readOnly ? tr('read_only') : tr('edit_mode')}</span>
+      <span>{activeTabReadOnly ? tr('read_only') : tr('edit_mode')}</span>
     </button>
     <button
       class="mode-btn"

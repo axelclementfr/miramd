@@ -23,12 +23,12 @@
     unsubs.push(preferences.subscribe((p) => {
       sourceCodeMode = p.sourceCodeMode;
       splitView = p.splitView;
-      readOnly = p.readOnly;
     }));
 
-    // Show loading briefly on initial mount and tab switch
+    // Show loading briefly on initial mount and tab switch ; per-tab readOnly
     let prevTabId: string | null = null;
     unsubs.push(editorStore.activeTab.subscribe((tab) => {
+      readOnly = !!tab?.readOnly;
       if (tab && tab.id !== prevTabId) {
         loading = true;
         prevTabId = tab.id;

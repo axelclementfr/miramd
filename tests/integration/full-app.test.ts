@@ -117,13 +117,12 @@ describe('Preferences — all settings', () => {
   });
 
   it('view modes toggle independently', () => {
-    preferences.patch({ readOnly: true, sourceCodeMode: false, focusMode: true, typewriterMode: false, splitView: false });
+    preferences.patch({ sourceCodeMode: false, focusMode: true, typewriterMode: false, splitView: false });
     const p = get(preferences);
-    expect(p.readOnly).toBe(true);
     expect(p.sourceCodeMode).toBe(false);
     expect(p.focusMode).toBe(true);
     expect(p.typewriterMode).toBe(false);
-    preferences.patch({ readOnly: false, focusMode: false });
+    preferences.patch({ focusMode: false });
   });
 
   it('interface toggles', () => {

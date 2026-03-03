@@ -13,7 +13,6 @@ describe('Preferences Store', () => {
     expect(p.theme).toBe('dark');
     expect(p.fontSize).toBe(16);
     expect(p.lineHeight).toBe(1.6);
-    expect(p.readOnly).toBe(false);
     expect(p.zoom).toBe(1.0);
     expect(p.editorLineNumbers).toBe(false);
     expect(p.codeBlockLineNumbers).toBe(true);
@@ -24,11 +23,6 @@ describe('Preferences Store', () => {
     const p = get(preferences);
     expect(p.fontSize).toBe(20);
     expect(p.theme).toBe('dark'); // unchanged
-  });
-
-  it('readOnly defaults to false', () => {
-    const p = get(preferences);
-    expect(p.readOnly).toBe(false);
   });
 
   it('has valid default language', () => {

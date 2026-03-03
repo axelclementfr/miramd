@@ -14,8 +14,7 @@ export interface Preferences {
   language: string;
   sidebarVisible: boolean;
   recentFiles: string[];
-  // View modes
-  readOnly: boolean;
+  // View modes (readOnly is per-tab, on the Tab type, not here)
   sourceCodeMode: boolean;
   focusMode: boolean;
   typewriterMode: boolean;
@@ -74,7 +73,6 @@ const defaults: Preferences = {
   language: 'en',
   sidebarVisible: false,
   recentFiles: [],
-  readOnly: false,
   sourceCodeMode: false,
   focusMode: false,
   typewriterMode: false,

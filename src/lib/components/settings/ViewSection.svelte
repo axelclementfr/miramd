@@ -13,7 +13,6 @@
 
 <div class="setting-group">
   <h3>{tr('display_modes')}</h3>
-  <div class="setting-row toggle-row"><div><span class="setting-label">{tr('read_only')}</span><p class="setting-desc">{tr('read_only_desc')}</p></div><label class="toggle"><input type="checkbox" bind:checked={prefs.readOnly} onchange={applyPrefs} /><span class="toggle-slider"></span></label></div>
   <div class="setting-row toggle-row"><div><span class="setting-label">{tr('source_code_mode')}</span><p class="setting-desc">{tr('source_code_desc')}</p></div><label class="toggle"><input type="checkbox" bind:checked={prefs.sourceCodeMode} onchange={applyPrefs} /><span class="toggle-slider"></span></label></div>
   <div class="setting-row toggle-row"><div><span class="setting-label">{tr('focus_mode')}</span><p class="setting-desc">{tr('focus_desc')}</p></div><label class="toggle"><input type="checkbox" bind:checked={prefs.focusMode} onchange={applyPrefs} /><span class="toggle-slider"></span></label></div>
   <div class="setting-row toggle-row"><div><span class="setting-label">{tr('typewriter_mode')}</span><p class="setting-desc">{tr('typewriter_desc')}</p></div><label class="toggle"><input type="checkbox" bind:checked={prefs.typewriterMode} onchange={applyPrefs} /><span class="toggle-slider"></span></label></div>

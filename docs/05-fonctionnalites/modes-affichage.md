@@ -32,11 +32,12 @@ Cinq modes, indépendants ou combinables selon les compatibilités.
 - Le pane Muya est en mode lecture seule pendant le split (le contenteditable est désactivé).
 - La sync source → preview passe par un debounce 400 ms.
 
-**Mode lecture seule.**
+**Mode lecture seule (par onglet).**
 
-- Verrouille toute édition. Le curseur reste mais aucune frappe n'est acceptée (sauf navigation et copie).
-- Activable via le toggle cadenas (composant `LockToggle.svelte`) ou via les préférences.
-- Bloque les événements `keydown`, `beforeinput`, `paste` au niveau document avec une whitelist : Ctrl+C, Ctrl+A, Ctrl+B (réservé pour la sidebar), Ctrl+,, et toutes les flèches / Page Up/Down / Home / End sont autorisés.
+- Verrouille toute édition. Aucune frappe n'est acceptée (sauf navigation et copie). Le curseur Muya est retiré et les marqueurs source (`**`, ` `` `, `#`) restent invisibles, donnant un rendu propre style preview.
+- **Per-tab** : chaque onglet a son propre état de verrou. Tu peux travailler sur l'onglet A sans modifier l'onglet B verrouillé, et vice versa. L'état n'est **pas persisté** : au prochain démarrage, tous les onglets repartent éditables.
+- Activable via le toggle cadenas (composant `LockToggle.svelte`, coin haut-gauche du pane Muya) ou via le bouton "Édition / Lecture seule" de la status bar — les deux contrôlent l'onglet actif.
+- Implémentation : classe CSS `.muya-readonly` sur `<body>` qui cache `.ag-float-wrapper` (toolbar Muya) et `.ag-remove` (markers) ; intercept des événements `keydown`/`beforeinput`/`paste` avec whitelist Ctrl+C, Ctrl+A, Ctrl+B (sidebar), Ctrl+,, et flèches / Page Up/Down / Home / End.
 
 ## Implémentation
 
@@ -53,11 +54,12 @@ La machine à états des modes est centralisée dans un service dédié, qui dé
 **Services concernés** :
 
 - `src/lib/services/editorModes.ts` — la **machine à états**. Singleton qui :
-  - Expose un store `state` dérivé des préférences (`readOnly`, `sourceCode`, `splitView`, `focusMode`, `typewriterMode`).
+  - Expose un store `state` dérivé qui combine `preferences` (sourceCodeMode, splitView, focusMode, typewriterMode) **et** `editor.activeTab.readOnly` (per-tab).
   - Expose un store `sourceContent` qui est la source de vérité du textarea source.
-  - Fournit les toggles `toggleReadOnly`, `toggleSource`, `toggleSplit`, `toggleFocus`, `toggleTypewriter`.
+  - Fournit les toggles `toggleReadOnly` (sur l'onglet actif), `toggleSource`, `toggleSplit`, `toggleFocus`, `toggleTypewriter`.
   - Gère la transition entrée/sortie du mode source (récupère contenu Muya → normalize → affiche, et inversement).
-  - Installe les handlers `keydown` / `beforeinput` / `paste` en capture phase pour le mode lecture seule.
+  - Installe les handlers `keydown` / `beforeinput` / `paste` en capture phase pour le mode lecture seule (lit `editor.activeTab?.readOnly`).
+  - Toggle la classe `.muya-readonly` sur `<body>` quand l'onglet actif change ou quand son état readOnly change.
   - Propage les changements de préférences à Muya via `MuyaService.applyPreferences(p)`.
 - `src/lib/services/typewriterScroller.ts` — gestion du mode machine à écrire.
   - `initTypewriterScroller(getPaneElement, isEnabled)` retourne une liste de cleanups.
@@ -69,7 +71,8 @@ La machine à états des modes est centralisée dans un service dédié, qui dé
 
 **Stores impactés** :
 
-- `preferences` — chaque mode a son champ booléen (`sourceCodeMode`, `splitView`, `focusMode`, `typewriterMode`, `readOnly`).
+- `preferences` — modes globaux : `sourceCodeMode`, `splitView`, `focusMode`, `typewriterMode`. ReadOnly **n'est plus là** depuis 2026-05-08 — il vit sur le `Tab` (cf. ci-dessous).
+- `editor.tabs[*].readOnly` — état booléen par onglet, session-only.
 - `editorModes.state` — store dérivé qui expose une vue aplatie des cinq modes.
 - `editorModes.sourceContent` — le contenu courant du textarea source.
 

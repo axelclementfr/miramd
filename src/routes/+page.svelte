@@ -3,6 +3,7 @@
   import { slide } from 'svelte/transition';
   import { invoke } from '@tauri-apps/api/core';
   import { listen } from '@tauri-apps/api/event';
+  import { getCurrentWebview } from '@tauri-apps/api/webview';
   import { open } from '@tauri-apps/plugin-dialog';
   import { get } from 'svelte/store';
   import Sidebar from '$lib/components/sidebar/Sidebar.svelte';
@@ -91,6 +92,17 @@
     // Listen for files opened from 2nd instance (single-instance plugin)
     const unlistenOpenFile = await listen<string>('open-file', (event) => openFileFromPath(event.payload, tr));
     unsubs.push(unlistenOpenFile);
+
+    // Drag-and-drop: open .md files dropped onto the window
+    const unlistenDragDrop = await getCurrentWebview().onDragDropEvent(async (event) => {
+      if (event.payload.type !== 'drop') return;
+      for (const path of event.payload.paths) {
+        if (/\.(md|markdown|mmd|mdx|mkd)$/i.test(path)) {
+          await openFileFromPath(path, tr);
+        }
+      }
+    });
+    unsubs.push(unlistenDragDrop);
 
     unsubs.push(t.subscribe((fn) => (tr = fn)));
 

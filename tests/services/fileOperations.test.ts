@@ -31,7 +31,7 @@ vi.mock('$lib/stores/toast', () => ({
 }));
 
 const { editor } = await import('$lib/stores/editor');
-const { openFileDialog, saveCurrentFile, closeTabWithConfirm, openFileFromPath } = await import('$lib/services/fileOperations');
+const { openFileDialog, saveCurrentFile, closeTabWithConfirm, openFileFromPath, isMarkdownPath, openDroppedMarkdownFiles } = await import('$lib/services/fileOperations');
 const { muyaService } = await import('$lib/services/muya');
 const { showToast } = await import('$lib/stores/toast');
 
@@ -249,6 +249,57 @@ describe('fileOperations', () => {
       await openFileFromPath('/nonexistent.md', tr);
 
       expect(showToast).toHaveBeenCalledWith('error_open_file', 'error');
+    });
+  });
+
+  describe('isMarkdownPath', () => {
+    it.each([
+      ['/foo/bar.md', true],
+      ['/foo/bar.MARKDOWN', true],
+      ['/foo/bar.mmd', true],
+      ['/foo/bar.mdx', true],
+      ['/foo/bar.mkd', true],
+      ['/foo/bar.MD', true],
+      ['/foo/bar.txt', false],
+      ['/foo/bar', false],
+      ['/foo/bar.markdown.bak', false],
+      ['', false],
+    ])('isMarkdownPath(%j) === %j', (path, expected) => {
+      expect(isMarkdownPath(path)).toBe(expected);
+    });
+  });
+
+  describe('openDroppedMarkdownFiles', () => {
+    it('opens every markdown path and skips others — drag-and-drop regression guard', async () => {
+      mockInvoke.mockImplementation(async (_cmd, args: { path: string }) => ({
+        path: args.path,
+        name: args.path.split('/').pop()!,
+        content: '',
+        size: 0,
+      }));
+
+      const opened = await openDroppedMarkdownFiles(
+        ['/a.md', '/b.txt', '/c.markdown', '/d', '/e.MDX'],
+        tr,
+      );
+
+      expect(opened).toBe(3);
+      expect(mockInvoke).toHaveBeenCalledWith('read_file', { path: '/a.md' });
+      expect(mockInvoke).toHaveBeenCalledWith('read_file', { path: '/c.markdown' });
+      expect(mockInvoke).toHaveBeenCalledWith('read_file', { path: '/e.MDX' });
+      expect(mockInvoke).not.toHaveBeenCalledWith('read_file', { path: '/b.txt' });
+      expect(mockInvoke).not.toHaveBeenCalledWith('read_file', { path: '/d' });
+    });
+
+    it('returns 0 when no path is markdown', async () => {
+      const opened = await openDroppedMarkdownFiles(['/a.txt', '/b.png'], tr);
+      expect(opened).toBe(0);
+      expect(mockInvoke).not.toHaveBeenCalled();
+    });
+
+    it('returns 0 on empty input', async () => {
+      const opened = await openDroppedMarkdownFiles([], tr);
+      expect(opened).toBe(0);
     });
   });
 });

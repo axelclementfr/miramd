@@ -102,6 +102,31 @@ export async function closeTabWithConfirm(id: string, tr: (k: TranslationKey) =>
   editor.closeTab(id);
 }
 
+/** Recognized markdown extensions, in lower case. */
+export const MARKDOWN_EXTENSIONS = ['md', 'markdown', 'mmd', 'mdx', 'mkd'] as const;
+
+const MARKDOWN_EXTENSION_RE = new RegExp(`\\.(${MARKDOWN_EXTENSIONS.join('|')})$`, 'i');
+
+/** Returns true if the path ends with one of the recognized markdown extensions. */
+export function isMarkdownPath(path: string): boolean {
+  return MARKDOWN_EXTENSION_RE.test(path);
+}
+
+/**
+ * Opens each markdown file from a list of paths (e.g., from a drag-and-drop
+ * drop event). Non-markdown paths are silently skipped. Returns the count of
+ * files actually opened.
+ */
+export async function openDroppedMarkdownFiles(paths: string[], tr: (k: TranslationKey) => string): Promise<number> {
+  let opened = 0;
+  for (const path of paths) {
+    if (!isMarkdownPath(path)) continue;
+    await openFileFromPath(path, tr);
+    opened += 1;
+  }
+  return opened;
+}
+
 /** Opens a file from a known filesystem path and adds it as a tab. */
 export async function openFileFromPath(path: string, tr: (k: TranslationKey) => string) {
   try {

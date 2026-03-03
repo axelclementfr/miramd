@@ -110,6 +110,18 @@ function createEditorStore() {
     return get(tabs).some((tab) => tab.isModified);
   }
 
+  /** Sets a tab's read-only flag. Session-only state. */
+  function setTabReadOnly(id: string, readOnly: boolean) {
+    tabs.update((t) => t.map((tab) => (tab.id === id ? { ...tab, readOnly } : tab)));
+  }
+
+  /** Toggles the active tab's read-only flag. No-op if no active tab. */
+  function toggleActiveTabReadOnly() {
+    const id = get(activeTabId);
+    if (!id) return;
+    tabs.update((t) => t.map((tab) => (tab.id === id ? { ...tab, readOnly: !tab.readOnly } : tab)));
+  }
+
   return {
     tabs,
     activeTabId,
@@ -121,6 +133,8 @@ function createEditorStore() {
     updateContent,
     markSaved,
     hasUnsavedChanges,
+    setTabReadOnly,
+    toggleActiveTabReadOnly,
   };
 }
 

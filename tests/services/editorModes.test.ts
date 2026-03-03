@@ -18,52 +18,86 @@ vi.mock('$lib/services/muya', () => ({
 }));
 
 const { preferences } = await import('$lib/stores/preferences');
+const { editor } = await import('$lib/stores/editor');
 const { editorModes } = await import('$lib/services/editorModes');
 
 describe('EditorModes', () => {
   beforeEach(() => {
     // Reset preferences to defaults
     preferences.patch({
-      readOnly: false,
       sourceCodeMode: false,
       splitView: false,
       focusMode: false,
       typewriterMode: false,
     });
+    // Reset tabs and add a fresh active one (readOnly is per-tab now)
+    const allTabs = get(editor.tabs);
+    for (const t of allTabs) editor.closeTab(t.id);
+    editor.addTab(null, 'test.md', 'hello');
   });
 
   describe('toggleReadOnly', () => {
-    it('toggles readOnly from false to true', () => {
+    it('toggles the active tab readOnly from false to true', () => {
       editorModes.toggleReadOnly();
       const state = editorModes.getState();
       expect(state.readOnly).toBe(true);
     });
 
-    it('toggles readOnly from true to false', () => {
-      preferences.patch({ readOnly: true });
+    it('toggles the active tab readOnly from true to false', () => {
+      const id = get(editor.activeTabId)!;
+      editor.setTabReadOnly(id, true);
       editorModes.toggleReadOnly();
       const state = editorModes.getState();
       expect(state.readOnly).toBe(false);
     });
+
+    it('is independent per tab', () => {
+      const id1 = get(editor.activeTabId)!;
+      editor.setTabReadOnly(id1, true);
+      const id2 = editor.addTab(null, 'other.md', '');
+      // Switching to id2 should show editable (default false)
+      expect(get(editor.activeTab)?.readOnly).toBeFalsy();
+      // The first tab keeps its readOnly state
+      const tabs = get(editor.tabs);
+      expect(tabs.find(t => t.id === id1)?.readOnly).toBe(true);
+      expect(tabs.find(t => t.id === id2)?.readOnly).toBeFalsy();
+    });
   });
 
   describe('readOnly body class — lock-mode CSS hook', () => {
-    it('adds muya-readonly to <body> when readOnly becomes true', () => {
+    it('adds muya-readonly to <body> when active tab becomes readOnly', () => {
       const cleanup = editorModes.init();
       try {
         document.body.classList.remove('muya-readonly');
-        preferences.patch({ readOnly: true });
+        const id = get(editor.activeTabId)!;
+        editor.setTabReadOnly(id, true);
         expect(document.body.classList.contains('muya-readonly')).toBe(true);
       } finally {
         cleanup();
       }
     });
 
-    it('removes muya-readonly when readOnly returns to false', () => {
+    it('removes muya-readonly when active tab returns to editable', () => {
       const cleanup = editorModes.init();
       try {
-        preferences.patch({ readOnly: true });
-        preferences.patch({ readOnly: false });
+        const id = get(editor.activeTabId)!;
+        editor.setTabReadOnly(id, true);
+        editor.setTabReadOnly(id, false);
+        expect(document.body.classList.contains('muya-readonly')).toBe(false);
+      } finally {
+        cleanup();
+      }
+    });
+
+    it('updates the body class when switching to a tab with different readOnly', () => {
+      const cleanup = editorModes.init();
+      try {
+        const lockedId = get(editor.activeTabId)!;
+        editor.setTabReadOnly(lockedId, true);
+        expect(document.body.classList.contains('muya-readonly')).toBe(true);
+        const editableId = editor.addTab(null, 'editable.md', '');
+        // editor.addTab activates the new tab automatically
+        expect(get(editor.activeTabId)).toBe(editableId);
         expect(document.body.classList.contains('muya-readonly')).toBe(false);
       } finally {
         cleanup();
@@ -141,14 +175,15 @@ describe('EditorModes', () => {
   });
 
   describe('getState', () => {
-    it('returns current state from preferences', () => {
+    it('returns current state combining preferences and active tab readOnly', () => {
       preferences.patch({
-        readOnly: true,
         sourceCodeMode: false,
         splitView: true,
         focusMode: false,
         typewriterMode: true,
       });
+      const id = get(editor.activeTabId)!;
+      editor.setTabReadOnly(id, true);
       const state = editorModes.getState();
       expect(state).toEqual({
         readOnly: true,

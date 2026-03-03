@@ -83,19 +83,27 @@
     paneElement.addEventListener('keydown', editorKeydown, true);
     unsubs.push(() => paneElement.removeEventListener('keydown', editorKeydown, true));
 
-    // Subscribe to preferences for local state
+    // contenteditable depends on per-tab readOnly + global source/split
+    function applyEditable() {
+      const editable = paneElement?.querySelector('[contenteditable]') as HTMLElement;
+      if (editable) {
+        editable.setAttribute('contenteditable', String(!(readOnly || (sourceCodeMode && splitView))));
+      }
+    }
+
+    // Subscribe to preferences for global modes
     unsubs.push(preferences.subscribe((p) => {
       sourceCodeMode = p.sourceCodeMode;
       splitView = p.splitView;
-      readOnly = p.readOnly;
       typewriterMode = p.typewriterMode;
       hidden = p.sourceCodeMode && !p.splitView;
+      applyEditable();
+    }));
 
-      // In split mode: preview is read-only (just a reflection of source)
-      const editable = paneElement?.querySelector('[contenteditable]') as HTMLElement;
-      if (editable) {
-        editable.setAttribute('contenteditable', String(!(p.readOnly || (p.sourceCodeMode && p.splitView))));
-      }
+    // Subscribe to active tab for per-tab readOnly
+    unsubs.push(editorStore.activeTab.subscribe((tab) => {
+      readOnly = !!tab?.readOnly;
+      applyEditable();
     }));
 
     // Content changes -> store (debounced for performance)

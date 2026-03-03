@@ -5,6 +5,8 @@ export interface Tab {
   content: string;
   savedContent: string;
   isModified: boolean;
+  /** Per-tab read-only state. Session-only — not persisted to disk. */
+  readOnly?: boolean;
 }
 
 export interface DocumentStats {

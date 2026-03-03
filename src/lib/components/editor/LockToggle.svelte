@@ -1,18 +1,18 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import { preferences } from '$lib/stores/preferences';
+  import { editor } from '$lib/stores/editor';
 
   let readOnly: boolean = $state(false);
   let unsub: (() => void) | null = null;
 
   onMount(() => {
-    unsub = preferences.subscribe((p) => { readOnly = p.readOnly; });
+    unsub = editor.activeTab.subscribe((tab) => { readOnly = !!tab?.readOnly; });
   });
 
   onDestroy(() => unsub?.());
 
   function toggle() {
-    preferences.patch({ readOnly: !readOnly });
+    editor.toggleActiveTabReadOnly();
   }
 </script>
 

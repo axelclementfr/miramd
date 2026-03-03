@@ -123,7 +123,6 @@ describe('Preferences Store', () => {
 
   it('all view modes default to false', () => {
     const p = get(preferences);
-    expect(p.readOnly).toBe(false);
     expect(p.sourceCodeMode).toBe(false);
     expect(p.focusMode).toBe(false);
     expect(p.typewriterMode).toBe(false);

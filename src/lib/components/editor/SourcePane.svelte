@@ -24,8 +24,11 @@
     }));
 
     unsubs.push(preferences.subscribe((p) => {
-      readOnly = p.readOnly;
       splitView = p.splitView;
+    }));
+
+    unsubs.push(editorStore.activeTab.subscribe((tab) => {
+      readOnly = !!tab?.readOnly;
     }));
   });
 

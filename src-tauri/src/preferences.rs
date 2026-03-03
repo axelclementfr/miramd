@@ -19,9 +19,7 @@ pub struct Preferences {
     pub language: String,
     pub sidebar_visible: bool,
     pub recent_files: Vec<String>,
-    // View modes
-    #[serde(default)]
-    pub read_only: bool,
+    // View modes (read_only is per-tab now, no longer a persisted preference)
     pub source_code_mode: bool,
     pub focus_mode: bool,
     pub typewriter_mode: bool,
@@ -137,7 +135,6 @@ impl Default for Preferences {
             language: "fr".to_string(),
             sidebar_visible: false,
             recent_files: Vec::new(),
-            read_only: false,
             source_code_mode: false,
             focus_mode: false,
             typewriter_mode: false,

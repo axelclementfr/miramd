@@ -17,9 +17,9 @@ export interface EditorState {
  * handle mode interactions (e.g., source mode disables focus/typewriter).
  */
 class EditorModes {
-  /** Reactive state derived from preferences */
-  readonly state = derived(preferences, (p): EditorState => ({
-    readOnly: p.readOnly,
+  /** Reactive state — readOnly is per-tab, other modes are global preferences. */
+  readonly state = derived([preferences, editorStore.activeTab], ([p, tab]): EditorState => ({
+    readOnly: !!tab?.readOnly,
     sourceCode: p.sourceCodeMode,
     splitView: p.splitView,
     focusMode: p.focusMode,
@@ -75,21 +75,24 @@ class EditorModes {
       // Apply preferences to Muya
       if (muyaService.isReady()) {
         muyaService.applyPreferences(p);
-
-        // In read-only mode: blur Muya to remove cursor and hide markdown markers
-        if (p.readOnly) {
-          try {
-            const instance = muyaService.getInstance();
-            if (instance) instance.blur(true, true);
-          } catch (e) { console.warn('[EditorModes] blur failed:', e); }
-        }
       }
+    }));
 
-      // Lock mode CSS hook: a body class drives rules in editor.css that hide
-      // Muya's selection-driven floats (FormatPicker, LinkTools, …) and force
-      // the markdown markers (`.ag-remove`) to stay collapsed regardless of
-      // cursor position. Muya itself has no readOnly mode; this is our shim.
-      document.body.classList.toggle('muya-readonly', p.readOnly);
+    // Per-tab readOnly: drives the .muya-readonly body class (CSS shim that
+    // hides Muya's selection-driven floats and the markdown markers) and the
+    // muya.blur() when entering read-only on the active tab. Muya has no
+    // native readOnly mode, so we layer this on top.
+    let prevReadOnly = false;
+    unsubs.push(editorStore.activeTab.subscribe((tab) => {
+      const readOnly = !!tab?.readOnly;
+      document.body.classList.toggle('muya-readonly', readOnly);
+      if (readOnly && !prevReadOnly && muyaService.isReady()) {
+        try {
+          const instance = muyaService.getInstance();
+          if (instance) instance.blur(true, true);
+        } catch (e) { console.warn('[EditorModes] blur failed:', e); }
+      }
+      prevReadOnly = readOnly;
     }));
 
     // Install read-only handlers
@@ -101,10 +104,9 @@ class EditorModes {
     };
   }
 
-  /** Toggles read-only mode on/off. */
+  /** Toggles read-only mode on the active tab (no-op if no active tab). */
   toggleReadOnly(): void {
-    const p = get(preferences);
-    preferences.patch({ readOnly: !p.readOnly });
+    editorStore.toggleActiveTabReadOnly();
   }
 
   /** Toggles source code mode; entering source disables focus and typewriter modes. */
@@ -146,8 +148,7 @@ class EditorModes {
     this.removeReadOnlyHandlers();
 
     this.readOnlyKeyHandler = (e: KeyboardEvent) => {
-      const p = get(preferences);
-      if (!p.readOnly) return;
+      if (!get(editorStore.activeTab)?.readOnly) return;
       const target = e.target as HTMLElement;
       if (target?.tagName === 'TEXTAREA') return;
       const mod = e.ctrlKey || e.metaKey;
@@ -158,8 +159,7 @@ class EditorModes {
     };
 
     this.readOnlyInputHandler = (e: Event) => {
-      const p = get(preferences);
-      if (!p.readOnly) return;
+      if (!get(editorStore.activeTab)?.readOnly) return;
       const target = e.target as HTMLElement;
       if (target?.tagName === 'TEXTAREA') return;
       e.preventDefault();

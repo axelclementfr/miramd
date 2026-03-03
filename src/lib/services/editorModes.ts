@@ -84,6 +84,12 @@ class EditorModes {
           } catch (e) { console.warn('[EditorModes] blur failed:', e); }
         }
       }
+
+      // Lock mode CSS hook: a body class drives rules in editor.css that hide
+      // Muya's selection-driven floats (FormatPicker, LinkTools, …) and force
+      // the markdown markers (`.ag-remove`) to stay collapsed regardless of
+      // cursor position. Muya itself has no readOnly mode; this is our shim.
+      document.body.classList.toggle('muya-readonly', p.readOnly);
     }));
 
     // Install read-only handlers

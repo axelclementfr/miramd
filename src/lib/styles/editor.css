@@ -158,6 +158,22 @@ p[data-role="hr"]::before {
   border-top-color: var(--editorColor30, rgba(0, 0, 0, 0.2)) !important;
 }
 
+/* ---- Lock (read-only) mode ----
+   Muya has no native readOnly mode. The .muya-readonly class is applied to
+   <body> by editorModes.ts when preferences.readOnly = true. These rules
+   shim a clean preview experience:
+   - Hide every Muya floating popup (format picker, link tools, image
+     toolbar, front menu…). They all share .ag-float-wrapper from baseFloat.
+   - Hide every markdown marker span (.ag-remove). Without this, hovering or
+     mouse-selecting reactivates the AG_GRAY class on markers near the
+     cursor, leaking ** / ` / # back into the rendered text. */
+body.muya-readonly .ag-float-wrapper {
+  display: none !important;
+}
+body.muya-readonly .ag-remove {
+  display: none !important;
+}
+
 /* ---- Source Code Mode textarea ---- */
 .source-code-editor {
   flex: 1;

@@ -47,6 +47,30 @@ describe('EditorModes', () => {
     });
   });
 
+  describe('readOnly body class — lock-mode CSS hook', () => {
+    it('adds muya-readonly to <body> when readOnly becomes true', () => {
+      const cleanup = editorModes.init();
+      try {
+        document.body.classList.remove('muya-readonly');
+        preferences.patch({ readOnly: true });
+        expect(document.body.classList.contains('muya-readonly')).toBe(true);
+      } finally {
+        cleanup();
+      }
+    });
+
+    it('removes muya-readonly when readOnly returns to false', () => {
+      const cleanup = editorModes.init();
+      try {
+        preferences.patch({ readOnly: true });
+        preferences.patch({ readOnly: false });
+        expect(document.body.classList.contains('muya-readonly')).toBe(false);
+      } finally {
+        cleanup();
+      }
+    });
+  });
+
   describe('toggleSource', () => {
     it('toggles sourceCode from false to true', () => {
       editorModes.toggleSource();

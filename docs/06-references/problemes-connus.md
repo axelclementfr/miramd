@@ -1,7 +1,7 @@
 # Problèmes connus
 
 > Inventaire des bugs et limites identifiés dans MiraMD au 2026-04-29, après analyse profonde du code.
-> Dernière mise à jour : 2026-05-08 (5 entrées ajoutées : TOC clic, zoom système, mode Lecture, typewriter, code blocks bash. Le bug "Slider de zoom système" a été résolu le même jour par la refonte du zoom — voir section "Résolus").
+> Dernière mise à jour : 2026-05-08. Cinq entrées ajoutées (TOC clic, zoom système, mode Lecture, typewriter, code blocks bash) ; deux résolues le même jour : "Slider de zoom système" (refonte du zoom) et "Mode Lecture / lock" (classe CSS `.muya-readonly`).
 > Pour chaque entrée : symptôme observable, où ça vit dans le code, hypothèse de cause, piste de fix, et statut.
 > À tenir à jour : marquer comme **résolu** quand un fix est mergé.
 
@@ -101,26 +101,6 @@
   - Réduire le debounce ou passer à throttle.
   - Test d'intégration pour ce scénario.
 - **Statut** : ouvert.
-
----
-
-### Mode Lecture (lock) : sélection affiche la toolbar Muya, et marqueurs source visibles
-
-- **Symptôme** : quand `preferences.readOnly = true` (verrou activé via `LockToggle`) :
-  - Sélectionner du texte fait apparaître la toolbar flottante Muya (formatting tools : gras, italique, lien…), alors qu'en lecture seule aucune action d'édition ne devrait être possible — la toolbar devrait être masquée.
-  - Les marqueurs de la vue "Source" restent visibles dans le rendu (astérisques `**` autour du gras, backticks autour de l'inline code, `~~` autour du barré, etc.). Cela parasite la lecture en mode lock, qui devrait afficher un rendu propre style "preview".
-- **Périmètre** :
-  - `src/lib/components/editor/LockToggle.svelte` (toggle `readOnly`)
-  - `src/lib/services/muya.ts` (configuration Muya, options `mutedSelection` / `hideQuickInsertHint` / `bulletListMarker` non exposées en runtime)
-  - `src/lib/components/editor/MuyaPane.svelte` (où `readOnly` devrait être propagé à l'instance Muya)
-  - `static/muya/` — les options `setOptions({ readOnly })` ou équivalent ne semblent pas câblées
-- **Cause probable** : `LockToggle` ne fait que basculer la préférence ; aucun composant ne consomme `preferences.readOnly` pour configurer Muya en mode lecture pure. Muya supporte un mode "preview" (rendu sans marqueurs) via son option de cursor ou via une API `setReadOnly`/`togglePreview`, mais cette API n'est pas appelée. Résultat : le DOM reste éditable, la toolbar de sélection reste active, et les marqueurs (astérisques, etc.) restent affichés.
-- **Piste de fix** :
-  - Identifier dans `static/muya/` l'option d'instance qui désactive l'édition et passe en preview (probablement `muya.setOptions({ readOnly: true })` ou un mode dédié — à vérifier dans le source vendored).
-  - Dans `MuyaPane.svelte`, souscrire à `preferences.readOnly` et appeler l'API correspondante.
-  - Si Muya n'expose pas un vrai mode preview : appliquer en CSS `pointer-events: none` sur l'éditeur + masquer `.ag-tool` (la toolbar flottante) en mode lock, et utiliser une classe `.muya-readonly` qui cache les `.ag-gray` / marqueurs source via les sélecteurs Prism/Muya.
-  - Test manuel : activer le lock, sélectionner du texte → la toolbar ne doit pas apparaître ; vérifier qu'aucun astérisque ne soit visible autour des spans `<strong>`.
-- **Statut** : ouvert, priorité haute (le mode lock ne remplit pas son rôle aujourd'hui).
 
 ---
 
@@ -241,6 +221,18 @@ Ces points ne sont pas des bugs à fixer mais des choix documentés.
 ---
 
 ## Résolus
+
+### Mode Lecture (lock) : sélection affichait la toolbar Muya, et les marqueurs source restaient visibles
+
+- **Résolu le** : 2026-05-08.
+- **Symptôme initial** : `preferences.readOnly = true` n'avait aucun effet utile au-delà de bloquer la frappe. La toolbar flottante Muya (`FormatPicker`) apparaissait toujours à la sélection souris, et les marqueurs `**` / ` `` ` / `#` restaient visibles dès qu'un curseur passait à côté.
+- **Cause** : Muya n'a pas de mode `readOnly`/preview natif. `contenteditable=false` + `instance.blur(true, true)` ne désactivent ni les plugins UI qui réagissent à `selectionChange` (`keyboard.js:286`, `clickCtrl.js:162`), ni la logique `getClassName` qui re-affiche les markers en `AG_GRAY` quand le curseur est en conflit avec un span `.ag-remove`.
+- **Fix** : approche CSS-driven pilotée par une classe `.muya-readonly` posée sur `<body>` depuis `src/lib/services/editorModes.ts` à chaque changement de `preferences.readOnly`. Deux règles dans `src/lib/styles/editor.css` :
+  - `body.muya-readonly .ag-float-wrapper { display: none !important; }` — couvre tous les floats Muya (FormatPicker, LinkTools, ImageToolbar, FrontMenu…) qui héritent de `.ag-float-wrapper` via `baseFloat/index.js`.
+  - `body.muya-readonly .ag-remove { display: none !important; }` — force tous les markers à rester invisibles indépendamment du curseur.
+  Pattern aligné sur l'existant `hide-scrollbar`. Test ajouté dans `tests/services/editorModes.test.ts`.
+
+---
 
 ### Slider de zoom système : pas de "preview puis commit" comme les autres réglages
 

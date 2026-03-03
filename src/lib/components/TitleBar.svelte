@@ -228,9 +228,11 @@
     padding: 0;
   }
 
-  .frameless-titlebar-menu:hover { color: var(--text-primary); transform: scale(1.15); }
-  .frameless-titlebar-menu { transition: transform .15s ease, color .15s ease; }
+  .frameless-titlebar-menu { transition: transform 0.1s ease; }
+  .frameless-titlebar-menu:hover { color: var(--text-primary); }
   .frameless-titlebar-menu.active { color: var(--accent); }
+  .frameless-titlebar-menu.active:hover { color: var(--accent-hover); }
+  .frameless-titlebar-menu:active { transform: scale(0.85); }
 
   /* Window controls */
   .frameless-titlebar-button {

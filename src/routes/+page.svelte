@@ -18,7 +18,7 @@
   import { editor } from '$lib/stores/editor';
   import { preferences } from '$lib/stores/preferences';
   import { setLanguage, t, type TranslationKey } from '$lib/i18n/index';
-  import { openFileDialog, saveCurrentFile, closeTabWithConfirm, openFileFromPath, getCurrentTabId, getCurrentTab } from '$lib/services/fileOperations';
+  import { openFileDialog, saveCurrentFile, closeTabWithConfirm, openFileFromPath, openDroppedMarkdownFiles, getCurrentTabId, getCurrentTab } from '$lib/services/fileOperations';
   import { showToast } from '$lib/stores/toast';
   import { setupKeyboardShortcuts } from '$lib/services/shortcuts';
   import { startAutoSave } from '$lib/services/autoSave';
@@ -95,11 +95,8 @@
 
     // Drag-and-drop: open .md files dropped onto the window
     const unlistenDragDrop = await getCurrentWebview().onDragDropEvent(async (event) => {
-      if (event.payload.type !== 'drop') return;
-      for (const path of event.payload.paths) {
-        if (/\.(md|markdown|mmd|mdx|mkd)$/i.test(path)) {
-          await openFileFromPath(path, tr);
-        }
+      if (event.payload.type === 'drop') {
+        await openDroppedMarkdownFiles(event.payload.paths, tr);
       }
     });
     unsubs.push(unlistenDragDrop);

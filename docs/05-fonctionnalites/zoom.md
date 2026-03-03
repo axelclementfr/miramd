@@ -6,7 +6,7 @@ MiraMD propose un zoom **global** qui scale toute l'interface — le texte, les 
 
 **Trois manières de zoomer** :
 
-- **Ctrl+molette** (ou Cmd+molette sur macOS) — zoom in/out fluide pendant l'édition. Granularité fine de 5% par tick. Le navigateur ne scrolle pas la page, c'est intercepté.
+- **Ctrl+molette** (ou Cmd+molette sur macOS) — zoom in/out par pas de 10% par tick (même pas que le slider, pour un feeling brisk type MarkText/navigateur). Le scroll de la page est intercepté.
 - **Slider dans Settings > Général** — réglage par pas de 10%, range 50% à 200%. Le zoom s'applique au relâchement de la souris (preview pendant le drag, commit à la fin).
 - **Indicateur dans la status bar** — affiche le pourcentage courant. Cliquer dessus réinitialise le zoom à 100%.
 
@@ -41,7 +41,7 @@ C'est l'API Tauri 2 `WebviewWindow::set_zoom` qui appelle directement `webkit_we
 **Frontend services** :
 
 - `src/lib/services/zoom.ts` — souscrit à `preferences.zoom`, appelle `invoke('set_app_zoom', { scale })` à chaque changement. Singleton avec `init()` / `destroy()`. Déduplique les valeurs identiques pour éviter des IPC redondants.
-- `src/lib/services/appZoomWheel.ts` — installe un listener `wheel` global (capture phase, `passive: false`). Quand `ctrlKey` ou `metaKey` est tenu, calcule le delta (5% par tick), clampe entre `MIN_ZOOM` (0.5) et `MAX_ZOOM` (2.0), et appelle `preferences.patch({ zoom: ... })`.
+- `src/lib/services/appZoomWheel.ts` — installe un listener `wheel` global (capture phase, `passive: false`). Quand `ctrlKey` ou `metaKey` est tenu, calcule le delta (10% par tick), clampe entre `MIN_ZOOM` (0.5) et `MAX_ZOOM` (2.0). **Performance** : appelle `invoke('set_app_zoom', ...)` directement à chaque tick pour un feedback visuel instantané, et débounce `preferences.patch()` (200ms) pour ne pas saturer l'IPC bridge avec des `save_preferences` à chaque pixel de scroll. La status bar ne reflète le nouveau % qu'après les 200ms d'inactivité — trade-off assumé pour la fluidité.
 - `src/lib/services/fontSize.ts` — service séparé qui ne touche **que** la police de l'éditeur Muya via `muyaService.setFont()`. Aucune multiplication par le zoom : depuis la refonte, ces deux notions sont découplées.
 
 **Composants UI** :

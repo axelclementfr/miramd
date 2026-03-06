@@ -37,44 +37,16 @@ function isUsefulRect(r: DOMRect | undefined): boolean {
   return r.height > 0 || r.width > 0 || r.top !== 0 || r.left !== 0;
 }
 
-export interface TypewriterController {
-  /** Cleanup functions to push into the unsub list of the host component. */
-  cleanups: (() => void)[];
-  /**
-   * Force a re-center now, bypassing the throttle. Use after events that the
-   * built-in triggers don't catch: file open, tab switch, mode toggle. Has no
-   * effect when the mode is disabled.
-   */
-  trigger: () => void;
-}
-
 /**
  * Typewriter mode: keeps the cursor vertically centered in the editor pane.
- * Triggers built-in: Muya onChange, Muya onSelectionChange, document keyup,
- * document mouseup. The host wires `trigger()` for events the editor itself
- * doesn't emit (initial mount, tab switch, mode enable).
- *
- * Throttled to max once per 50 ms via the internal scheduler — except for
- * external `trigger()` calls, which run on the next animation frame so a tab
- * switch or mode flip lands the cursor immediately at center.
+ * Throttled to max once per 50 ms to avoid layout thrashing.
  */
 export function initTypewriterScroller(
   getPaneElement: () => HTMLElement | null,
   isEnabled: () => boolean,
-): TypewriterController {
+): (() => void)[] {
   let twTimer: ReturnType<typeof setTimeout> | null = null;
   const cleanups: (() => void)[] = [];
-
-  function scrollToCenter(): void {
-    const pane = getPaneElement();
-    if (!pane) return;
-    const sel = window.getSelection();
-    if (!sel || sel.rangeCount === 0) return;
-    const range = sel.getRangeAt(0);
-    const offset = computeTypewriterOffset(range, pane);
-    if (offset === null) return;
-    pane.scrollBy({ top: offset, behavior: 'smooth' });
-  }
 
   const typewriterScroll = () => {
     if (!isEnabled()) return;
@@ -83,17 +55,17 @@ export function initTypewriterScroller(
     if (twTimer) return; // Throttle: max once per 50 ms
     twTimer = setTimeout(() => {
       twTimer = null;
-      requestAnimationFrame(scrollToCenter);
+      requestAnimationFrame(() => {
+        const pane = getPaneElement();
+        if (!pane) return;
+        const sel = window.getSelection();
+        if (!sel || sel.rangeCount === 0) return;
+        const range = sel.getRangeAt(0);
+        const offset = computeTypewriterOffset(range, pane);
+        if (offset === null) return;
+        pane.scrollBy({ top: offset, behavior: 'smooth' });
+      });
     }, 50);
-  };
-
-  const trigger = () => {
-    if (!isEnabled()) return;
-    if (twTimer) {
-      clearTimeout(twTimer);
-      twTimer = null;
-    }
-    requestAnimationFrame(scrollToCenter);
   };
 
   cleanups.push(muyaService.onSelectionChange(typewriterScroll));
@@ -112,5 +84,5 @@ export function initTypewriterScroller(
     document.removeEventListener('mouseup', clickHandler, true);
   });
 
-  return { cleanups, trigger };
+  return cleanups;
 }

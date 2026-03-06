@@ -136,32 +136,11 @@
     }));
 
     // Typewriter mode: keep cursor vertically centered (throttled)
-    const tw = initTypewriterScroller(
+    const twCleanups = initTypewriterScroller(
       () => paneElement,
       () => typewriterMode
     );
-    unsubs.push(...tw.cleanups);
-
-    // Re-center on file load / tab switch — Muya doesn't emit onChange or
-    // onSelectionChange when setMarkdown sets the initial content, so the
-    // built-in triggers never fire on a fresh open. Delay covers Muya's
-    // render + setCursor inside the second activeTab subscribe below.
-    let prevTriggerTabId: string | null = null;
-    unsubs.push(editorStore.activeTab.subscribe((tab) => {
-      if (!tab || tab.id === prevTriggerTabId) return;
-      prevTriggerTabId = tab.id;
-      setTimeout(() => tw.trigger(), 150);
-    }));
-
-    // Re-center when typewriter mode flips from off to on (otherwise the
-    // padding is added but the cursor stays at scrollTop=0).
-    let prevTypewriter = false;
-    unsubs.push(preferences.subscribe((p) => {
-      if (p.typewriterMode && !prevTypewriter) {
-        setTimeout(() => tw.trigger(), 50);
-      }
-      prevTypewriter = p.typewriterMode;
-    }));
+    unsubs.push(...twCleanups);
 
     // Tab switching — save/restore Muya state (cursor + history) per tab.
     // This is how MarkText does it: Muya owns undo/redo, we just persist it.

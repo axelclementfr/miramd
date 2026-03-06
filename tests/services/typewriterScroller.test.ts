@@ -28,7 +28,7 @@ vi.mock('$lib/services/muya', () => ({
   },
 }));
 
-const { initTypewriterScroller } = await import('$lib/services/typewriterScroller');
+const { initTypewriterScroller, computeTypewriterOffset } = await import('$lib/services/typewriterScroller');
 
 describe('initTypewriterScroller', () => {
   let paneElement: HTMLElement;
@@ -135,5 +135,93 @@ describe('initTypewriterScroller', () => {
     if (changeCallbacks.length > 0) {
       expect(() => changeCallbacks[0]()).not.toThrow();
     }
+  });
+});
+
+function rect(partial: Partial<DOMRect>): DOMRect {
+  return {
+    x: 0, y: 0, top: 0, left: 0, right: 0, bottom: 0, width: 0, height: 0,
+    toJSON: () => ({}),
+    ...partial,
+  } as DOMRect;
+}
+
+function fakeRange(rangeRect: DOMRect, parent: Node): Range {
+  return {
+    getBoundingClientRect: () => rangeRect,
+    startContainer: parent,
+  } as unknown as Range;
+}
+
+function fakeScrollTarget(targetRect: DOMRect): HTMLElement {
+  const el = document.createElement('div');
+  el.getBoundingClientRect = () => targetRect;
+  return el;
+}
+
+function fakeParagraph(paraRect: DOMRect): HTMLParagraphElement {
+  const el = document.createElement('p');
+  el.getBoundingClientRect = () => paraRect;
+  return el;
+}
+
+describe('computeTypewriterOffset', () => {
+  it('returns the cursor-to-center offset for a valid range rect', () => {
+    const target = fakeScrollTarget(rect({ top: 0, height: 600 }));
+    const para = fakeParagraph(rect({ top: 380, height: 24 }));
+    const range = fakeRange(rect({ top: 400, height: 20 }), para);
+
+    // center = paneTop + paneHeight/2 = 0 + 300 = 300
+    // offset = rect.top - center = 400 - 300 = 100
+    expect(computeTypewriterOffset(range, target)).toBe(100);
+  });
+
+  it('falls back to the parent element when the range rect is zeroed (Enter on empty paragraph)', () => {
+    const target = fakeScrollTarget(rect({ top: 0, height: 600 }));
+    // The new empty paragraph has a measurable rect (one line worth of height).
+    const para = fakeParagraph(rect({ top: 380, height: 24 }));
+    // The collapsed range inside that empty paragraph returns a zeroed rect — this
+    // is what the browser does for collapsed ranges in empty inline-flow containers,
+    // and was the cause of typewriter mode silently skipping the recenter on Enter.
+    const range = fakeRange(rect({ top: 0, height: 0, width: 0 }), para);
+
+    // Should fall back to the paragraph's rect: top=380, center=300 → offset=80
+    expect(computeTypewriterOffset(range, target)).toBe(80);
+  });
+
+  it('walks up from a text-node startContainer to its element parent', () => {
+    const target = fakeScrollTarget(rect({ top: 0, height: 600 }));
+    const para = fakeParagraph(rect({ top: 380, height: 24 }));
+    const textNode = document.createTextNode('hello');
+    para.appendChild(textNode);
+    const range = fakeRange(rect({ top: 0, height: 0 }), textNode);
+
+    expect(computeTypewriterOffset(range, target)).toBe(80);
+  });
+
+  it('handles a cursor at the very top of the document (top=0 with non-zero height — not the bug)', () => {
+    const target = fakeScrollTarget(rect({ top: 0, height: 600 }));
+    const para = fakeParagraph(rect({ top: 0, height: 24 }));
+    const range = fakeRange(rect({ top: 0, height: 20 }), para);
+
+    // Legitimate top=0 with valid height → don't skip; offset = 0 - 0 - 300 = -300
+    expect(computeTypewriterOffset(range, target)).toBe(-300);
+  });
+
+  it('returns null when both the range and the parent element have zeroed rects', () => {
+    const target = fakeScrollTarget(rect({ top: 0, height: 600 }));
+    const para = fakeParagraph(rect({})); // all zeros
+    const range = fakeRange(rect({}), para);
+
+    expect(computeTypewriterOffset(range, target)).toBeNull();
+  });
+
+  it('respects a non-zero scroll-target top (e.g., status bar above the pane)', () => {
+    const target = fakeScrollTarget(rect({ top: 100, height: 600 }));
+    const para = fakeParagraph(rect({ top: 380, height: 24 }));
+    const range = fakeRange(rect({ top: 400, height: 20 }), para);
+
+    // center = 100 + 300 = 400; cursor at 400 → offset = 0
+    expect(computeTypewriterOffset(range, target)).toBe(0);
   });
 });

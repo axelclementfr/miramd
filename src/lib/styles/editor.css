@@ -174,19 +174,6 @@ body.muya-readonly .ag-remove {
   display: none !important;
 }
 
-/* ---- Typewriter mode ----
-   For the cursor to actually be centerable in the pane (especially on the
-   first/last line and on empty files), the editor needs vertical breathing
-   room above and below the content. Without this padding, the first line
-   sits at scrollTop=0 and can't scroll up to center.
-   50vh ≈ half of viewport height; close enough to half pane height for
-   typical layouts (status bar/tab bar trim ~10% off the pane). */
-body.typewriter-mode .muya-editor {
-  padding-top: 50vh;
-  padding-bottom: 50vh;
-  transition: padding 0.15s ease;
-}
-
 /* ---- Source Code Mode textarea ---- */
 .source-code-editor {
   flex: 1;

@@ -76,11 +76,6 @@ class EditorModes {
       if (muyaService.isReady()) {
         muyaService.applyPreferences(p);
       }
-
-      // Typewriter mode CSS hook: drives the 50vh padding on the editor so
-      // the cursor can actually reach the vertical center on first/last lines.
-      // The actual scroll-to-center is handled by typewriterScroller.
-      document.body.classList.toggle('typewriter-mode', p.typewriterMode);
     }));
 
     // Per-tab readOnly: drives the .muya-readonly body class (CSS shim that

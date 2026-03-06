@@ -10,7 +10,3 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 src-tauri/target/
 coverage/
-
-# Tooling artifacts (Playwright MCP, Claude scheduled tasks)
-/.playwright-mcp/
-/.claude/scheduled_tasks.lock

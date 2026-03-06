@@ -104,22 +104,6 @@
 
 ---
 
-### Mode Typewriter : le centrage ne suit pas après un saut de ligne
-
-- **Symptôme** : en mode typewriter (où la ligne courante doit rester centrée verticalement), appuyer sur Entrée pour créer une nouvelle ligne ne déclenche pas le re-centrage. Le curseur descend visuellement vers le bas de l'écran au lieu de rester au milieu, jusqu'à ce qu'on tape un caractère ou qu'on bouge le curseur autrement.
-- **Périmètre** :
-  - `src/lib/services/typewriterScroller.ts` (logique de centrage)
-  - `src/lib/components/editor/MuyaPane.svelte` (intégration des listeners Muya)
-  - Événements Muya écoutés pour déclencher le re-centrage (`selectionChange`, `contentChange` …)
-- **Cause probable** : le scroller écoute probablement uniquement les événements de **changement de sélection** ou de **frappe de caractère**, mais pas l'insertion d'un block-break (Enter qui crée un nouveau paragraphe). Dans Muya, Enter crée un nouveau bloc et la sélection se déplace, mais l'événement émis peut être un `block-create` plutôt qu'un `selectionChange`, ou bien le `selectionChange` est émis avant que le DOM du nouveau bloc soit positionné — donc le calcul du `top` cible est fait sur l'ancienne géométrie.
-- **Piste de fix** :
-  - Logger dans `typewriterScroller.ts` chaque événement reçu et la position calculée, reproduire sur 5 sauts de ligne et observer la divergence.
-  - S'abonner aussi à un événement de type `content-change` ou utiliser un `MutationObserver` sur le container Muya pour déclencher le re-centrage après un layout commit.
-  - Wrapper le calcul de position dans un `requestAnimationFrame` (voire double rAF) pour s'assurer que le DOM est à jour avant de mesurer.
-- **Statut** : ouvert.
-
----
-
 ### Code blocks bash : police et style trop accentués vs autres langages
 
 - **Symptôme** : les blocs de code identifiés comme `bash` (ou `sh`, `shell`) sont rendus avec une police différente et des effets visuels (gras, couleurs très saturées, possibles backgrounds spécifiques) plus marqués que les autres blocs de code (`js`, `python`, etc.). Visuellement parasite et incohérent. L'objectif : **garder une coloration spécifique au bash** (ex. couleur dédiée pour les commandes/options) **mais aligner la police, la taille et l'intensité** sur les autres blocs.
@@ -221,6 +205,15 @@ Ces points ne sont pas des bugs à fixer mais des choix documentés.
 ---
 
 ## Résolus
+
+### Mode Typewriter : le centrage ne suivait pas après un saut de ligne
+
+- **Résolu le** : 2026-05-08.
+- **Symptôme initial** : en mode typewriter, appuyer sur Entrée ne déclenchait pas le re-centrage du curseur. Le curseur descendait visuellement vers le bas, jusqu'à ce que l'utilisateur tape un caractère qui re-déclenchait le scroll.
+- **Cause** : `range.getBoundingClientRect()` sur une range collapsée dans un nouveau paragraphe vide (créé par Enter) retourne un rect tout-zéro (`top: 0, height: 0, …`). Le scroller avait un check précoce `if (rect.top === 0) return` qui skippait silencieusement le re-centrage. Sur un caractère tapé, le rect était valide → ça marchait. Différence subtile entre changement de sélection avec contenu vs sans.
+- **Fix** : extraction d'une fonction pure `computeTypewriterOffset(range, scrollTarget)` dans `src/lib/services/typewriterScroller.ts`, avec fallback sur `parentElement.getBoundingClientRect()` quand le rect de la range est zéroé. Pattern aligné sur la mesure interne de Muya (`src/lib/muya/lib/selection/index.js:598` mesure aussi `paragraph.getBoundingClientRect()`). 6 nouveaux cas dans `tests/services/typewriterScroller.test.ts` couvrant l'empty-paragraph fallback, le top=0 légitime au début du document, et le edge case où aucun rect n'est mesurable.
+
+---
 
 ### Mode Lecture (lock) : sélection affichait la toolbar Muya, et les marqueurs source restaient visibles
 

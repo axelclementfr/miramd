@@ -105,6 +105,31 @@ describe('EditorModes', () => {
     });
   });
 
+  describe('typewriter body class — drives 50vh padding for cursor centering', () => {
+    it('adds typewriter-mode to <body> when preferences.typewriterMode flips on', () => {
+      const cleanup = editorModes.init();
+      try {
+        document.body.classList.remove('typewriter-mode');
+        preferences.patch({ typewriterMode: true });
+        expect(document.body.classList.contains('typewriter-mode')).toBe(true);
+      } finally {
+        cleanup();
+        document.body.classList.remove('typewriter-mode');
+      }
+    });
+
+    it('removes typewriter-mode when typewriterMode flips off', () => {
+      const cleanup = editorModes.init();
+      try {
+        preferences.patch({ typewriterMode: true });
+        preferences.patch({ typewriterMode: false });
+        expect(document.body.classList.contains('typewriter-mode')).toBe(false);
+      } finally {
+        cleanup();
+      }
+    });
+  });
+
   describe('toggleSource', () => {
     it('toggles sourceCode from false to true', () => {
       editorModes.toggleSource();

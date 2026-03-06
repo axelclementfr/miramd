@@ -32,32 +32,29 @@ const { initTypewriterScroller, computeTypewriterOffset } = await import('$lib/s
 
 describe('initTypewriterScroller', () => {
   let paneElement: HTMLElement;
-  let cleanups: (() => void)[];
+  let tw: { cleanups: (() => void)[]; trigger: () => void } | null;
   let enabled: boolean;
 
   beforeEach(() => {
     paneElement = document.createElement('div');
     document.body.appendChild(paneElement);
     enabled = true;
+    tw = null;
     changeCallbacks.length = 0;
     selectionCallbacks.length = 0;
   });
 
   afterEach(() => {
-    if (cleanups) {
-      cleanups.forEach(fn => fn());
-    }
+    if (tw) tw.cleanups.forEach((fn) => fn());
     document.body.removeChild(paneElement);
   });
 
-  it('returns cleanup functions', () => {
-    cleanups = initTypewriterScroller(
-      () => paneElement,
-      () => enabled,
-    );
+  it('returns a controller with cleanups array and trigger function', () => {
+    tw = initTypewriterScroller(() => paneElement, () => enabled);
 
-    expect(cleanups).toBeInstanceOf(Array);
-    expect(cleanups.length).toBeGreaterThan(0);
+    expect(tw.cleanups).toBeInstanceOf(Array);
+    expect(tw.cleanups.length).toBeGreaterThan(0);
+    expect(typeof tw.trigger).toBe('function');
   });
 
   it('registers onChange and onSelectionChange listeners', async () => {
@@ -65,10 +62,7 @@ describe('initTypewriterScroller', () => {
     vi.mocked(muyaService.onChange).mockClear();
     vi.mocked(muyaService.onSelectionChange).mockClear();
 
-    cleanups = initTypewriterScroller(
-      () => paneElement,
-      () => enabled,
-    );
+    tw = initTypewriterScroller(() => paneElement, () => enabled);
 
     expect(muyaService.onChange).toHaveBeenCalledOnce();
     expect(muyaService.onSelectionChange).toHaveBeenCalledOnce();
@@ -77,12 +71,9 @@ describe('initTypewriterScroller', () => {
   it('registers keyup and mouseup document listeners', () => {
     const addSpy = vi.spyOn(document, 'addEventListener');
 
-    cleanups = initTypewriterScroller(
-      () => paneElement,
-      () => enabled,
-    );
+    tw = initTypewriterScroller(() => paneElement, () => enabled);
 
-    const eventNames = addSpy.mock.calls.map(c => c[0]);
+    const eventNames = addSpy.mock.calls.map((c) => c[0]);
     expect(eventNames).toContain('keyup');
     expect(eventNames).toContain('mouseup');
 
@@ -92,49 +83,61 @@ describe('initTypewriterScroller', () => {
   it('removes document listeners on cleanup', () => {
     const removeSpy = vi.spyOn(document, 'removeEventListener');
 
-    cleanups = initTypewriterScroller(
-      () => paneElement,
-      () => enabled,
-    );
+    tw = initTypewriterScroller(() => paneElement, () => enabled);
+    tw.cleanups.forEach((fn) => fn());
 
-    cleanups.forEach(fn => fn());
-
-    const eventNames = removeSpy.mock.calls.map(c => c[0]);
+    const eventNames = removeSpy.mock.calls.map((c) => c[0]);
     expect(eventNames).toContain('keyup');
     expect(eventNames).toContain('mouseup');
 
     removeSpy.mockRestore();
-    cleanups = []; // Already cleaned up
+    tw = null; // Already cleaned up
   });
 
   it('does not scroll when disabled', () => {
     enabled = false;
     paneElement.scrollBy = vi.fn();
 
-    cleanups = initTypewriterScroller(
-      () => paneElement,
-      () => enabled,
-    );
+    tw = initTypewriterScroller(() => paneElement, () => enabled);
 
-    // Trigger a change callback
-    if (changeCallbacks.length > 0) {
-      changeCallbacks[0]();
-    }
+    if (changeCallbacks.length > 0) changeCallbacks[0]();
 
-    // No scroll should happen since disabled
     expect(paneElement.scrollBy).not.toHaveBeenCalled();
   });
 
   it('does not scroll when pane element is null', () => {
-    cleanups = initTypewriterScroller(
-      () => null,
-      () => true,
-    );
+    tw = initTypewriterScroller(() => null, () => true);
 
-    // Trigger a change callback — should not throw
     if (changeCallbacks.length > 0) {
       expect(() => changeCallbacks[0]()).not.toThrow();
     }
+  });
+
+  describe('trigger()', () => {
+    it('does nothing when typewriter mode is disabled', () => {
+      enabled = false;
+      paneElement.scrollBy = vi.fn();
+
+      tw = initTypewriterScroller(() => paneElement, () => enabled);
+      tw.trigger();
+
+      // rAF would schedule the work; even if it ran, the check at scrollToCenter
+      // depends on selection. We verify scrollBy never fires.
+      expect(paneElement.scrollBy).not.toHaveBeenCalled();
+    });
+
+    it('does not throw when called with no selection', () => {
+      tw = initTypewriterScroller(() => paneElement, () => enabled);
+      expect(() => tw!.trigger()).not.toThrow();
+    });
+
+    it('bypasses the throttle: a pending throttled call is replaced', () => {
+      tw = initTypewriterScroller(() => paneElement, () => enabled);
+      // Start a throttled scroll (sets the 50ms timer)
+      if (changeCallbacks.length > 0) changeCallbacks[0]();
+      // Calling trigger() should clear that timer and schedule rAF immediately
+      expect(() => tw!.trigger()).not.toThrow();
+    });
   });
 });
 

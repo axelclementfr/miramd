@@ -11,7 +11,8 @@
   import { fontSizeService } from '$lib/services/fontSize';
   import { lineNumbersService } from '$lib/services/lineNumbers';
   import { historyCache } from '$lib/services/historyCache';
-  import { initTypewriterScroller } from '$lib/services/typewriterScroller';
+  import { initTypewriterScroller, computeTypewriterOffset } from '$lib/services/typewriterScroller';
+  import { initTypewriterPadding } from '$lib/services/typewriterPadding';
 
   let editorElement: HTMLDivElement = $state(null as any);
   let paneElement: HTMLDivElement = $state(null as any);
@@ -141,6 +142,48 @@
       () => typewriterMode
     );
     unsubs.push(...twCleanups);
+
+    // Typewriter padding: inline padding-top/bottom = paneHeight/2 on the
+    // Muya container so first/last lines can scroll to the vertical center.
+    // Driven by JS (not CSS) to avoid a specificity fight with editor.css's
+    // existing `.wysiwyg-pane > div[contenteditable] { padding: 20px ... }`.
+    const twPadding = initTypewriterPadding(() => paneElement);
+    unsubs.push(() => twPadding.destroy());
+
+    // Manual re-center: used on tab switch and mode-enable, where Muya's
+    // built-in onChange/onSelectionChange events don't fire. Uses 'auto'
+    // scroll behavior (instant) to avoid overlap with user input.
+    function manualCenter() {
+      if (!typewriterMode || !paneElement) return;
+      const sel = window.getSelection();
+      if (!sel || sel.rangeCount === 0) return;
+      const range = sel.getRangeAt(0);
+      const offset = computeTypewriterOffset(range, paneElement);
+      if (offset === null) return;
+      paneElement.scrollBy({ top: offset, behavior: 'auto' });
+    }
+
+    // Toggle typewriter padding when the preference changes, and trigger an
+    // initial center when the mode flips on (the padding alone isn't enough —
+    // existing tabs have a saved scroll position that needs adjusting).
+    let prevTypewriter = false;
+    unsubs.push(preferences.subscribe((p) => {
+      twPadding.setActive(p.typewriterMode);
+      if (p.typewriterMode && !prevTypewriter) {
+        setTimeout(manualCenter, 60);
+      }
+      prevTypewriter = p.typewriterMode;
+    }));
+
+    // Re-center on tab switch / file open. Muya's setMarkdown updates the
+    // browser selection but doesn't fire its onChange event, so the built-in
+    // typewriter triggers stay silent. Delay covers Muya's render + setCursor.
+    let prevTriggerTabId: string | null = null;
+    unsubs.push(editorStore.activeTab.subscribe((tab) => {
+      if (!tab || tab.id === prevTriggerTabId) return;
+      prevTriggerTabId = tab.id;
+      setTimeout(manualCenter, 180);
+    }));
 
     // Tab switching — save/restore Muya state (cursor + history) per tab.
     // This is how MarkText does it: Muya owns undo/redo, we just persist it.

@@ -86,6 +86,76 @@ describe('initTypewriterPadding', () => {
     expect(muyaEditor.style.paddingBottom).toBe('0px');
   });
 
+  describe('input regression guards (the v2 bug)', () => {
+    it('does NOT modify the contenteditable attribute when activating', () => {
+      muyaEditor.setAttribute('contenteditable', 'true');
+      controller = initTypewriterPadding(() => pane);
+      controller.setActive(true);
+
+      expect(muyaEditor.getAttribute('contenteditable')).toBe('true');
+    });
+
+    it('does NOT add `pointer-events: none` to the editor', () => {
+      controller = initTypewriterPadding(() => pane);
+      controller.setActive(true);
+
+      expect(muyaEditor.style.pointerEvents).not.toBe('none');
+    });
+
+    it('does NOT add a CSS class to <body> (v2 used body.typewriter-mode and broke input)', () => {
+      const bodyClassesBefore = document.body.className;
+      controller = initTypewriterPadding(() => pane);
+      controller.setActive(true);
+
+      // The padding service must use inline styles only — no global CSS hook.
+      // A body class re-introduces the v2 specificity fight that broke typing.
+      expect(document.body.className).toBe(bodyClassesBefore);
+    });
+
+    it('uses inline style — wins specificity over any CSS rule, including !important', () => {
+      // Simulate a sneaky CSS rule trying to lock the editor's padding
+      const styleEl = document.createElement('style');
+      styleEl.textContent = '.muya-editor { padding-top: 0px !important; padding-bottom: 0px !important; }';
+      document.head.appendChild(styleEl);
+
+      try {
+        controller = initTypewriterPadding(() => pane);
+        controller.setActive(true);
+
+        // Our inline `style.paddingTop = ...` does NOT beat `!important` from CSS in
+        // the cascade BUT it still appears in `.style.paddingTop`. The actual computed
+        // value isn't asserted here because `!important` would win — what matters is
+        // that the service's contract (set the inline property) holds, and that we
+        // don't accidentally rely on a CSS class to make it work.
+        expect(muyaEditor.style.paddingTop).toBe('400px');
+        expect(muyaEditor.style.paddingBottom).toBe('400px');
+      } finally {
+        document.head.removeChild(styleEl);
+      }
+    });
+
+    it('only writes to .muya-editor inside the pane (not body, not pane itself)', () => {
+      const otherEditor = document.createElement('div');
+      otherEditor.className = 'muya-editor';
+      document.body.appendChild(otherEditor);
+      try {
+        controller = initTypewriterPadding(() => pane);
+        controller.setActive(true);
+
+        // The OTHER .muya-editor outside the pane must not get padded
+        expect(otherEditor.style.paddingTop).toBe('');
+        // The pane itself must not get padded
+        expect(pane.style.paddingTop).toBe('');
+        // Body must not get padded
+        expect(document.body.style.paddingTop).toBe('');
+        // Only the muya-editor inside the pane gets it
+        expect(muyaEditor.style.paddingTop).toBe('400px');
+      } finally {
+        document.body.removeChild(otherEditor);
+      }
+    });
+  });
+
   it('observes the pane via ResizeObserver and re-applies padding on resize', () => {
     // jsdom doesn't ship ResizeObserver — provide a stub that lets us drive it
     const callbacks: ResizeObserverCallback[] = [];

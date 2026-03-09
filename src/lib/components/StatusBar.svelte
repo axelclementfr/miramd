@@ -36,6 +36,10 @@
       patch.focusMode = false;
       patch.typewriterMode = false;
     }
+    // Sounds is a sub-feature of typewriter mode: disable it when typewriter goes off.
+    if (mode === 'typewriterMode' && !patch.typewriterMode) {
+      patch.typewriterSounds = false;
+    }
     preferences.patch(patch);
   }
 

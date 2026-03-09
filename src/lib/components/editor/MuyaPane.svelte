@@ -13,6 +13,7 @@
   import { historyCache } from '$lib/services/historyCache';
   import { initTypewriterScroller, computeTypewriterOffset } from '$lib/services/typewriterScroller';
   import { initTypewriterPadding } from '$lib/services/typewriterPadding';
+  import { typewriterSound } from '$lib/services/typewriterSound';
 
   let editorElement: HTMLDivElement = $state(null as any);
   let paneElement: HTMLDivElement = $state(null as any);
@@ -21,6 +22,7 @@
   let splitView: boolean = $state(false);
   let readOnly: boolean = $state(false);
   let typewriterMode: boolean = $state(false);
+  let typewriterSounds: boolean = $state(false);
 
   let loadingTab = true;
   let unsubs: (() => void)[] = [];
@@ -84,6 +86,30 @@
     paneElement.addEventListener('keydown', editorKeydown, true);
     unsubs.push(() => paneElement.removeEventListener('keydown', editorKeydown, true));
 
+    // Typewriter sound effects. Fires on the bubble phase so we don't
+    // interfere with the capture-phase shortcut intercept above. Bound to
+    // the pane (not document) so we don't clack while the user types in
+    // Settings inputs or anywhere else in the app.
+    const soundKeydown = (e: KeyboardEvent) => {
+      if (!typewriterSounds) return;
+      if (e.repeat) return; // Ignore auto-repeat (key held down)
+      if (e.metaKey || e.ctrlKey || e.altKey) return; // Skip modifier combos
+
+      const k = e.key;
+      if (k === 'Enter') {
+        typewriterSound.playDing();
+        typewriterSound.playClack();
+      } else if (k === 'Backspace' || k === 'Delete') {
+        typewriterSound.playBackspaceClack();
+      } else if (k === ' ' || k === 'Tab' || k.length === 1) {
+        // Letters, digits, punctuation, space, Tab → normal clack.
+        // Filter out named keys (Shift, Escape, ArrowUp, …) by length>1.
+        typewriterSound.playClack();
+      }
+    };
+    paneElement.addEventListener('keydown', soundKeydown);
+    unsubs.push(() => paneElement.removeEventListener('keydown', soundKeydown));
+
     // contenteditable depends on per-tab readOnly + global source/split
     function applyEditable() {
       const editable = paneElement?.querySelector('[contenteditable]') as HTMLElement;
@@ -97,6 +123,7 @@
       sourceCodeMode = p.sourceCodeMode;
       splitView = p.splitView;
       typewriterMode = p.typewriterMode;
+      typewriterSounds = p.typewriterSounds;
       hidden = p.sourceCodeMode && !p.splitView;
       applyEditable();
     }));
@@ -237,6 +264,7 @@
     fontSizeService.destroy();
     lineNumbersService.destroy();
     muyaService.destroy();
+    typewriterSound.destroy();
   });
 </script>
 

@@ -21,6 +21,7 @@ const translations: Record<string, string> = {
     source_code_desc: 'WYSIWYGの代わりに生のMarkdownを表示', focus_mode: 'フォーカスモード',
     focus_desc: '非アクティブな段落を薄く表示', typewriter_mode: 'タイプライターモード',
     typewriter_desc: 'カーソルを画面の中央に維持',
+    typewriter_sounds: 'タイプライター音', typewriter_sounds_desc: 'キー入力ごとにカチッ、Enter で チーン',
     split_view: '分割表示', split_desc: 'ソースモードでエディタとプレビューを並べて表示',
     interface: 'インターフェース', sidebar_startup: '起動時にサイドバー表示',
     sidebar_startup_desc: '起動時にサイドバーを表示',

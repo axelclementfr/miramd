@@ -26,6 +26,7 @@ const translations = {
     source_code_desc: 'Affiche le Markdown brut au lieu du rendu WYSIWYG',
     focus_mode: 'Mode focus', focus_desc: 'Atténue les paragraphes inactifs pour se concentrer sur le paragraphe courant',
     typewriter_mode: 'Mode machine à écrire', typewriter_desc: "Maintient le curseur au centre vertical de l'écran",
+    typewriter_sounds: 'Bruits de machine à écrire', typewriter_sounds_desc: "Joue un clack à chaque touche et un ding à chaque retour à la ligne",
     split_view: 'Vue scindée', split_desc: "En mode source, affiche l'éditeur et la preview côte à côte",
     interface: 'Interface', sidebar_startup: 'Explorateur au démarrage',
     sidebar_startup_desc: 'Affiche la barre latérale au lancement',

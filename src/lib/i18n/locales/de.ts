@@ -21,6 +21,7 @@ const translations: Record<string, string> = {
     source_code_desc: 'Rohes Markdown statt WYSIWYG anzeigen', focus_mode: 'Fokusmodus',
     focus_desc: 'Inaktive Absätze abdunkeln', typewriter_mode: 'Schreibmaschinen-Modus',
     typewriter_desc: 'Cursor vertikal zentriert halten',
+    typewriter_sounds: 'Schreibmaschinengeräusche', typewriter_sounds_desc: 'Spielt bei jedem Tastendruck einen Klick und bei Enter ein Ding',
     split_view: 'Geteilte Ansicht', split_desc: 'Im Quellmodus Editor und Vorschau nebeneinander',
     interface: 'Oberfläche', sidebar_startup: 'Seitenleiste beim Start',
     sidebar_startup_desc: 'Seitenleiste beim Starten anzeigen',

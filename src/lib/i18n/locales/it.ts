@@ -21,6 +21,7 @@ const translations: Record<string, string> = {
     source_code_desc: 'Mostra il Markdown grezzo', focus_mode: 'Modalità focus',
     focus_desc: 'Attenua i paragrafi inattivi', typewriter_mode: 'Modalità macchina da scrivere',
     typewriter_desc: 'Mantiene il cursore centrato verticalmente',
+    typewriter_sounds: 'Suoni di macchina da scrivere', typewriter_sounds_desc: 'Riproduce un clack ad ogni tasto e un ding ad ogni invio',
     split_view: 'Vista divisa', split_desc: 'In modalità sorgente, mostra editor e anteprima affiancati',
     interface: 'Interfaccia', sidebar_startup: "Pannello laterale all'avvio",
     sidebar_startup_desc: "Mostra il pannello laterale all'avvio",

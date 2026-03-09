@@ -23,6 +23,8 @@ pub struct Preferences {
     pub source_code_mode: bool,
     pub focus_mode: bool,
     pub typewriter_mode: bool,
+    #[serde(default)]
+    pub typewriter_sounds: bool,
     pub show_tab_bar: bool,
     pub show_status_bar: bool,
     pub split_view: bool,
@@ -138,6 +140,7 @@ impl Default for Preferences {
             source_code_mode: false,
             focus_mode: false,
             typewriter_mode: false,
+            typewriter_sounds: false,
             show_tab_bar: true,
             show_status_bar: true,
             split_view: false,

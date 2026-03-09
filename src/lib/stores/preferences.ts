@@ -18,6 +18,7 @@ export interface Preferences {
   sourceCodeMode: boolean;
   focusMode: boolean;
   typewriterMode: boolean;
+  typewriterSounds: boolean;
   showTabBar: boolean;
   showStatusBar: boolean;
   splitView: boolean;
@@ -76,6 +77,7 @@ const defaults: Preferences = {
   sourceCodeMode: false,
   focusMode: false,
   typewriterMode: false,
+  typewriterSounds: false,
   showTabBar: true,
   showStatusBar: true,
   splitView: false,

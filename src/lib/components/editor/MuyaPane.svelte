@@ -22,7 +22,6 @@
   let splitView: boolean = $state(false);
   let readOnly: boolean = $state(false);
   let typewriterMode: boolean = $state(false);
-  let typewriterSounds: boolean = $state(false);
 
   let loadingTab = true;
   let unsubs: (() => void)[] = [];
@@ -90,8 +89,18 @@
     // interfere with the capture-phase shortcut intercept above. Bound to
     // the pane (not document) so we don't clack while the user types in
     // Settings inputs or anywhere else in the app.
+    //
+    // Reads via `get(preferences)` rather than the local $state copy: the
+    // closure captures the variable at handler creation time, and Svelte 5
+    // $state reads inside vanilla DOM listeners aren't always picked up the
+    // way they are in templates/reactive contexts. Going through the store
+    // is unambiguous.
+    //
+    // Sounds are gated on BOTH typewriterMode AND typewriterSounds — the
+    // typewriter visual is the parent feature; sounds is its companion.
     const soundKeydown = (e: KeyboardEvent) => {
-      if (!typewriterSounds) return;
+      const p = get(preferences);
+      if (!p.typewriterMode || !p.typewriterSounds) return;
       if (e.repeat) return; // Ignore auto-repeat (key held down)
       if (e.metaKey || e.ctrlKey || e.altKey) return; // Skip modifier combos
 
@@ -123,7 +132,6 @@
       sourceCodeMode = p.sourceCodeMode;
       splitView = p.splitView;
       typewriterMode = p.typewriterMode;
-      typewriterSounds = p.typewriterSounds;
       hidden = p.sourceCodeMode && !p.splitView;
       applyEditable();
     }));

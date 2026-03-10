@@ -22,6 +22,7 @@ const translations: Record<string, string> = {
     focus_desc: 'Inaktive Absätze abdunkeln', typewriter_mode: 'Schreibmaschinen-Modus',
     typewriter_desc: 'Cursor vertikal zentriert halten',
     typewriter_sounds: 'Schreibmaschinengeräusche', typewriter_sounds_desc: 'Spielt bei jedem Tastendruck einen Klick und bei Enter ein Ding',
+    typewriter_sounds_volume: 'Lautstärke', typewriter_sounds_test: 'Test',
     split_view: 'Geteilte Ansicht', split_desc: 'Im Quellmodus Editor und Vorschau nebeneinander',
     interface: 'Oberfläche', sidebar_startup: 'Seitenleiste beim Start',
     sidebar_startup_desc: 'Seitenleiste beim Starten anzeigen',

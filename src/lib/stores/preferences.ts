@@ -19,6 +19,7 @@ export interface Preferences {
   focusMode: boolean;
   typewriterMode: boolean;
   typewriterSounds: boolean;
+  typewriterSoundsVolume: number;
   showTabBar: boolean;
   showStatusBar: boolean;
   splitView: boolean;
@@ -78,6 +79,7 @@ const defaults: Preferences = {
   focusMode: false,
   typewriterMode: false,
   typewriterSounds: false,
+  typewriterSoundsVolume: 1.0,
   showTabBar: true,
   showStatusBar: true,
   splitView: false,

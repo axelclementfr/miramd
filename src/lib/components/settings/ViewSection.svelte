@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Preferences } from '$lib/stores/preferences';
   import type { TranslationKey } from '$lib/i18n/index';
+  import { typewriterSound } from '$lib/services/typewriterSound';
 
   interface Props {
     prefs: Preferences;
@@ -9,6 +10,13 @@
   }
 
   let { prefs = $bindable(), tr, applyPrefs }: Props = $props();
+
+  function testSound() {
+    // Apply the current slider value before testing so the user hears
+    // exactly what they just dialed in.
+    typewriterSound.setVolume(prefs.typewriterSoundsVolume);
+    typewriterSound.playClack();
+  }
 </script>
 
 <div class="setting-group">
@@ -17,6 +25,24 @@
   <div class="setting-row toggle-row"><div><span class="setting-label">{tr('focus_mode')}</span><p class="setting-desc">{tr('focus_desc')}</p></div><label class="toggle"><input type="checkbox" bind:checked={prefs.focusMode} onchange={applyPrefs} /><span class="toggle-slider"></span></label></div>
   <div class="setting-row toggle-row"><div><span class="setting-label">{tr('typewriter_mode')}</span><p class="setting-desc">{tr('typewriter_desc')}</p></div><label class="toggle"><input type="checkbox" bind:checked={prefs.typewriterMode} onchange={() => { if (!prefs.typewriterMode) prefs.typewriterSounds = false; applyPrefs(); }} /><span class="toggle-slider"></span></label></div>
   <div class="setting-row toggle-row"><div><span class="setting-label">{tr('typewriter_sounds')}</span><p class="setting-desc">{tr('typewriter_sounds_desc')}</p></div><label class="toggle"><input type="checkbox" bind:checked={prefs.typewriterSounds} disabled={!prefs.typewriterMode} onchange={applyPrefs} /><span class="toggle-slider"></span></label></div>
+  {#if prefs.typewriterSounds}
+    <div class="setting-row volume-row">
+      <span class="setting-label">{tr('typewriter_sounds_volume')}</span>
+      <div class="setting-control">
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.05"
+          bind:value={prefs.typewriterSoundsVolume}
+          oninput={() => typewriterSound.setVolume(prefs.typewriterSoundsVolume)}
+          onchange={applyPrefs}
+        />
+        <span class="setting-val">{Math.round(prefs.typewriterSoundsVolume * 100)}%</span>
+        <button type="button" class="test-btn" onclick={testSound}>{tr('typewriter_sounds_test')}</button>
+      </div>
+    </div>
+  {/if}
   <div class="setting-row toggle-row"><div><span class="setting-label">{tr('split_view')}</span><p class="setting-desc">{tr('split_desc')}</p></div><label class="toggle"><input type="checkbox" bind:checked={prefs.splitView} onchange={applyPrefs} /><span class="toggle-slider"></span></label></div>
 </div>
 <div class="setting-group">
@@ -64,4 +90,15 @@
   }
   .toggle input:checked + .toggle-slider { background: var(--accent); }
   .toggle input:checked + .toggle-slider::before { transform: translateX(18px); }
+
+  .volume-row { padding-top: 0; padding-left: 24px; }
+  .setting-control { display: flex; align-items: center; gap: 10px; }
+  input[type="range"] { width: 130px; accent-color: var(--accent); cursor: pointer; }
+  .setting-val { font-size: 0.75rem; color: var(--text-secondary); min-width: 36px; text-align: right; font-family: var(--font-mono); }
+  .test-btn {
+    font-size: 0.75rem; padding: 3px 10px; border-radius: 4px;
+    border: 1px solid var(--border); background: transparent; color: var(--text-secondary);
+    cursor: pointer; font-family: var(--font-family);
+  }
+  .test-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
 </style>

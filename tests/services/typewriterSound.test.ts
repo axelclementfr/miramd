@@ -187,6 +187,39 @@ describe('TypewriterSoundService', () => {
     });
   });
 
+  describe('setVolume', () => {
+    it('updates the master gain value when the AudioContext exists', () => {
+      service.playClack(); // creates ctx + masterGain
+      const masterGain = mockCtx!.nodes.find((n): n is MockGainNode => n instanceof MockGainNode);
+      expect(masterGain).toBeDefined();
+
+      service.setVolume(0.3);
+      // The implementation calls setValueAtTime, which we capture in events.
+      const events = masterGain!.gain.events;
+      expect(events.some((e) => e.method === 'setValueAtTime' && e.gain === 0.3)).toBe(true);
+    });
+
+    it('clamps volume to [0, 1]', () => {
+      service.playClack();
+      const masterGain = mockCtx!.nodes.find((n): n is MockGainNode => n instanceof MockGainNode);
+      service.setVolume(2);
+      expect(masterGain!.gain.events.some((e) => e.gain === 1)).toBe(true);
+      service.setVolume(-0.5);
+      expect(masterGain!.gain.events.some((e) => e.gain === 0)).toBe(true);
+    });
+
+    it('stores the value if the AudioContext is not yet created', () => {
+      // No ctx yet
+      service.setVolume(0.3);
+      expect(mockCtx).toBeNull();
+      // Then create ctx — the master gain should pick up the stored value
+      service.playClack();
+      const masterGain = mockCtx!.nodes.find((n): n is MockGainNode => n instanceof MockGainNode);
+      // Initial gain set in getCtx via `masterGain.gain.value = currentVolume`
+      expect(masterGain!.gain.value).toBe(0.3);
+    });
+  });
+
   describe('testTone (diagnostic helper)', () => {
     it('exists and produces sound when called', () => {
       expect(typeof service.testTone).toBe('function');

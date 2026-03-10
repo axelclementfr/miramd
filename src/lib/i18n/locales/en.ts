@@ -26,6 +26,7 @@ const translations: Record<string, string> = {
     focus_mode: 'Focus mode', focus_desc: 'Dim inactive paragraphs to focus on current one',
     typewriter_mode: 'Typewriter mode', typewriter_desc: 'Keep cursor at vertical center of screen',
     typewriter_sounds: 'Typewriter sounds', typewriter_sounds_desc: 'Play a clack on every keypress and a ding on Enter',
+    typewriter_sounds_volume: 'Volume', typewriter_sounds_test: 'Test',
     split_view: 'Split view', split_desc: 'In source mode, show editor and preview side by side',
     interface: 'Interface', sidebar_startup: 'Sidebar on startup',
     sidebar_startup_desc: 'Show sidebar when launching',

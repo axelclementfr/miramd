@@ -25,6 +25,8 @@ pub struct Preferences {
     pub typewriter_mode: bool,
     #[serde(default)]
     pub typewriter_sounds: bool,
+    #[serde(default = "default_typewriter_sounds_volume")]
+    pub typewriter_sounds_volume: f64,
     pub show_tab_bar: bool,
     pub show_status_bar: bool,
     pub split_view: bool,
@@ -119,6 +121,7 @@ fn default_mermaid_theme() -> String { "default".to_string() }
 fn default_vega_theme() -> String { "latimes".to_string() }
 fn default_start_up_action() -> String { "blank".to_string() }
 fn default_zoom() -> f64 { 1.0 }
+fn default_typewriter_sounds_volume() -> f64 { 1.0 }
 fn default_file_sort_by() -> String { "modified".to_string() }
 
 impl Default for Preferences {
@@ -141,6 +144,7 @@ impl Default for Preferences {
             focus_mode: false,
             typewriter_mode: false,
             typewriter_sounds: false,
+            typewriter_sounds_volume: default_typewriter_sounds_volume(),
             show_tab_bar: true,
             show_status_bar: true,
             split_view: false,

@@ -20,6 +20,7 @@ const translations: Record<string, string> = {
     focus_mode: '专注模式', focus_desc: '淡化非活动段落', typewriter_mode: '打字机模式',
     typewriter_desc: '保持光标在屏幕垂直中央',
     typewriter_sounds: '打字机音效', typewriter_sounds_desc: '每次按键播放敲击声，回车时播放铃声',
+    typewriter_sounds_volume: '音量', typewriter_sounds_test: '测试',
     split_view: '分栏视图', split_desc: '在源码模式下并排显示编辑器和预览',
     interface: '界面', sidebar_startup: '启动时显示侧栏', sidebar_startup_desc: '启动时显示侧栏',
     tab_bar: '标签栏', tab_bar_desc: '显示文件标签',

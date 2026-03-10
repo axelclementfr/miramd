@@ -133,6 +133,7 @@
       splitView = p.splitView;
       typewriterMode = p.typewriterMode;
       hidden = p.sourceCodeMode && !p.splitView;
+      typewriterSound.setVolume(p.typewriterSoundsVolume);
       applyEditable();
     }));
 

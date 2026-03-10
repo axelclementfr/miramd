@@ -22,6 +22,7 @@ const translations: Record<string, string> = {
     focus_desc: 'Attenua i paragrafi inattivi', typewriter_mode: 'Modalità macchina da scrivere',
     typewriter_desc: 'Mantiene il cursore centrato verticalmente',
     typewriter_sounds: 'Suoni di macchina da scrivere', typewriter_sounds_desc: 'Riproduce un clack ad ogni tasto e un ding ad ogni invio',
+    typewriter_sounds_volume: 'Volume', typewriter_sounds_test: 'Prova',
     split_view: 'Vista divisa', split_desc: 'In modalità sorgente, mostra editor e anteprima affiancati',
     interface: 'Interfaccia', sidebar_startup: "Pannello laterale all'avvio",
     sidebar_startup_desc: "Mostra il pannello laterale all'avvio",

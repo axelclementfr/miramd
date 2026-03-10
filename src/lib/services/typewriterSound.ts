@@ -23,18 +23,38 @@ class TypewriterSoundService {
   private static readonly VOLUME = 0.25;
 
   private getCtx(): AudioContext | null {
-    if (this.ctx) return this.ctx;
+    if (this.ctx) {
+      // Some platforms (WebKitGTK in particular) start the context in
+      // 'suspended' state until the first user gesture. Calling resume()
+      // is a no-op when already running and cheap to invoke per call.
+      if (this.ctx.state === 'suspended') {
+        this.ctx.resume().catch((e) => {
+          console.warn('[typewriterSound] resume() rejected:', e);
+        });
+      }
+      return this.ctx;
+    }
     try {
       const Ctor =
         (window as unknown as { AudioContext?: typeof AudioContext }).AudioContext ||
         (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-      if (!Ctor) return null;
+      if (!Ctor) {
+        console.warn('[typewriterSound] AudioContext not available in this environment');
+        return null;
+      }
       this.ctx = new Ctor();
       this.masterGain = this.ctx.createGain();
       this.masterGain.gain.value = TypewriterSoundService.VOLUME;
       this.masterGain.connect(this.ctx.destination);
+      console.info(`[typewriterSound] AudioContext created (state=${this.ctx.state}, sampleRate=${this.ctx.sampleRate})`);
+      if (this.ctx.state === 'suspended') {
+        this.ctx.resume().catch((e) => {
+          console.warn('[typewriterSound] resume() rejected:', e);
+        });
+      }
       return this.ctx;
-    } catch {
+    } catch (e) {
+      console.warn('[typewriterSound] AudioContext creation failed:', e);
       return null;
     }
   }

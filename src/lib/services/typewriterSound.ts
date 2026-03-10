@@ -2,25 +2,29 @@
  * Typewriter sound effects synthesized via Web Audio API.
  *
  * Three sounds, all generated on the fly (no audio assets bundled):
- *  - clack: a short burst of band-passed white noise with an exponential
- *    envelope. Pitch jitters per call so successive presses don't feel
- *    looped. Used for normal letter/number/space/Tab.
+ *  - clack: a short oscillator burst (square wave + filter envelope) for
+ *    that wood-thunk character. Pitch jitters per call so successive presses
+ *    don't feel looped. Used for normal letter/number/space/Tab.
  *  - backspaceClack: same family but lower pitch + softer envelope, so the
  *    delete keys feel "duller" the way a real platen-strike does on the
  *    return path.
- *  - ding: a short sine bell, used on Enter to evoke the carriage return
- *    bell of a vintage typewriter.
+ *  - ding: a sine bell, used on Enter to evoke the carriage return bell of
+ *    a vintage typewriter.
  *
  * The AudioContext is created lazily on the first play() call. Browsers
  * block AudioContext creation outside of a user gesture until 1 happens;
  * deferring side-steps the autoplay policy entirely.
+ *
+ * For diagnostic, the singleton is exposed on `window.typewriterSound` in
+ * dev — call `typewriterSound.testTone()` from DevTools to verify the audio
+ * output chain works end to end.
  */
 class TypewriterSoundService {
   private ctx: AudioContext | null = null;
   private masterGain: GainNode | null = null;
 
-  /** Master volume, 0 to 1. Kept low so the sounds are present but not aggressive. */
-  private static readonly VOLUME = 0.25;
+  /** Master volume, 0 to 1. */
+  private static readonly VOLUME = 0.6;
 
   private getCtx(): AudioContext | null {
     if (this.ctx) {
@@ -64,9 +68,9 @@ class TypewriterSoundService {
     const ctx = this.getCtx();
     if (!ctx || !this.masterGain) return;
     this.synthClack(ctx, {
-      duration: 0.05,
-      filterFreq: 800 + Math.random() * 400, // 800–1200 Hz, pitch jitter
-      gainPeak: 0.9,
+      duration: 0.08,
+      filterFreq: 1200 + Math.random() * 600, // 1200–1800 Hz, pitch jitter
+      gainPeak: 1.0,
     });
   }
 
@@ -75,9 +79,9 @@ class TypewriterSoundService {
     const ctx = this.getCtx();
     if (!ctx || !this.masterGain) return;
     this.synthClack(ctx, {
-      duration: 0.06,
-      filterFreq: 400 + Math.random() * 200, // 400–600 Hz
-      gainPeak: 0.6,
+      duration: 0.1,
+      filterFreq: 600 + Math.random() * 300, // 600–900 Hz
+      gainPeak: 0.7,
     });
   }
 
@@ -88,52 +92,80 @@ class TypewriterSoundService {
 
     const osc = ctx.createOscillator();
     osc.type = 'sine';
-    osc.frequency.value = 1750 + Math.random() * 100; // around the carriage-bell zone
+    osc.frequency.value = 1750 + Math.random() * 100;
 
     const env = ctx.createGain();
     const t0 = ctx.currentTime;
     env.gain.setValueAtTime(0, t0);
-    env.gain.linearRampToValueAtTime(0.5, t0 + 0.005);
-    env.gain.exponentialRampToValueAtTime(0.001, t0 + 0.4);
+    env.gain.linearRampToValueAtTime(0.6, t0 + 0.005);
+    env.gain.exponentialRampToValueAtTime(0.001, t0 + 0.5);
 
     osc.connect(env);
     env.connect(this.masterGain);
     osc.start(t0);
-    osc.stop(t0 + 0.4);
+    osc.stop(t0 + 0.5);
   }
 
+  /**
+   * Diagnostic helper. Plays a clearly audible 500ms 800Hz tone. Use from
+   * DevTools to verify the audio output chain (AudioContext → speakers).
+   * If you can hear this but not the clacks, the clack synth is too subtle —
+   * not an environment problem.
+   */
+  testTone(): void {
+    const ctx = this.getCtx();
+    if (!ctx || !this.masterGain) {
+      console.warn('[typewriterSound] testTone: no AudioContext');
+      return;
+    }
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.value = 800;
+    const env = ctx.createGain();
+    const t0 = ctx.currentTime;
+    env.gain.setValueAtTime(0.7, t0);
+    env.gain.exponentialRampToValueAtTime(0.001, t0 + 0.5);
+    osc.connect(env);
+    env.connect(this.masterGain);
+    osc.start(t0);
+    osc.stop(t0 + 0.5);
+    console.info('[typewriterSound] testTone played');
+  }
+
+  /**
+   * Synth the clack using a filtered triangle wave. Triangle is more audible
+   * than a noise burst on most output chains (the noise approach was too
+   * subtle on WebKitGTK + PulseAudio).
+   */
   private synthClack(
     ctx: AudioContext,
     opts: { duration: number; filterFreq: number; gainPeak: number },
   ): void {
     if (!this.masterGain) return;
     const { duration, filterFreq, gainPeak } = opts;
+    const t0 = ctx.currentTime;
 
-    const sampleCount = Math.floor(ctx.sampleRate * duration);
-    const buffer = ctx.createBuffer(1, sampleCount, ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < sampleCount; i++) {
-      // White noise with a fast exponential decay → "tick" character
-      data[i] = (Math.random() * 2 - 1) * Math.exp((-i / sampleCount) * 8);
-    }
+    // Triangle wave at the filter pitch — gives the percussive "tonk" body.
+    const osc = ctx.createOscillator();
+    osc.type = 'triangle';
+    osc.frequency.value = filterFreq;
 
-    const src = ctx.createBufferSource();
-    src.buffer = buffer;
-
+    // Bandpass for tighter character.
     const filter = ctx.createBiquadFilter();
     filter.type = 'bandpass';
     filter.frequency.value = filterFreq;
-    filter.Q.value = 2;
+    filter.Q.value = 4;
 
+    // Tight percussive envelope.
     const env = ctx.createGain();
-    const t0 = ctx.currentTime;
     env.gain.setValueAtTime(gainPeak, t0);
     env.gain.exponentialRampToValueAtTime(0.001, t0 + duration);
 
-    src.connect(filter);
+    osc.connect(filter);
     filter.connect(env);
     env.connect(this.masterGain);
-    src.start(t0);
+    osc.start(t0);
+    osc.stop(t0 + duration);
   }
 
   /** Releases the AudioContext. Call on app teardown. */
@@ -148,3 +180,9 @@ class TypewriterSoundService {
 
 export const typewriterSound = new TypewriterSoundService();
 export { TypewriterSoundService };
+
+// Dev diagnostic: expose the singleton on window so you can call
+// `typewriterSound.testTone()` / `playClack()` / `playDing()` from DevTools.
+if (typeof window !== 'undefined') {
+  (window as unknown as { typewriterSound: TypewriterSoundService }).typewriterSound = typewriterSound;
+}

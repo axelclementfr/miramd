@@ -144,11 +144,13 @@ describe('TypewriterSoundService', () => {
   });
 
   describe('playClack', () => {
-    it('creates a buffer source + bandpass filter + envelope chain', () => {
+    it('creates a triangle oscillator + bandpass filter + envelope chain', () => {
       service.playClack();
-      const types = mockCtx!.nodes.map((n) => 'nodeType' in n ? n.nodeType : 'gain');
-      expect(types).toContain('bufferSource');
-      expect(types).toContain('biquadFilter');
+      const oscs = mockCtx!.nodes.filter((n): n is MockOscillator => 'nodeType' in n && n.nodeType === 'oscillator');
+      expect(oscs.length).toBeGreaterThan(0);
+      expect(oscs[0].type).toBe('triangle');
+      const filters = mockCtx!.nodes.filter((n): n is MockBiquadFilter => 'nodeType' in n && n.nodeType === 'biquadFilter');
+      expect(filters.length).toBeGreaterThan(0);
     });
 
     it('uses bandpass filter for the wood-thud feel', () => {
@@ -167,10 +169,11 @@ describe('TypewriterSoundService', () => {
       expect(seen.size).toBeGreaterThan(3);
     });
 
-    it('starts the buffer source', () => {
+    it('starts and stops the oscillator', () => {
       service.playClack();
-      const src = mockCtx!.nodes.find((n): n is MockBufferSource => 'nodeType' in n && n.nodeType === 'bufferSource');
-      expect(src?.started).toBe(true);
+      const osc = mockCtx!.nodes.find((n): n is MockOscillator => 'nodeType' in n && n.nodeType === 'oscillator');
+      expect(osc?.started).toBe(true);
+      expect(osc?.stoppedAt).toBeGreaterThan(0);
     });
   });
 
@@ -178,9 +181,20 @@ describe('TypewriterSoundService', () => {
     it('uses a lower filter frequency than playClack (softer character)', () => {
       service.playBackspaceClack();
       const filter = mockCtx!.nodes.find((n): n is MockBiquadFilter => 'nodeType' in n && n.nodeType === 'biquadFilter');
-      // Backspace range: 400-600 Hz, normal clack: 800-1200 Hz
-      expect(filter!.frequency.value).toBeLessThanOrEqual(600);
-      expect(filter!.frequency.value).toBeGreaterThanOrEqual(400);
+      // Backspace range: 600-900 Hz, normal clack: 1200-1800 Hz
+      expect(filter!.frequency.value).toBeLessThanOrEqual(900);
+      expect(filter!.frequency.value).toBeGreaterThanOrEqual(600);
+    });
+  });
+
+  describe('testTone (diagnostic helper)', () => {
+    it('exists and produces sound when called', () => {
+      expect(typeof service.testTone).toBe('function');
+      service.testTone();
+      const oscs = mockCtx!.nodes.filter((n): n is MockOscillator => 'nodeType' in n && n.nodeType === 'oscillator');
+      expect(oscs.length).toBeGreaterThan(0);
+      expect(oscs[0].type).toBe('sine');
+      expect(oscs[0].frequency.value).toBe(800);
     });
   });
 

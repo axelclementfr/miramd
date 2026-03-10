@@ -23,8 +23,11 @@ class TypewriterSoundService {
   private ctx: AudioContext | null = null;
   private masterGain: GainNode | null = null;
 
-  /** Master volume, 0 to 1. */
-  private static readonly VOLUME = 0.6;
+  /** Master volume, 0 to 1. Bumped from earlier 0.25/0.6 because subtle
+   *  sounds were inaudible on WebKitGTK + PulseAudio. User can override via
+   *  the Settings slider (preferences.typewriterSoundsVolume → setVolume). */
+  private static readonly VOLUME = 1.0;
+  private currentVolume = TypewriterSoundService.VOLUME;
 
   private getCtx(): AudioContext | null {
     if (this.ctx) {
@@ -48,7 +51,7 @@ class TypewriterSoundService {
       }
       this.ctx = new Ctor();
       this.masterGain = this.ctx.createGain();
-      this.masterGain.gain.value = TypewriterSoundService.VOLUME;
+      this.masterGain.gain.value = this.currentVolume;
       this.masterGain.connect(this.ctx.destination);
       console.info(`[typewriterSound] AudioContext created (state=${this.ctx.state}, sampleRate=${this.ctx.sampleRate})`);
       if (this.ctx.state === 'suspended') {
@@ -166,6 +169,16 @@ class TypewriterSoundService {
     env.connect(this.masterGain);
     osc.start(t0);
     osc.stop(t0 + duration);
+  }
+
+  /** Sets the master volume (0–1, clamped). Applies immediately if the
+   *  AudioContext exists; otherwise stored for the next getCtx(). */
+  setVolume(value: number): void {
+    const v = Math.max(0, Math.min(1, value));
+    this.currentVolume = v;
+    if (this.masterGain && this.ctx) {
+      this.masterGain.gain.setValueAtTime(v, this.ctx.currentTime);
+    }
   }
 
   /** Releases the AudioContext. Call on app teardown. */

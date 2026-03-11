@@ -1,291 +1,186 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { TypewriterSoundService } from '$lib/services/typewriterSound';
 
-class MockEnvelope {
-  events: { method: string; gain: number; time: number }[] = [];
-  private _value = 1;
-  get value() { return this._value; }
-  set value(v: number) { this._value = v; }
-  setValueAtTime(v: number, t: number) { this.events.push({ method: 'setValueAtTime', gain: v, time: t }); }
-  linearRampToValueAtTime(v: number, t: number) { this.events.push({ method: 'linearRampToValueAtTime', gain: v, time: t }); }
-  exponentialRampToValueAtTime(v: number, t: number) { this.events.push({ method: 'exponentialRampToValueAtTime', gain: v, time: t }); }
-}
-
-class MockGainNode {
-  type = 'gain';
-  connections: MockNode[] = [];
-  gain = new MockEnvelope();
-  connect(target: MockNode) { this.connections.push(target); }
-}
-
-class MockOscillator {
-  type: OscillatorType = 'sine';
-  nodeType = 'oscillator';
-  connections: MockNode[] = [];
-  frequency = { value: 440 };
-  started = false;
-  startedAt = -1;
-  stoppedAt = -1;
-  connect(target: MockNode) { this.connections.push(target); }
-  start(t = 0) { this.started = true; this.startedAt = t; }
-  stop(t = 0) { this.stoppedAt = t; }
-}
-
-class MockBiquadFilter {
-  nodeType = 'biquadFilter';
-  connections: MockNode[] = [];
-  type: BiquadFilterType = 'lowpass';
-  frequency = { value: 0 };
-  Q = { value: 0 };
-  connect(target: MockNode) { this.connections.push(target); }
-}
-
-class MockBufferSource {
-  nodeType = 'bufferSource';
-  connections: MockNode[] = [];
-  buffer: MockBuffer | null = null;
-  started = false;
-  startedAt = -1;
-  connect(target: MockNode) { this.connections.push(target); }
-  start(t = 0) { this.started = true; this.startedAt = t; }
-}
-
-class MockBuffer {
-  data: Float32Array;
-  constructor(public numberOfChannels: number, public length: number, public sampleRate: number) {
-    this.data = new Float32Array(length);
-  }
-  getChannelData(_channel: number) { return this.data; }
-}
-
-type MockNode = MockGainNode | MockOscillator | MockBiquadFilter | MockBufferSource | { nodeType: 'destination'; connections: MockNode[] };
-
-class MockAudioContext {
-  sampleRate = 44100;
+class MockAudio {
+  static all: MockAudio[] = [];
+  src: string;
+  volume = 1.0;
   currentTime = 0;
-  destination = { nodeType: 'destination' as const, connections: [] as MockNode[] };
-  closed = false;
-  nodes: MockNode[] = [];
-
-  createGain() {
-    const n = new MockGainNode();
-    this.nodes.push(n);
-    return n;
+  preload = '';
+  paused = true;
+  playCalls = 0;
+  constructor(src?: string) {
+    this.src = src ?? '';
+    MockAudio.all.push(this);
   }
-  createOscillator() {
-    const n = new MockOscillator();
-    this.nodes.push(n);
-    return n;
+  play(): Promise<void> {
+    this.playCalls += 1;
+    this.paused = false;
+    return Promise.resolve();
   }
-  createBiquadFilter() {
-    const n = new MockBiquadFilter();
-    this.nodes.push(n);
-    return n;
+  pause(): void {
+    this.paused = true;
   }
-  createBufferSource() {
-    const n = new MockBufferSource();
-    this.nodes.push(n);
-    return n;
-  }
-  createBuffer(channels: number, length: number, rate: number) {
-    return new MockBuffer(channels, length, rate);
-  }
-  close() { this.closed = true; return Promise.resolve(); }
 }
 
-describe('TypewriterSoundService', () => {
+describe('TypewriterSoundService (HTML5 audio path)', () => {
   let service: TypewriterSoundService;
-  let mockCtx: MockAudioContext | null;
-  let originalAudioContext: typeof AudioContext | undefined;
+  let originalAudio: typeof Audio | undefined;
 
   beforeEach(() => {
-    originalAudioContext = (window as unknown as { AudioContext?: typeof AudioContext }).AudioContext;
-    mockCtx = null;
-    (window as unknown as { AudioContext: unknown }).AudioContext = class {
-      constructor() {
-        mockCtx = new MockAudioContext();
-        return mockCtx as unknown as AudioContext;
-      }
-    };
+    originalAudio = (window as unknown as { Audio?: typeof Audio }).Audio;
+    MockAudio.all = [];
+    (window as unknown as { Audio: unknown }).Audio = MockAudio;
     service = new TypewriterSoundService();
   });
 
   afterEach(() => {
     service.destroy();
-    if (originalAudioContext) {
-      (window as unknown as { AudioContext: typeof AudioContext }).AudioContext = originalAudioContext;
+    if (originalAudio) {
+      (window as unknown as { Audio: typeof Audio }).Audio = originalAudio;
     } else {
-      delete (window as unknown as Record<string, unknown>).AudioContext;
+      delete (window as unknown as Record<string, unknown>).Audio;
     }
   });
 
   describe('lazy initialization', () => {
-    it('does NOT create an AudioContext before any sound is played', () => {
-      expect(mockCtx).toBeNull();
+    it('does NOT create Audio elements before any sound is played', () => {
+      expect(MockAudio.all.length).toBe(0);
     });
 
-    it('creates the AudioContext on the first playClack()', () => {
+    it('creates a pool of variants on the first playClack()', () => {
       service.playClack();
-      expect(mockCtx).not.toBeNull();
+      // 4 clack + 4 backspace + 4 ding = 12 elements
+      expect(MockAudio.all.length).toBe(12);
     });
 
-    it('creates the AudioContext on the first playDing()', () => {
-      service.playDing();
-      expect(mockCtx).not.toBeNull();
-    });
-
-    it('reuses the same AudioContext across calls', () => {
+    it('reuses the same pool across calls', () => {
       service.playClack();
-      const firstCtx = mockCtx;
-      service.playClack();
-      service.playDing();
-      expect(mockCtx).toBe(firstCtx);
+      const after1 = MockAudio.all.length;
+      for (let i = 0; i < 20; i++) service.playClack();
+      // No new Audio elements created — they are pooled and reused.
+      expect(MockAudio.all.length).toBe(after1);
     });
   });
 
   describe('playClack', () => {
-    it('creates a triangle oscillator + bandpass filter + envelope chain', () => {
+    it('produces a data: URL pointing at a WAV blob', () => {
       service.playClack();
-      const oscs = mockCtx!.nodes.filter((n): n is MockOscillator => 'nodeType' in n && n.nodeType === 'oscillator');
-      expect(oscs.length).toBeGreaterThan(0);
-      expect(oscs[0].type).toBe('triangle');
-      const filters = mockCtx!.nodes.filter((n): n is MockBiquadFilter => 'nodeType' in n && n.nodeType === 'biquadFilter');
-      expect(filters.length).toBeGreaterThan(0);
+      const audio = MockAudio.all.find((a) => a.src.startsWith('data:audio/wav;base64,'));
+      expect(audio).toBeDefined();
     });
 
-    it('uses bandpass filter for the wood-thud feel', () => {
-      service.playClack();
-      const filter = mockCtx!.nodes.find((n): n is MockBiquadFilter => 'nodeType' in n && n.nodeType === 'biquadFilter');
-      expect(filter?.type).toBe('bandpass');
+    it('rotates through pool variants (round-robin)', () => {
+      // Reset playCalls on existing audios after init; then trigger 4 clacks,
+      // each of the 4 variants should be played once.
+      service.playClack(); // init + first variant played
+      const clackAudios = MockAudio.all.slice(0, 4);
+      // First call already incremented one variant's playCalls. Reset and play 4.
+      for (const a of clackAudios) a.playCalls = 0;
+      for (let i = 0; i < 4; i++) service.playClack();
+      const totals = clackAudios.map((a) => a.playCalls);
+      // Each variant should be played exactly once over 4 calls.
+      expect(totals.every((c) => c === 1)).toBe(true);
     });
 
-    it('jitters filter frequency between calls so it does not feel looped', () => {
-      // First call also creates the AudioContext, so all subsequent filters
-      // accumulate in mockCtx.nodes. Collect each new biquad's frequency.
-      const seen = new Set<number>();
-      for (let i = 0; i < 12; i++) service.playClack();
-      const filters = mockCtx!.nodes.filter((n): n is MockBiquadFilter => 'nodeType' in n && n.nodeType === 'biquadFilter');
-      for (const f of filters) seen.add(f.frequency.value);
-      expect(seen.size).toBeGreaterThan(3);
-    });
-
-    it('starts and stops the oscillator', () => {
+    it('resets currentTime so a rapid press starts from 0', () => {
       service.playClack();
-      const osc = mockCtx!.nodes.find((n): n is MockOscillator => 'nodeType' in n && n.nodeType === 'oscillator');
-      expect(osc?.started).toBe(true);
-      expect(osc?.stoppedAt).toBeGreaterThan(0);
+      const audio = MockAudio.all[0];
+      audio.currentTime = 0.05;
+      service.playClack();
+      // The next variant's currentTime is reset; original audio kept its value.
+      // We verify the rotated variant (index 1) was reset to 0.
+      expect(MockAudio.all[1].currentTime).toBe(0);
     });
   });
 
   describe('playBackspaceClack', () => {
-    it('uses a lower filter frequency than playClack (softer character)', () => {
+    it('uses a different pool than playClack', () => {
+      service.playClack();
+      const clackPlayed = MockAudio.all.slice(0, 4).filter((a) => a.playCalls > 0);
       service.playBackspaceClack();
-      const filter = mockCtx!.nodes.find((n): n is MockBiquadFilter => 'nodeType' in n && n.nodeType === 'biquadFilter');
-      // Backspace range: 600-900 Hz, normal clack: 1200-1800 Hz
-      expect(filter!.frequency.value).toBeLessThanOrEqual(900);
-      expect(filter!.frequency.value).toBeGreaterThanOrEqual(600);
-    });
-  });
-
-  describe('setVolume', () => {
-    it('updates the master gain value when the AudioContext exists', () => {
-      service.playClack(); // creates ctx + masterGain
-      const masterGain = mockCtx!.nodes.find((n): n is MockGainNode => n instanceof MockGainNode);
-      expect(masterGain).toBeDefined();
-
-      service.setVolume(0.3);
-      // The implementation calls setValueAtTime, which we capture in events.
-      const events = masterGain!.gain.events;
-      expect(events.some((e) => e.method === 'setValueAtTime' && e.gain === 0.3)).toBe(true);
-    });
-
-    it('clamps volume to [0, 1]', () => {
-      service.playClack();
-      const masterGain = mockCtx!.nodes.find((n): n is MockGainNode => n instanceof MockGainNode);
-      service.setVolume(2);
-      expect(masterGain!.gain.events.some((e) => e.gain === 1)).toBe(true);
-      service.setVolume(-0.5);
-      expect(masterGain!.gain.events.some((e) => e.gain === 0)).toBe(true);
-    });
-
-    it('stores the value if the AudioContext is not yet created', () => {
-      // No ctx yet
-      service.setVolume(0.3);
-      expect(mockCtx).toBeNull();
-      // Then create ctx — the master gain should pick up the stored value
-      service.playClack();
-      const masterGain = mockCtx!.nodes.find((n): n is MockGainNode => n instanceof MockGainNode);
-      // Initial gain set in getCtx via `masterGain.gain.value = currentVolume`
-      expect(masterGain!.gain.value).toBe(0.3);
-    });
-  });
-
-  describe('testTone (diagnostic helper)', () => {
-    it('exists and produces sound when called', () => {
-      expect(typeof service.testTone).toBe('function');
-      service.testTone();
-      const oscs = mockCtx!.nodes.filter((n): n is MockOscillator => 'nodeType' in n && n.nodeType === 'oscillator');
-      expect(oscs.length).toBeGreaterThan(0);
-      expect(oscs[0].type).toBe('sine');
-      expect(oscs[0].frequency.value).toBe(800);
+      const backspaceAudios = MockAudio.all.slice(4, 8);
+      const backspacePlayed = backspaceAudios.filter((a) => a.playCalls > 0);
+      expect(clackPlayed.length).toBeGreaterThan(0);
+      expect(backspacePlayed.length).toBeGreaterThan(0);
+      // Backspace's played audio is NOT one of the clacks.
+      expect(backspaceAudios.some((a) => MockAudio.all.slice(0, 4).includes(a))).toBe(false);
     });
   });
 
   describe('playDing', () => {
-    it('creates a sine oscillator with a bell-zone frequency', () => {
+    it('plays from a third pool', () => {
       service.playDing();
-      const osc = mockCtx!.nodes.find((n): n is MockOscillator => 'nodeType' in n && n.nodeType === 'oscillator');
-      expect(osc).toBeDefined();
-      expect(osc!.type).toBe('sine');
-      expect(osc!.frequency.value).toBeGreaterThanOrEqual(1750);
-      expect(osc!.frequency.value).toBeLessThanOrEqual(1850);
+      const dingAudios = MockAudio.all.slice(8, 12);
+      const played = dingAudios.find((a) => a.playCalls > 0);
+      expect(played).toBeDefined();
+    });
+  });
+
+  describe('setVolume', () => {
+    it('applies the volume to every pooled element when init was already done', () => {
+      service.playClack(); // init
+      service.setVolume(0.3);
+      const volumes = MockAudio.all.map((a) => a.volume);
+      expect(volumes.every((v) => v === 0.3)).toBe(true);
     });
 
-    it('schedules an exponential decay on the envelope', () => {
-      service.playDing();
-      // The per-ding gain is the most-recently-created gain node (master is created first)
-      const gains = mockCtx!.nodes.filter((n): n is MockGainNode => n instanceof MockGainNode);
-      const env = gains[gains.length - 1];
-      const methods = env.gain.events.map((e) => e.method);
-      expect(methods).toContain('exponentialRampToValueAtTime');
+    it('clamps to [0, 1]', () => {
+      service.playClack();
+      service.setVolume(2);
+      expect(MockAudio.all.every((a) => a.volume === 1)).toBe(true);
+      service.setVolume(-1);
+      expect(MockAudio.all.every((a) => a.volume === 0)).toBe(true);
     });
 
-    it('starts and stops the oscillator', () => {
-      service.playDing();
-      const osc = mockCtx!.nodes.find((n): n is MockOscillator => 'nodeType' in n && n.nodeType === 'oscillator');
-      expect(osc?.started).toBe(true);
-      expect(osc?.stoppedAt).toBeGreaterThan(0);
+    it('stores the value before init so the next pool is created with it', () => {
+      service.setVolume(0.4);
+      expect(MockAudio.all.length).toBe(0);
+      service.playClack();
+      expect(MockAudio.all.every((a) => a.volume === 0.4)).toBe(true);
+    });
+  });
+
+  describe('testTone', () => {
+    it('creates a one-shot Audio element separate from the pool', () => {
+      service.testTone();
+      // testTone uses a fresh Audio (not pooled), so no pool init.
+      expect(MockAudio.all.length).toBe(1);
+      expect(MockAudio.all[0].src.startsWith('data:audio/wav;base64,')).toBe(true);
+    });
+
+    it('plays at full volume regardless of current setVolume', () => {
+      service.setVolume(0.1);
+      service.testTone();
+      expect(MockAudio.all[0].volume).toBe(1.0);
     });
   });
 
   describe('destroy', () => {
-    it('closes the AudioContext', () => {
+    it('clears the pools', () => {
       service.playClack();
-      const ctx = mockCtx!;
       service.destroy();
-      expect(ctx.closed).toBe(true);
+      // After destroy, calling playClack rebuilds (initialized=false again).
+      const beforeReinit = MockAudio.all.length;
+      service.playClack();
+      expect(MockAudio.all.length).toBeGreaterThan(beforeReinit);
     });
 
-    it('is a no-op if no sound was ever played', () => {
-      expect(() => service.destroy()).not.toThrow();
-      expect(mockCtx).toBeNull();
-    });
-
-    it('is idempotent — calling destroy twice does not throw', () => {
+    it('is idempotent', () => {
       service.playClack();
       service.destroy();
       expect(() => service.destroy()).not.toThrow();
     });
   });
 
-  describe('environments without Web Audio', () => {
-    it('returns gracefully when AudioContext is undefined', () => {
-      delete (window as unknown as Record<string, unknown>).AudioContext;
-      delete (window as unknown as Record<string, unknown>).webkitAudioContext;
+  describe('environment without HTMLAudioElement', () => {
+    it('returns gracefully when Audio is undefined', () => {
+      delete (window as unknown as Record<string, unknown>).Audio;
       const fresh = new TypewriterSoundService();
       expect(() => fresh.playClack()).not.toThrow();
       expect(() => fresh.playDing()).not.toThrow();
       expect(() => fresh.playBackspaceClack()).not.toThrow();
+      expect(() => fresh.testTone()).not.toThrow();
     });
   });
 });

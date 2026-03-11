@@ -12,12 +12,10 @@
   let { prefs = $bindable(), tr, applyPrefs }: Props = $props();
 
   function testSound() {
-    // Diagnostic mode: bypass the full synth chain and use the simplified
-    // testTone (sine 440Hz direct to ctx.destination, no gain, no envelope).
-    // If this is silent on Tauri but works in browser, WebKitGTK's Web Audio
-    // output pipeline is broken regardless of GainNode automation.
+    // Plays the real clack at the user's chosen volume so they hear exactly
+    // what typing will sound like.
     typewriterSound.setVolume(prefs.typewriterSoundsVolume);
-    typewriterSound.testTone();
+    typewriterSound.playClack();
   }
 </script>
 

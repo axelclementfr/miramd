@@ -12,10 +12,12 @@
   let { prefs = $bindable(), tr, applyPrefs }: Props = $props();
 
   function testSound() {
-    // Apply the current slider value before testing so the user hears
-    // exactly what they just dialed in.
+    // Diagnostic mode: bypass the full synth chain and use the simplified
+    // testTone (sine 440Hz direct to ctx.destination, no gain, no envelope).
+    // If this is silent on Tauri but works in browser, WebKitGTK's Web Audio
+    // output pipeline is broken regardless of GainNode automation.
     typewriterSound.setVolume(prefs.typewriterSoundsVolume);
-    typewriterSound.playClack();
+    typewriterSound.testTone();
   }
 </script>
 

@@ -106,3 +106,33 @@ describe('dlog', () => {
     expect(spy).toHaveBeenCalledWith('[typewriter]', 'visible');
   });
 });
+
+describe('setupDebugShortcut', () => {
+  it('toggles debugPanelOpen on Ctrl+Shift+D', async () => {
+    const { setupDebugShortcut, debugPanelOpen } = await import('$lib/services/debug');
+    const cleanup = setupDebugShortcut();
+    expect(get(debugPanelOpen)).toBe(false);
+
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'D', ctrlKey: true, shiftKey: true })
+    );
+    expect(get(debugPanelOpen)).toBe(true);
+
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'D', ctrlKey: true, shiftKey: true })
+    );
+    expect(get(debugPanelOpen)).toBe(false);
+
+    cleanup();
+  });
+
+  it('ignores Ctrl+D without Shift', async () => {
+    const { setupDebugShortcut, debugPanelOpen } = await import('$lib/services/debug');
+    const cleanup = setupDebugShortcut();
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'D', ctrlKey: true, shiftKey: false })
+    );
+    expect(get(debugPanelOpen)).toBe(false);
+    cleanup();
+  });
+});

@@ -15,12 +15,14 @@
   import Toast from '$lib/components/Toast.svelte';
   import WindowResizeEdges from '$lib/components/WindowResizeEdges.svelte';
   import WelcomeScreen from '$lib/components/WelcomeScreen.svelte';
+  import DebugPanel from '$lib/components/DebugPanel.svelte';
   import { editor } from '$lib/stores/editor';
   import { preferences } from '$lib/stores/preferences';
   import { setLanguage, t, type TranslationKey } from '$lib/i18n/index';
   import { openFileDialog, saveCurrentFile, closeTabWithConfirm, openFileFromPath, openDroppedMarkdownFiles, getCurrentTabId, getCurrentTab } from '$lib/services/fileOperations';
   import { showToast } from '$lib/stores/toast';
   import { setupKeyboardShortcuts } from '$lib/services/shortcuts';
+  import { setupDebugShortcut } from '$lib/services/debug';
   import { startAutoSave } from '$lib/services/autoSave';
   import { initAppZoomWheel } from '$lib/services/appZoomWheel';
   import { initWindow } from '$lib/services/windowInit';
@@ -114,6 +116,9 @@
       isSettingsOpen: () => settingsOpen,
     });
     unsubs.push(removeShortcuts);
+
+    // Ctrl+Shift+D → toggle the debug panel
+    unsubs.push(setupDebugShortcut());
 
     // Ctrl+wheel → app zoom (fine increments). Listener stays on window.
     unsubs.push(initAppZoomWheel());
@@ -217,6 +222,9 @@
 
 <!-- Toast notifications -->
 <Toast />
+
+<!-- Debug panel (toggled by Ctrl+Shift+D) -->
+<DebugPanel />
 
 <style>
   /* MarkText-style layout: horizontal flex (sidebar | editor-middle) */

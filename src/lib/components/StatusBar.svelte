@@ -73,7 +73,7 @@
       <button
         class="debug-badge"
         onclick={openDebugPanel}
-        title="Click to open debug panel"
+        title="Click or Ctrl+Shift+D to open debug panel"
       >
         DEBUG: {activeDebugSubjects.join(', ')}
       </button>
@@ -249,6 +249,9 @@
     color: var(--accent);
   }
 
+  /* Intentionally hardcoded: the badge must remain a strong, theme-independent
+     alert color so the developer never forgets debug is on.
+     Do not replace with --warning or --danger. */
   .debug-badge {
     background: #c2410c;
     color: #fff;
@@ -260,6 +263,10 @@
     font-weight: 600;
     cursor: pointer;
     letter-spacing: 0.3px;
+    white-space: nowrap;
+    max-width: 50vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .debug-badge:hover {
     background: #9a3412;

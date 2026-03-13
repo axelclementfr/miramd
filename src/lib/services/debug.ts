@@ -8,6 +8,11 @@ import {
 /**
  * Verbose log gated by per-subject flag.
  * No-op when the flag is off — safe to leave in production code.
+ *
+ * Cost note: each call performs a `get(debugFlags)` lookup, which is cheap
+ * but not free (synchronous subscribe + unsubscribe). Avoid placing dlog()
+ * in per-keystroke or per-selection-change hot paths. Init, tab-switch,
+ * and debounced timer paths are fine.
  */
 export function dlog(subject: DebugSubject, ...args: unknown[]): void {
   const flags = get(debugFlags);

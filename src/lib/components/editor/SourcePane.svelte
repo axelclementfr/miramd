@@ -6,6 +6,7 @@
   import { muyaService } from '$lib/services/muya';
   import { editorModes } from '$lib/services/editorModes';
   import { updateStats } from '$lib/services/stats';
+  import { dlog } from '$lib/services/debug';
 
   let readOnly: boolean = $state(false);
   let splitView: boolean = $state(false);
@@ -54,7 +55,7 @@
     if (splitView && muyaService.isReady()) {
       if (syncTimer) clearTimeout(syncTimer);
       syncTimer = setTimeout(() => {
-        try { muyaService.setMarkdown(value); } catch (e) { console.debug('[SourcePane] split sync:', e); }
+        try { muyaService.setMarkdown(value); } catch (e) { dlog('muya', 'SourcePane split sync:', e); }
       }, 400);
     }
   }

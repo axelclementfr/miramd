@@ -1,3 +1,5 @@
+import { dlog } from '$lib/services/debug';
+
 /**
  * Typewriter sound effects via HTML5 <audio> + base64 WAV.
  *
@@ -78,7 +80,7 @@ class TypewriterSoundService {
     for (let i = 0; i < VARIANTS_PER_SOUND; i++) this.backspacePool.push(this.makeAudio(BACKSPACE_PROFILE));
     for (let i = 0; i < VARIANTS_PER_SOUND; i++) this.dingPool.push(this.makeAudio(DING_PROFILE));
     this.initialized = true;
-    console.info(`[typewriterSound] HTML5 audio pool ready (${VARIANTS_PER_SOUND} variants × 3 sounds)`);
+    dlog('sound', `HTML5 audio pool ready (${VARIANTS_PER_SOUND} variants × 3 sounds)`);
   }
 
   private makeAudio(profile: SoundProfile): HTMLAudioElement {
@@ -136,7 +138,7 @@ class TypewriterSoundService {
     const audio = new Audio(wavToDataUrl(wav));
     audio.volume = 1.0;
     audio.play().catch((e) => console.warn('[typewriterSound] testTone play failed:', e));
-    console.info('[typewriterSound] testTone played (HTML5 audio path)');
+    dlog('sound', 'testTone played (HTML5 audio path)');
   }
 
   /** Sets the master volume (0–1). Applies to all pooled elements. */

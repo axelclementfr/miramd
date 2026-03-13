@@ -22,8 +22,9 @@
   }
 
   function disableAll(): void {
+    const snapshot = { ...flags };
     for (const s of ALL_SUBJECTS) {
-      if (flags[s]) setDebugFlag(s, false);
+      if (snapshot[s]) setDebugFlag(s, false);
     }
   }
 
@@ -66,7 +67,7 @@
     z-index: 9999;
     background: var(--bg-secondary, #1e1e1e);
     color: var(--text-primary, #ddd);
-    border: 1px solid var(--border-primary, #444);
+    border: 1px solid var(--border, #444);
     border-radius: 6px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
     padding: 8px 12px;
@@ -79,7 +80,7 @@
     justify-content: space-between;
     align-items: center;
     padding-bottom: 6px;
-    border-bottom: 1px solid var(--border-primary, #444);
+    border-bottom: 1px solid var(--border, #444);
     margin-bottom: 6px;
   }
   .close {
@@ -107,12 +108,12 @@
   footer {
     margin-top: 6px;
     padding-top: 6px;
-    border-top: 1px solid var(--border-primary, #444);
+    border-top: 1px solid var(--border, #444);
     text-align: right;
   }
   footer button {
     background: none;
-    border: 1px solid var(--border-primary, #444);
+    border: 1px solid var(--border, #444);
     color: inherit;
     padding: 2px 8px;
     cursor: pointer;

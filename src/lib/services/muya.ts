@@ -2,6 +2,7 @@ import { get } from 'svelte/store';
 import { muyaInstance } from '$lib/stores/editor';
 import type { Preferences } from '$lib/stores/preferences';
 import type { MuyaInstance } from '$lib/types/muya-instance';
+import { dlog } from '$lib/services/debug';
 
 type ChangeCallback = (changes: any) => void;
 type SelectionCallback = () => void;
@@ -82,7 +83,7 @@ class MuyaService {
 
   /** Tears down the Muya instance and clears all event callbacks. */
   destroy(): void {
-    try { this.muya?.destroy(); } catch (e) { console.debug('[Muya] destroy:', e); }
+    try { this.muya?.destroy(); } catch (e) { dlog('muya', 'destroy:', e); }
     this.muya = null;
     this.container = null;
     this.changeCallbacks = [];
@@ -93,89 +94,89 @@ class MuyaService {
   /** Returns the current markdown content from the editor. */
   getMarkdown(): string {
     if (!this.muya) return '';
-    try { return this.muya.getMarkdown(); } catch (e) { console.debug('[Muya] getMarkdown:', e); return ''; }
+    try { return this.muya.getMarkdown(); } catch (e) { dlog('muya', 'getMarkdown:', e); return ''; }
   }
 
   /** Replaces the editor content with the given markdown string. */
   setMarkdown(md: string): void {
     if (!this.muya) return;
-    try { this.muya.setMarkdown(md); } catch (e) { console.debug('[Muya] setMarkdown:', e); }
+    try { this.muya.setMarkdown(md); } catch (e) { dlog('muya', 'setMarkdown:', e); }
   }
 
   undo(): void {
     if (!this.muya) return;
-    try { this.muya.undo(); } catch (e) { console.debug('[Muya] undo:', e); }
+    try { this.muya.undo(); } catch (e) { dlog('muya', 'undo:', e); }
   }
 
   redo(): void {
     if (!this.muya) return;
-    try { this.muya.redo(); } catch (e) { console.debug('[Muya] redo:', e); }
+    try { this.muya.redo(); } catch (e) { dlog('muya', 'redo:', e); }
   }
 
   clearHistory(): void {
     if (!this.muya) return;
-    try { this.muya.clearHistory(); } catch (e) { console.debug('[Muya] clearHistory:', e); }
+    try { this.muya.clearHistory(); } catch (e) { dlog('muya', 'clearHistory:', e); }
   }
 
   getHistory(): unknown {
     if (!this.muya) return null;
-    try { return this.muya.getHistory(); } catch (e) { console.debug('[Muya] getHistory:', e); return null; }
+    try { return this.muya.getHistory(); } catch (e) { dlog('muya', 'getHistory:', e); return null; }
   }
 
   setHistory(history: unknown): void {
     if (!this.muya || !history) return;
-    try { this.muya.setHistory(history); } catch (e) { console.debug('[Muya] setHistory:', e); }
+    try { this.muya.setHistory(history); } catch (e) { dlog('muya', 'setHistory:', e); }
   }
 
   getCursor(): unknown {
     if (!this.muya) return null;
-    try { return this.muya.getCursor(); } catch (e) { console.debug('[Muya] getCursor:', e); return null; }
+    try { return this.muya.getCursor(); } catch (e) { dlog('muya', 'getCursor:', e); return null; }
   }
 
   selectAll(): void {
     if (!this.muya) return;
-    try { this.muya.selectAll(); } catch (e) { console.debug('[Muya] selectAll:', e); }
+    try { this.muya.selectAll(); } catch (e) { dlog('muya', 'selectAll:', e); }
   }
 
   focus(): void {
     if (!this.muya) return;
-    try { this.muya.focus(); } catch (e) { console.debug('[Muya] focus:', e); }
+    try { this.muya.focus(); } catch (e) { dlog('muya', 'focus:', e); }
   }
 
   setFocusMode(enabled: boolean): void {
     if (!this.muya) return;
-    try { this.muya.setFocusMode(enabled); } catch (e) { console.debug('[Muya] setFocusMode:', e); }
+    try { this.muya.setFocusMode(enabled); } catch (e) { dlog('muya', 'setFocusMode:', e); }
   }
 
   setFont(opts: { fontSize: number; lineHeight: number }): void {
     if (!this.muya) return;
-    try { this.muya.setFont(opts); } catch (e) { console.debug('[Muya] setFont:', e); }
+    try { this.muya.setFont(opts); } catch (e) { dlog('muya', 'setFont:', e); }
   }
 
   setOptions(opts: Record<string, unknown>, silent?: boolean): void {
     if (!this.muya) return;
-    try { this.muya.setOptions(opts, silent); } catch (e) { console.debug('[Muya] setOptions:', e); }
+    try { this.muya.setOptions(opts, silent); } catch (e) { dlog('muya', 'setOptions:', e); }
   }
 
   /** Promote heading level on the current block: plain→h6→h5→…→h1 (stops at h1). */
   shiftHeadingUp(): void {
     if (!this.muya) return;
     try { (this.muya as unknown as { updateParagraph: (t: string) => void }).updateParagraph('upgrade heading'); }
-    catch (e) { console.debug('[Muya] shiftHeadingUp:', e); }
+    catch (e) { dlog('muya', 'shiftHeadingUp:', e); }
   }
 
   /** Demote heading level: h1→h2→…→h6→plain (stops at plain). */
   shiftHeadingDown(): void {
     if (!this.muya) return;
     try { (this.muya as unknown as { updateParagraph: (t: string) => void }).updateParagraph('degrade heading'); }
-    catch (e) { console.debug('[Muya] shiftHeadingDown:', e); }
+    catch (e) { dlog('muya', 'shiftHeadingDown:', e); }
   }
 
   /** Reset any heading on the current block back to a plain paragraph. */
   resetToParagraph(): void {
     if (!this.muya) return;
     try { (this.muya as unknown as { updateParagraph: (t: string) => void }).updateParagraph('paragraph'); }
-    catch (e) { console.debug('[Muya] resetToParagraph:', e); }
+    catch (e) { dlog('muya', 'resetToParagraph:', e); }
   }
 
   /** Apply all preference changes to the running Muya instance */
@@ -215,7 +216,7 @@ class MuyaService {
         preferHeadingStyle: p.preferHeadingStyle,
         spellcheckEnabled: p.spellcheck,
       }, true);
-    } catch (e) { console.debug('[Muya] applyPreferences:', e); }
+    } catch (e) { dlog('muya', 'applyPreferences:', e); }
   }
 
   /** Registers a callback for content changes; returns an unsubscribe function. */

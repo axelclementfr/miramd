@@ -14,6 +14,7 @@
   import { initTypewriterScroller, computeTypewriterOffset } from '$lib/services/typewriterScroller';
   import { initTypewriterPadding } from '$lib/services/typewriterPadding';
   import { typewriterSound } from '$lib/services/typewriterSound';
+  import { dlog } from '$lib/services/debug';
 
   let editorElement: HTMLDivElement = $state(null as any);
   let paneElement: HTMLDivElement = $state(null as any);
@@ -234,7 +235,7 @@
 
         // Save history of the tab we're leaving
         if (prevTabId) {
-          try { historyCache.set(prevTabId, muya.getHistory()); } catch (e) { console.debug('[Muya] getHistory:', e); }
+          try { historyCache.set(prevTabId, muya.getHistory()); } catch (e) { dlog('muya', 'getHistory:', e); }
         }
 
         prevTabId = tab.id;

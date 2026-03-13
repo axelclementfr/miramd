@@ -4,11 +4,14 @@
   import type { DocumentStats } from '$lib/types/editor';
   import { preferences, type Preferences } from '$lib/stores/preferences';
   import { t, type TranslationKey } from '$lib/i18n/index';
+  import { debugFlags, ALL_SUBJECTS, type DebugSubject } from '$lib/stores/debug';
+  import { debugPanelOpen } from '$lib/services/debug';
 
   let stats: DocumentStats = $state({ words: 0, chars: 0, lines: 0, paragraphs: 0 });
   let prefs: Preferences = $state({} as Preferences);
   let tr: (key: TranslationKey) => string = $state((k: TranslationKey) => k);
   let activeTabReadOnly: boolean = $state(false);
+  let activeDebugSubjects: DebugSubject[] = $state([]);
 
   let unsubs: (() => void)[] = [];
 
@@ -17,6 +20,11 @@
     unsubs.push(preferences.subscribe((p) => (prefs = { ...p })));
     unsubs.push(editor.activeTab.subscribe((tab) => (activeTabReadOnly = !!tab?.readOnly)));
     unsubs.push(t.subscribe((fn) => (tr = fn)));
+    unsubs.push(
+      debugFlags.subscribe((f) => {
+        activeDebugSubjects = ALL_SUBJECTS.filter((s) => f[s]);
+      })
+    );
   });
 
   onDestroy(() => unsubs.forEach((u) => u()));
@@ -46,6 +54,10 @@
   function resetZoom() {
     preferences.patch({ zoom: 1.0 });
   }
+
+  function openDebugPanel(): void {
+    debugPanelOpen.set(true);
+  }
 </script>
 
 <footer class="statusbar">
@@ -57,6 +69,15 @@
     <span class="stat">{stats.lines} {tr('lines')}</span>
   </div>
   <div class="statusbar-right">
+    {#if activeDebugSubjects.length > 0}
+      <button
+        class="debug-badge"
+        onclick={openDebugPanel}
+        title="Click to open debug panel"
+      >
+        DEBUG: {activeDebugSubjects.join(', ')}
+      </button>
+    {/if}
     <button
       class="mode-btn"
       class:active={activeTabReadOnly}
@@ -226,5 +247,21 @@
   .zoom-indicator.active {
     opacity: 1;
     color: var(--accent);
+  }
+
+  .debug-badge {
+    background: #c2410c;
+    color: #fff;
+    border: none;
+    border-radius: 3px;
+    padding: 2px 8px;
+    font-size: 10px;
+    font-family: ui-monospace, monospace;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.3px;
+  }
+  .debug-badge:hover {
+    background: #9a3412;
   }
 </style>

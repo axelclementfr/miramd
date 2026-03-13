@@ -35,6 +35,7 @@ export const debugPanelOpen = writable<boolean>(false);
  */
 export function setupDebugShortcut(): () => void {
   function handler(e: KeyboardEvent): void {
+    if (e.repeat) return;
     const mod = e.ctrlKey || e.metaKey;
     if (mod && e.shiftKey && (e.key === 'D' || e.key === 'd')) {
       e.preventDefault();

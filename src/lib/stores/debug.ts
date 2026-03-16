@@ -8,7 +8,8 @@ export type DebugSubject =
   | 'zoom'
   | 'editorModes'
   | 'prefs'
-  | 'sound';
+  | 'sound'
+  | 'toc';
 
 export const ALL_SUBJECTS: readonly DebugSubject[] = [
   'typewriter',
@@ -19,6 +20,7 @@ export const ALL_SUBJECTS: readonly DebugSubject[] = [
   'editorModes',
   'prefs',
   'sound',
+  'toc',
 ] as const;
 
 export type DebugFlags = Record<DebugSubject, boolean>;

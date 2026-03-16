@@ -30,23 +30,6 @@
 
 ---
 
-### Sauvegarde silencieuse : pas de feedback en cas d'échec
-
-- **Symptôme** : occasionnellement, un fichier semble sauvegardé (pas d'astérisque "modifié") mais la modification n'est pas persistée sur disque.
-- **Périmètre** :
-  - `src/lib/services/autoSave.ts` (boucle d'auto-sauvegarde, polling 2 s)
-  - `src/lib/services/fileOperations.ts` (`saveCurrentFile`)
-  - `src-tauri/src/filesystem.rs` (`write_file`)
-- **Cause probable** : l'écriture côté frontend est un **fire-and-forget** vers la commande IPC `write_file`. Si Rust retourne une erreur (permissions, disque plein, fichier verrouillé, path traversal détecté), le `.catch()` côté JS log dans la console mais ne notifie pas l'utilisateur. Le store `editor` marque l'onglet comme "saved" de manière optimiste avant d'avoir confirmation backend.
-- **Piste de fix** :
-  - Attendre la résolution de la promise IPC avant de marquer l'onglet "saved".
-  - Afficher un toast d'erreur via `toastStore` en cas d'échec (cf. `src/lib/stores/toast.ts`, déjà disponible).
-  - Ajouter un retry exponentiel optionnel pour les erreurs transitoires (disque plein, fichier momentanément verrouillé).
-  - Vérifier l'idempotence : ne pas réécrire si `content === savedContent`.
-- **Statut** : ouvert.
-
----
-
 ### Table des matières instable / pas toujours fonctionnelle
 
 - **Symptôme** :
@@ -232,6 +215,21 @@ Ces points ne sont pas des bugs à fixer mais des choix documentés.
 - **Symptôme initial** : pour comprendre un bug en runtime, il fallait sprinkler des `console.log` à la main, recompiler, reproduire, retirer les logs, recommiter. Pénible et chronophage.
 - **Cause** : pas de système de logging centralisé côté JS. Les 47 `console.*` déjà présents dans `src/` étaient soit silencieux (catch blocks `console.debug`), soit bruyants en permanence (`console.warn`/`error`).
 - **Fix** : store `debugFlags` typé par sujet (`src/lib/stores/debug.ts`) + helper `dlog(subject, ...args)` (`src/lib/services/debug.ts`) qui gate un `console.log` préfixé `[subject]`. Activation via `localStorage.miramd_debug` au boot ou panneau flottant Ctrl+Shift+D. Badge status bar quand ≥1 sujet actif. 22 `console.info/debug` migrés vers `dlog()`. Spec : [`docs/superpowers/specs/2026-05-09-mode-debug-design.md`](../superpowers/specs/2026-05-09-mode-debug-design.md). Doc utilisateur : [`docs/05-fonctionnalites/mode-debug.md`](../05-fonctionnalites/mode-debug.md).
+
+---
+
+### Sauvegarde silencieuse : pas de feedback en cas d'échec
+
+- **Résolu le** : 2026-05-09 (audit de code, pas de fix nécessaire).
+- **Symptôme documenté** : occasionnellement, un fichier semble sauvegardé (pas d'astérisque "modifié") mais la modification n'est pas persistée sur disque. L'utilisateur perd ses modifs sans le savoir.
+- **Vérification** : audit des 4 call sites de `write_file` côté frontend :
+  - `src/lib/services/fileOperations.ts:51` (`saveCurrentFile` cas fichier existant) : try/catch + `showToast(tr('error_save_file'), 'error')` + skip `markSaved`.
+  - `src/lib/services/fileOperations.ts:64` (cas nouveau fichier via dialog) : idem.
+  - `src/lib/services/fileOperations.ts:93` (`closeTabWithConfirm` branche "Save & Close") : idem + `return` early pour empêcher la fermeture du tab en cas d'échec.
+  - `src/lib/components/TabBar.svelte:48` (close tab via X ou middle-click) : idem.
+  - `src/lib/services/autoSave.ts` ne fait pas d'IPC direct — délègue à `saveCurrentFile()`.
+  - Côté Rust : `write_file` retourne `Result<(), AppError>`. Toute erreur I/O remonte proprement comme Promise rejection vers JS.
+- **Conclusion** : la doc reflétait probablement un état antérieur déjà corrigé. Aucun changement de code requis. Si une régression future réintroduisait le pattern fire-and-forget, le sujet `save` est déjà déclaré dans `DebugSubject` — instrumenter avec `dlog('save', ...)` autour de `invoke('write_file', ...)` permettrait de tracer rapidement.
 
 ---
 

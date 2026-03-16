@@ -1,7 +1,5 @@
 # Mode debug
 
-Statut : ✓ stable.
-
 ## Vue utilisateur
 
 Le mode debug n'est pas exposé dans Settings — c'est volontaire. Il sert au développement, pas à l'utilisation quotidienne. Deux façons de l'activer :
@@ -28,7 +26,7 @@ Quand au moins un sujet est actif, un badge orange `DEBUG: ...` apparaît à dro
 
 Ajouter un nouveau sujet : éditer `src/lib/stores/debug.ts`, ajouter une ligne dans le type `DebugSubject` et dans `ALL_SUBJECTS`. Le panneau l'affichera automatiquement.
 
-## Vue code
+## Implémentation
 
 Trois fichiers font tout :
 
@@ -36,7 +34,7 @@ Trois fichiers font tout :
 - `src/lib/services/debug.ts` — expose `dlog(subject, ...args)` qui no-op si le flag du sujet est `false`, sinon appelle `console.log` avec le préfixe `[subject]`. Expose aussi `setDebugFlag(subject, enabled)` (met à jour le store + persiste) et `setupDebugShortcut()` (raccourci `Ctrl+Shift+D` qui toggle l'ouverture du panneau).
 - `src/lib/components/DebugPanel.svelte` — panneau flottant (`position: fixed`, top-right). Itère sur `ALL_SUBJECTS` pour générer les checkboxes. Affiché conditionnellement via le store `debugPanelOpen`.
 
-L'intégration dans `src/routes/+page.svelte` se fait en deux lignes (montage du composant + appel de `setupDebugShortcut`). Le badge dans `src/lib/components/StatusBar.svelte` souscrit à `debugFlags` et affiche les sujets actifs.
+L'intégration dans `src/routes/+page.svelte` se fait en quelques lignes (imports, montage du composant et appel de `setupDebugShortcut` au boot). Le badge dans `src/lib/components/StatusBar.svelte` souscrit à `debugFlags` et affiche les sujets actifs.
 
 ## Conséquence : les catch blocks Muya sont silencieux par défaut
 
@@ -67,3 +65,9 @@ Un seul niveau on/off par sujet suffit pour les bugs identifiés. Si on a besoin
 ## Coût performance de `dlog`
 
 Chaque appel à `dlog()` fait un `get(debugFlags)` (subscribe + unsubscribe synchrone), même quand le flag est `false`. C'est cheap mais pas gratuit. À éviter dans une hot path par-frappe ou par-changement-de-sélection. Init, tab-switch, et timers debouncés sont OK. Voir la JSDoc de `dlog` pour la note complète.
+
+## Voir aussi
+
+- [`docs/superpowers/specs/2026-05-09-mode-debug-design.md`](../superpowers/specs/2026-05-09-mode-debug-design.md) — spec d'origine avec les arguments pour chaque choix architectural.
+- [`docs/superpowers/plans/2026-05-09-mode-debug.md`](../superpowers/plans/2026-05-09-mode-debug.md) — plan d'implémentation détaillé en 5 tâches TDD.
+- [`docs/06-references/problemes-connus.md`](../06-references/problemes-connus.md) — section "Résolus" pour l'historique du bug structurel "pas de mode debug global".

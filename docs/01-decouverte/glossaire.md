@@ -98,6 +98,10 @@ Un outil tout-en-un (linter + formateur) écrit en Rust pour le code JavaScript/
 
 Un format texte simple où l'on indique la mise en forme avec quelques caractères (`# Titre`, `**gras**`, `- liste`). Inventé en 2004, devenu le standard de fait pour la documentation, les README, et les éditeurs de notes. MiraMD est conçu pour éditer du Markdown. Voir [`01-decouverte/quest-ce-que-le-markdown.md`](quest-ce-que-le-markdown.md).
 
+### Mode debug
+
+Mécanisme interne à MiraMD permettant d'activer des logs verbeux par sujet (`typewriter`, `ctrlz`, `save`, etc.) sans modifier le code et sans recompiler. Activable via `Ctrl+Shift+D` (panneau flottant) ou `localStorage.miramd_debug` (au boot). Voir [`05-fonctionnalites/mode-debug.md`](../05-fonctionnalites/mode-debug.md).
+
 ### Muya
 
 Le **moteur d'édition WYSIWYG** créé par les auteurs de MarkText. Il transforme la frappe Markdown en rendu visuel en temps réel (taper `# foo` → ça devient un titre). MiraMD réutilise Muya tel quel (vendored dans `src/lib/muya/`) plutôt que d'en réécrire un. Voir [`02-fondamentaux/wysiwyg.md`](../02-fondamentaux/wysiwyg.md) et [`03-choix-techniques/04-muya-conserve.md`](../03-choix-techniques/04-muya-conserve.md).

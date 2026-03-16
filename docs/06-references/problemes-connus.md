@@ -156,16 +156,6 @@
 
 ## Bugs structurels / dette
 
-### Pas de mode debug global
-
-- **Symptôme** : pour comprendre un bug en runtime, il faut sprinkler des `console.log` dans plusieurs fichiers de services.
-- **Périmètre** : tout le frontend.
-- **Cause probable** : pas de système de logging centralisé côté JS. `debug_log` IPC existe mais est noop en release.
-- **Piste de fix** : créer un store `debugFlags` (writable, default toutes à false) avec des flags par sujet (`autoSave`, `muya`, `tabSwitch`, `prefs`, `toc`). Chaque service consulte le flag pour décider d'écrire dans la console. Un raccourci dev (Ctrl+Shift+D ?) ouvre un panneau pour cocher.
-- **Statut** : ouvert. **Recommandé en priorité** car débloque l'analyse de tous les autres bugs.
-
----
-
 ### Migration de schéma préférences non implémentée
 
 - **Symptôme** : aucun pour l'instant, mais à la première migration breaking, les utilisateurs perdront leurs settings.
@@ -233,6 +223,15 @@ Ces points ne sont pas des bugs à fixer mais des choix documentés.
 - **Symptôme initial** : le slider de zoom dans Settings appliquait/persistait la valeur dès le moindre mouvement (`oninput`), alors que les autres sliders (font size, line height, line width) commitaient au relâchement (`onchange`). Pattern incohérent.
 - **Cause** : `bind:value={prefs.zoom} oninput={applyPrefs}` dans `src/lib/components/settings/GeneralSection.svelte:66`, alors que les autres sliders utilisent `onchange`.
 - **Fix** : `oninput` → `onchange` sur le slider zoom. La refonte plus large a aussi remplacé le mécanisme sous-jacent : le zoom n'est plus un multiplicateur de `fontSize` appliqué via une CSS variable, mais le vrai zoom WebKit natif appelé via une nouvelle commande Tauri `set_app_zoom`. Voir la spec et la doc liées pour le détail.
+
+---
+
+### Pas de mode debug global
+
+- **Résolu le** : 2026-05-09, commits `135eab0` à `a2085de` (8 commits).
+- **Symptôme initial** : pour comprendre un bug en runtime, il fallait sprinkler des `console.log` à la main, recompiler, reproduire, retirer les logs, recommiter. Pénible et chronophage.
+- **Cause** : pas de système de logging centralisé côté JS. Les 47 `console.*` déjà présents dans `src/` étaient soit silencieux (catch blocks `console.debug`), soit bruyants en permanence (`console.warn`/`error`).
+- **Fix** : store `debugFlags` typé par sujet (`src/lib/stores/debug.ts`) + helper `dlog(subject, ...args)` (`src/lib/services/debug.ts`) qui gate un `console.log` préfixé `[subject]`. Activation via `localStorage.miramd_debug` au boot ou panneau flottant Ctrl+Shift+D. Badge status bar quand ≥1 sujet actif. 22 `console.info/debug` migrés vers `dlog()`. Spec : [`docs/superpowers/specs/2026-05-09-mode-debug-design.md`](../superpowers/specs/2026-05-09-mode-debug-design.md). Doc utilisateur : [`docs/05-fonctionnalites/mode-debug.md`](../05-fonctionnalites/mode-debug.md).
 
 ---
 

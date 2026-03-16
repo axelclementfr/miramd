@@ -24,6 +24,7 @@ Légende des statuts :
 | Recherche dans le document (regex, casse, mot entier) | ✓ | [`recherche.md`](recherche.md) |
 | Modes d'affichage (source, focus, machine à écrire, split, lecture seule) | ⚠️ | [`modes-affichage.md`](modes-affichage.md) |
 | Zoom global responsive (Ctrl+molette, slider, indicateur status bar) + raccourcis heading | ✓ | [`zoom.md`](zoom.md) |
+| Mode debug (logs verbeux par sujet, panel Ctrl+Shift+D) | ✓ | [`mode-debug.md`](mode-debug.md) |
 
 ## Comment lire ces pages
 

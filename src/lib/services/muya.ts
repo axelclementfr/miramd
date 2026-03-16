@@ -104,13 +104,35 @@ class MuyaService {
   }
 
   undo(): void {
-    if (!this.muya) return;
-    try { this.muya.undo(); } catch (e) { dlog('muya', 'undo:', e); }
+    if (!this.muya) {
+      dlog('ctrlz', 'muyaService.undo() — this.muya is null, no-op');
+      return;
+    }
+    try {
+      const before = this.getMarkdown();
+      this.muya.undo();
+      const after = this.getMarkdown();
+      dlog('ctrlz', 'muya.undo() OK — markdown changed?', before !== after, 'before len:', before.length, 'after len:', after.length);
+    } catch (e) {
+      dlog('ctrlz', 'muya.undo() THREW:', e);
+      dlog('muya', 'undo:', e);
+    }
   }
 
   redo(): void {
-    if (!this.muya) return;
-    try { this.muya.redo(); } catch (e) { dlog('muya', 'redo:', e); }
+    if (!this.muya) {
+      dlog('ctrlz', 'muyaService.redo() — this.muya is null, no-op');
+      return;
+    }
+    try {
+      const before = this.getMarkdown();
+      this.muya.redo();
+      const after = this.getMarkdown();
+      dlog('ctrlz', 'muya.redo() OK — markdown changed?', before !== after, 'before len:', before.length, 'after len:', after.length);
+    } catch (e) {
+      dlog('ctrlz', 'muya.redo() THREW:', e);
+      dlog('muya', 'redo:', e);
+    }
   }
 
   clearHistory(): void {

@@ -1,7 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { get } from 'svelte/store';
-  import { invoke } from '@tauri-apps/api/core';
   import { editor as editorStore } from '$lib/stores/editor';
   import { preferences } from '$lib/stores/preferences';
   import { muyaService } from '$lib/services/muya';
@@ -50,21 +49,26 @@
       const mod = e.ctrlKey || e.metaKey;
       if (!mod) return;
 
+      dlog('ctrlz', 'editorKeydown:', e.key, 'shift:', e.shiftKey, 'target:', (e.target as HTMLElement)?.tagName, 'currentTarget:', (e.currentTarget as HTMLElement)?.tagName);
+
       if (e.key === 'z' && !e.shiftKey) {
         e.preventDefault();
         e.stopPropagation();
-        invoke('debug_log', { message: `Ctrl+Z → muya.undo()` });
+        dlog('ctrlz', 'Ctrl+Z branch matched, muyaService.isReady?', muyaService.isReady());
         muyaService.undo();
+        dlog('ctrlz', 'muyaService.undo() returned');
       } else if (e.key === 'z' && e.shiftKey) {
         e.preventDefault();
         e.stopPropagation();
-        invoke('debug_log', { message: `Ctrl+Shift+Z → muya.redo()` });
+        dlog('ctrlz', 'Ctrl+Shift+Z branch matched, muyaService.isReady?', muyaService.isReady());
         muyaService.redo();
+        dlog('ctrlz', 'muyaService.redo() returned');
       } else if (e.key === 'y') {
         e.preventDefault();
         e.stopPropagation();
-        invoke('debug_log', { message: `Ctrl+Y → muya.redo()` });
+        dlog('ctrlz', 'Ctrl+Y branch matched, muyaService.isReady?', muyaService.isReady());
         muyaService.redo();
+        dlog('ctrlz', 'muyaService.redo() returned');
       } else if (e.key === 'a') {
         e.preventDefault();
         e.stopPropagation();

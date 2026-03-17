@@ -26,6 +26,7 @@
   import { startAutoSave } from '$lib/services/autoSave';
   import { initAppZoomWheel } from '$lib/services/appZoomWheel';
   import { initWindow } from '$lib/services/windowInit';
+  import { setupWindowDrag } from '$lib/services/windowDrag';
   import { SIDEBAR_WIDTH, MIN_WIDTH, MIN_HEIGHT, THEME_BG_MAP, DEFAULT_BG } from '$lib/constants';
   import '$lib/styles/global.css';
   import '$lib/styles/editor.css';
@@ -56,6 +57,9 @@
     // Window init: dynamic min size + maximized state tracking
     const windowInit = await initWindow((maximized) => { isMaximized = maximized; });
     unsubs.push(windowInit.destroy);
+
+    // Global drag : any non-interactive area moves the window (Linux/WebKitGTK ne supporte pas -webkit-app-region)
+    unsubs.push(setupWindowDrag());
 
     unsubs.push(preferences.subscribe((p) => {
       document.documentElement.setAttribute('data-theme', p.theme);

@@ -9,15 +9,15 @@
 </script>
 
 {#if !isMaximized}
-  <div class="resize-edge top" role="presentation" onmousedown={(e) => startResize(e, 'Top')}></div>
-  <div class="resize-edge bottom" role="presentation" onmousedown={(e) => startResize(e, 'Bottom')}></div>
-  <div class="resize-edge left" role="presentation" onmousedown={(e) => startResize(e, 'Left')}></div>
-  <div class="resize-edge right" role="presentation" onmousedown={(e) => startResize(e, 'Right')}></div>
+  <div class="resize-edge top" role="presentation" data-no-drag onmousedown={(e) => startResize(e, 'Top')}></div>
+  <div class="resize-edge bottom" role="presentation" data-no-drag onmousedown={(e) => startResize(e, 'Bottom')}></div>
+  <div class="resize-edge left" role="presentation" data-no-drag onmousedown={(e) => startResize(e, 'Left')}></div>
+  <div class="resize-edge right" role="presentation" data-no-drag onmousedown={(e) => startResize(e, 'Right')}></div>
 {/if}
-<div class="resize-corner top-left" role="presentation" onmousedown={(e) => startResize(e, 'TopLeft')}></div>
-<div class="resize-corner top-right" role="presentation" onmousedown={(e) => startResize(e, 'TopRight')}></div>
-<div class="resize-corner bottom-left" role="presentation" onmousedown={(e) => startResize(e, 'BottomLeft')}></div>
-<div class="resize-corner bottom-right" role="presentation" onmousedown={(e) => startResize(e, 'BottomRight')}></div>
+<div class="resize-corner top-left" role="presentation" data-no-drag onmousedown={(e) => startResize(e, 'TopLeft')}></div>
+<div class="resize-corner top-right" role="presentation" data-no-drag onmousedown={(e) => startResize(e, 'TopRight')}></div>
+<div class="resize-corner bottom-left" role="presentation" data-no-drag onmousedown={(e) => startResize(e, 'BottomLeft')}></div>
+<div class="resize-corner bottom-right" role="presentation" data-no-drag onmousedown={(e) => startResize(e, 'BottomRight')}></div>
 
 <style>
   /* Resize edges — invisible drag zones on window borders */

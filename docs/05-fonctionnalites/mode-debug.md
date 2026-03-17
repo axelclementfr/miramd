@@ -23,7 +23,7 @@ Quand au moins un sujet est actif, un badge orange `DEBUG: ...` apparaît à dro
 | `sound` | Synthèse et lecture des sons de la machine à écrire. |
 | `toc` | Extraction et navigation TOC — pourquoi un clic ne navigue pas, quel pos a été demandé, etc. |
 
-À ce jour, les sujets `muya` (20 appels), `sound` (2 appels), `ctrlz` (8 appels) et `toc` (4 appels) ont des points d'instrumentation. Les autres sujets sont déclarés et fonctionnels mais pas encore utilisés — ils sont prêts à recevoir des `dlog()` au fur et à mesure qu'on attaque les bugs correspondants.
+À ce jour, les sujets `muya` (20 appels), `sound` (2 appels), `ctrlz` (13 appels) et `toc` (6 appels) ont des points d'instrumentation. Les autres sujets sont déclarés et fonctionnels mais pas encore utilisés — ils sont prêts à recevoir des `dlog()` au fur et à mesure qu'on attaque les bugs correspondants.
 
 Ajouter un nouveau sujet : éditer `src/lib/stores/debug.ts`, ajouter une ligne dans le type `DebugSubject` et dans `ALL_SUBJECTS`. Le panneau l'affichera automatiquement.
 

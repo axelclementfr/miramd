@@ -30,32 +30,6 @@
 
 ---
 
-### Table des matières instable / pas toujours fonctionnelle
-
-- **Symptôme** :
-  - La TOC affichée dans la sidebar peut sauter des titres, en lister des inexistants, ou ne pas se synchroniser avec le scroll de l'éditeur.
-  - **Cliquer sur un élément de la TOC ne fait pas naviguer l'éditeur** vers le titre correspondant (le scroll Muya ne bouge pas, ou bouge vers une mauvaise position).
-- **Périmètre** :
-  - `src/lib/stores/editor.ts` (extraction TOC via regex sur le markdown brut, debounce 300 ms)
-  - `src/lib/components/sidebar/TocPane.svelte` (affichage et handler de clic)
-  - Lien TOC ↔ scroll Muya
-- **Cause probable** : l'extraction utilise une regex naïve `^(#{1,6})\s+(.+)$` sur le markdown brut. Cas qui cassent :
-  - Lignes commençant par `#` à l'intérieur d'un bloc de code triple-backtick.
-  - Frontmatter YAML qui contient des `#` en commentaires.
-  - HTML brut avec des heading comme `<h2>...</h2>`.
-  - Texte indenté avec espaces avant le `#`.
-  De plus, le debounce 300 ms peut produire des intermédiaires incohérents si l'utilisateur tape vite.
-  Pour le clic sans navigation : `TocPane.svelte` ne semble pas appeler une API Muya (`scrollIntoView` sur l'ancre, ou `muya.jumpToBlock`) — ou alors elle appelle une ancre inexistante car la regex liste un titre que Muya n'a pas.
-- **Piste de fix** :
-  - Remplacer la regex par un parsing AST. Deux options :
-    a) Réutiliser `comrak` côté backend via une nouvelle commande IPC `extract_headings(markdown) -> Vec<{level, text, line}>`.
-    b) Côté frontend, utiliser une lib JS dédiée (`unified` + `remark-parse`) — coût bundle.
-  - Synchroniser la position du clic TOC avec le scroll Muya en utilisant les ancres natives Muya. Inspecter dans `static/muya/` les méthodes `scrollIntoView` / `getAnchor` exposées par l'instance Muya, et appeler depuis `TocPane.svelte` plutôt qu'un scroll manuel via offset DOM.
-  - Ajouter un test d'intégration : "ouvrir un fichier avec 5 H2, cliquer sur le 4ème dans la TOC, vérifier que le scroll de l'éditeur se positionne sur ce H2".
-- **Statut** : ouvert.
-
----
-
 ### Bugs sur les tableaux
 
 - **Symptôme** : insertion/suppression de lignes ou colonnes parfois bloquée, redimensionnement qui saute, navigation au clavier qui se comporte mal.
@@ -230,6 +204,22 @@ Ces points ne sont pas des bugs à fixer mais des choix documentés.
   - `src/lib/services/autoSave.ts` ne fait pas d'IPC direct — délègue à `saveCurrentFile()`.
   - Côté Rust : `write_file` retourne `Result<(), AppError>`. Toute erreur I/O remonte proprement comme Promise rejection vers JS.
 - **Conclusion** : la doc reflétait probablement un état antérieur déjà corrigé. Aucun changement de code requis. Si une régression future réintroduisait le pattern fire-and-forget, le sujet `save` est déjà déclaré dans `DebugSubject` — instrumenter avec `dlog('save', ...)` autour de `invoke('write_file', ...)` permettrait de tracer rapidement.
+
+---
+
+### Table des matières : extraction naïve + clic sans navigation
+
+- **Résolu le** : 2026-05-09, commits `49683de` (extracteur pur + tests) et `75426c7` (fix click + dédup).
+- **Symptôme initial** : (1) la TOC listait des "titres" qui étaient en fait des `#` à l'intérieur d'un fenced code block ou du frontmatter YAML ; (2) cliquer sur un titre ne faisait pas scroller l'éditeur dans plusieurs modes.
+- **Cause** : (1) regex naïve `^(#{1,6})\s+(.+)$` sans état pour détecter les blocs de code ou le frontmatter ; (2) le sélecteur de scroll utilisait `[contenteditable="true"]`, qui retourne `null` ou la mauvaise cible quand Muya est en lock mode (per-tab readOnly), en mode split avec source (contenteditable forcé à false), ou en pure source mode (Muya hidden, scrollIntoView no-op). De plus, la logique d'extraction était dupliquée entre `editor.ts:9-27` et `TocPane.svelte:27-37`, et le store `editor.toc` n'avait aucun consumer (dead code).
+- **Fix** :
+  - Pure module `src/lib/services/toc.ts` avec state machine qui skip les fenced code blocks ` ``` ` et `~~~` (règles CommonMark de fermeture, indent ≤ 3 spaces, fence min length) et le frontmatter YAML (`---` au début de fichier, défensif si non clos = `[]`).
+  - 22 tests TDD dans `tests/services/toc.test.ts` (basics, fences, frontmatter, scénarios mixtes).
+  - Le store `editor.toc`, sa fonction `extractHeadings` locale, le timer `tocDebounceTimer` et la fonction `debouncedTocUpdate` sont supprimés. `TocPane.svelte` appelle directement `extractHeadings(tab.content)` sur changement de tab actif.
+  - `scrollToHeading` prend maintenant la position source (`pos`) au lieu du texte, et navigue par index (Nth heading dans le markdown = Nth `<hN>` dans le DOM Muya). Gère correctement les headings dupliqués.
+  - Sélecteur changé en `.muya-editor`. Le cas Muya hidden (source mode) est explicitement détecté avec un `dlog('toc', '...')` au lieu d'échouer silencieusement.
+- **Doc associée** : sujet `'toc'` ajouté à `DebugSubject` (`src/lib/stores/debug.ts`) — activable via Ctrl+Shift+D.
+- **Limite restante** : navigation TOC en pure source mode pas implémentée (Muya est hidden, le scroll DOM ne fait rien). Pourrait à l'avenir scroller le `<textarea>` source via la position offset (déjà calculée et passée au handler).
 
 ---
 

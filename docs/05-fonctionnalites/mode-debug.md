@@ -21,8 +21,9 @@ Quand au moins un sujet est actif, un badge orange `DEBUG: ...` apparaît à dro
 | `editorModes` | Bascule des modes (focus, source, typewriter, lecture seule). |
 | `prefs` | Lecture/écriture du fichier de préférences via IPC Rust. |
 | `sound` | Synthèse et lecture des sons de la machine à écrire. |
+| `toc` | Extraction et navigation TOC — pourquoi un clic ne navigue pas, quel pos a été demandé, etc. |
 
-À ce jour, seuls les sujets `muya` et `sound` ont effectivement des appels `dlog()` posés dans le code (22 au total). Les autres sujets sont déclarés et fonctionnels mais n'ont pas encore de point d'instrumentation. Ils sont prêts à recevoir des `dlog()` au fur et à mesure qu'on attaque les bugs correspondants.
+À ce jour, les sujets `muya` (20 appels), `sound` (2 appels), `ctrlz` (8 appels) et `toc` (4 appels) ont des points d'instrumentation. Les autres sujets sont déclarés et fonctionnels mais pas encore utilisés — ils sont prêts à recevoir des `dlog()` au fur et à mesure qu'on attaque les bugs correspondants.
 
 Ajouter un nouveau sujet : éditer `src/lib/stores/debug.ts`, ajouter une ligne dans le type `DebugSubject` et dans `ALL_SUBJECTS`. Le panneau l'affichera automatiquement.
 

@@ -17,95 +17,84 @@ La table des matières affiche, dans la barre latérale, l'arbre des titres du d
 
 **Mise à jour.**
 
-- Quand tu tapes dans le document, la TOC se met à jour automatiquement, **avec un léger délai** ([debounce](../01-decouverte/glossaire.md#debounce) de 300 ms après la dernière frappe). Inutile de tout relancer manuellement.
+- Quand tu tapes dans le document, la TOC se met à jour à chaque frappe (le composant souscrit à `editor.activeTab`, qui est dérivé de la liste des onglets ; chaque mise à jour de contenu re-déclenche l'extraction). Sans débounce — la fonction d'extraction est suffisamment rapide (O(N) sur le markdown) pour que ce soit imperceptible dans les cas usuels.
 - Au changement d'onglet, la TOC se redessine pour refléter le contenu de l'onglet actif.
 
 **Quand la TOC est vide.** Si le document n'a aucun titre, le pane affiche une illustration "vide" plutôt qu'une liste vide.
 
 ## Implémentation
 
-L'extraction des titres est faite côté frontend, par une regex sur le markdown brut. Pas d'AST, pas d'appel backend.
+L'extraction des titres est une fonction pure dans `src/lib/services/toc.ts`. Pas d'AST complet, mais une **state machine ligne par ligne** qui sait ignorer les `#` posés à l'intérieur d'un fenced code block ou d'un frontmatter YAML.
 
 **Composants Svelte concernés** :
 
-- `src/lib/components/sidebar/TocPane.svelte` — affiche la TOC. Construit un arbre `TocNode[]` à partir d'une liste plate de titres, gère les clics pour scroll-into-view et le repli des sections.
+- `src/lib/components/sidebar/TocPane.svelte` — affiche la TOC. Construit un arbre `TocNode[]` à partir de la liste plate retournée par `extractHeadings()`, gère les clics pour scroll-into-view et le repli des sections.
 - `src/lib/components/sidebar/Sidebar.svelte` — orchestre les différents panes (Files, Search, TOC). Active le pane TOC quand l'utilisateur clique sur son icône.
 
-**Services concernés** : aucun service dédié. L'extraction est faite directement dans `editor.ts` et dupliquée dans `TocPane.svelte`.
+**Service partagé** : `src/lib/services/toc.ts` expose `extractHeadings(content: string): TocEntry[]`. Une seule source de vérité, testée à part dans `tests/services/toc.test.ts` (22 cas).
 
-**Logique d'extraction.** Dans `src/lib/stores/editor.ts` :
+**Logique d'extraction (résumé)** :
 
-```ts
-const HEADING_REGEX = /^(#{1,6})\s+(.+)/;
+- Détection initiale du frontmatter : si la ligne 0 est exactement `---`, scanner jusqu'au prochain `---` non-initial. Tout ce qui est entre les deux est ignoré. Si le délimiteur de fermeture n'est jamais trouvé, retourner `[]` (défensif — un frontmatter ouvert sans fermeture indique souvent un fichier en cours d'édition).
+- Boucle principale : pour chaque ligne, garder un état `fence: { char: '`' | '~', minLen: number } | null`.
+  - Si on est dans une fence, ignorer les `#` et chercher la ligne de fermeture (CommonMark : 0-3 spaces d'indent + au moins `minLen` du même caractère + optional whitespace).
+  - Sinon, chercher l'ouverture d'une fence avec `^\s{0,3}(\`{3,}|~{3,})`.
+  - Sinon, chercher un titre ATX avec `^(#{1,6})\s+(.+)` (le `^` empêche les lignes indentées de matcher).
+- Le `pos` retourné est l'offset en bytes du début de la ligne, utile pour le scroll par index (voir plus bas).
 
-function extractHeadings(content: string): TocEntry[] {
-  const headings: TocEntry[] = [];
-  const lines = content.split('\n');
-  let pos = 0;
-  for (const line of lines) {
-    const match = line.match(HEADING_REGEX);
-    if (match) {
-      headings.push({
-        level: match[1].length,
-        text: match[2].replace(/\s*#+\s*$/, '').trim(),
-        pos,
-      });
-    }
-    pos += line.length + 1;
-  }
-  return headings;
-}
-```
-
-Chaque ligne est testée. Le nombre de `#` donne le niveau, le reste donne le texte (avec suppression d'éventuels `#` de fermeture style ATX). La position en caractères dans le document est conservée pour usage futur.
-
-**Debounce.** Dans `editor.updateContent()`, après avoir mis à jour le contenu, un `setTimeout` de 300 ms déclenche `extractHeadings()`. Si tu tapes vite, les itérations intermédiaires sont annulées.
-
-**Backend Rust impliqué** : aucun. Tout est calculé côté frontend. Une piste de fix (cf. ci-dessous) consisterait à ajouter une commande IPC `extract_headings(markdown)` qui utiliserait [comrak](../01-decouverte/glossaire.md#comrak) côté Rust pour un parsing AST robuste.
+**Backend Rust impliqué** : aucun. Tout est calculé côté frontend. La piste "comrak côté Rust" mentionnée dans une version antérieure de cette doc est devenue moot — la state machine couvre les cas qui posaient problème.
 
 **Stores impactés** :
 
-- `editor.toc` — un `writable<TocEntry[]>`. Mis à jour à chaque débounce d'extraction.
-- `editor.activeTab` — quand on change d'onglet, le subscribe dans `TocPane.svelte` re-construit l'arbre depuis le contenu du nouvel onglet.
+- `editor.activeTab` — quand le contenu de l'onglet actif change (ou quand on change d'onglet), le subscribe dans `TocPane.svelte` re-construit l'arbre. Pas de store `editor.toc` dédié — c'était du code mort, supprimé.
 
-**Scroll vers un titre.** Implémentation dans `TocPane.scrollToHeading(text)` :
+**Scroll vers un titre.** Implémentation dans `TocPane.scrollToHeading(targetPos)` :
 
 ```ts
-const editorEl = document.querySelector('[contenteditable="true"]');
-const headings = editorEl.querySelectorAll('h1, h2, h3, h4, h5, h6');
-for (const h of headings) {
-  if (h.textContent?.trim() === text) {
-    h.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    h.classList.add('toc-highlight');
-    setTimeout(() => h.classList.remove('toc-highlight'), 1500);
+function scrollToHeading(targetPos: number) {
+  const tab = get(editor.activeTab);
+  if (!tab) return;
+  const flat = extractHeadings(tab.content);
+  const index = flat.findIndex((h) => h.pos === targetPos);
+  if (index < 0) return;
+
+  const container = document.querySelector('.muya-editor');
+  if (!container) return;
+
+  const wysiwygPane = container.closest('.wysiwyg-pane');
+  if (wysiwygPane?.classList.contains('hidden')) {
+    dlog('toc', 'scrollToHeading: .wysiwyg-pane is hidden (source mode), skipping.');
     return;
   }
+
+  const headings = container.querySelectorAll('h1, h2, h3, h4, h5, h6');
+  const target = headings[index];
+  if (!target) return;
+  target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  target.classList.add('toc-highlight');
+  setTimeout(() => target.classList.remove('toc-highlight'), 1500);
 }
 ```
 
-On cherche le premier élément `<h1>`-`<h6>` dans le DOM rendu par Muya dont le `textContent` correspond. **Limitation** : si deux titres ont exactement le même texte, le scroll vise toujours le premier.
+Trois choix non-évidents méritent d'être expliqués :
+
+- **Sélecteur `.muya-editor` au lieu de `[contenteditable="true"]`**. Le second échoue silencieusement quand le contenteditable est forcé à false : tab en lock mode (per-tab readOnly), mode split avec sourceCodeMode, mode source pur (Muya hidden). `.muya-editor` est toujours présent dans le DOM dès l'init.
+- **Match par index plutôt que par texte**. La fonction reçoit la position source (`targetPos`), pas le texte. On cherche l'index de cette position dans la liste plate des headings, puis on prend le Nème `<hN>` du DOM Muya. Les headings dupliqués (même texte) sont gérés correctement.
+- **Détection explicite du Muya hidden**. En pure source mode, `.muya-editor` existe mais son ancêtre `.wysiwyg-pane` a la classe `hidden` (`display: none`). `scrollIntoView` sur un élément invisible est silencieusement no-op. On détecte le cas et on log via `dlog('toc', ...)` au lieu de laisser le user perplexe.
 
 ## Pièges connus
 
-- **TOC instable / pas toujours fonctionnelle** ⚠️ : l'extraction par regex naïve casse dans plusieurs cas réels. Voir [`problemes-connus.md#table-des-matières-instable--pas-toujours-fonctionnelle`](../06-references/problemes-connus.md#table-des-matières-instable--pas-toujours-fonctionnelle).
+- **HTML brut non détecté** : un titre écrit en HTML (`<h2>...</h2>`) n'apparaît pas dans la TOC. La state machine ne traite que le format ATX (`#` à `######`). Acceptable car écrire du HTML dans un fichier Markdown est rare dans MiraMD.
 
-  Cas qui produisent des résultats faux ou incomplets :
-  - **Lignes commençant par `#` à l'intérieur d'un bloc de code triple-backtick** : un commentaire `# foo` en Python ou un titre de section en Bash sera interprété comme un titre Markdown.
-  - **Frontmatter YAML** : un commentaire `# this is YAML` au début du document est listé dans la TOC.
-  - **HTML brut** : un `<h2>...</h2>` n'est pas détecté (la regex ne traite que le format ATX).
-  - **Lignes indentées** : un `   # Titre` (avec espaces avant) n'est pas reconnu — c'est conforme à la spec CommonMark, mais peut surprendre.
+- **Lignes indentées intentionnelles** : un `   # Titre` (avec espaces avant) n'est pas reconnu — c'est conforme à la spec CommonMark (les headings ATX doivent commencer à la colonne 0), mais peut surprendre.
 
-  Une piste de fix mentionnée dans l'audit (`06-references/audit.md`) : exposer une commande IPC `extract_headings(markdown)` côté Rust qui utiliserait `comrak` pour un parsing AST réel. Coût : faible, gain : extraction stable et fidèle au rendu réel.
+- **Frontmatter unclosed = TOC vide** : si le document commence par `---` sans fermeture, on retourne `[]`. Choix défensif (le contenu après `---` est sémantiquement dans le frontmatter), mais peut donner l'impression que la feature est cassée. Vérifier qu'on a bien un second `---` qui clôt le bloc.
 
-- **Doublon d'extraction** : la fonction `extractHeadings()` existe à deux endroits — dans `editor.ts` et dans `TocPane.svelte` (`buildTocTree`). C'est une duplication mineure, à factoriser.
-
-- **Désynchro pendant la frappe** : pendant la fenêtre de 300 ms du debounce, la TOC affichée ne reflète pas les frappes les plus récentes. C'est volontaire (perf), mais peut perturber sur les frappes très rapides.
-
-- **Scroll vers un doublon** : titres avec un texte identique → seul le premier est atteignable.
+- **Pas de navigation TOC en mode source pur** : quand l'éditeur Muya est masqué (mode source sans split), le clic TOC ne fait rien (avec un log via `dlog('toc', ...)` pour expliquer pourquoi). Pour naviguer, repasser en mode normal ou split.
 
 ## Pour aller plus loin
 
-- [`04-architecture/vue-densemble.md`](../04-architecture/vue-densemble.md) — où vit le store `editor.toc` dans la couche frontend.
+- [`mode-debug.md`](mode-debug.md) — sujet `'toc'` activable via Ctrl+Shift+D pour tracer pourquoi un clic ne navigue pas.
 - [`edition-wysiwyg.md`](edition-wysiwyg.md) — comment les modifications de contenu déclenchent la régénération.
 - [`recherche.md`](recherche.md) — fonctionnalité voisine dans la sidebar, qui utilise un mécanisme similaire de scroll-into-view.
-- [`06-references/audit.md`](../06-references/audit.md) — détail de la dette TOC et des pistes d'évolution.
+- [`../06-references/problemes-connus.md`](../06-references/problemes-connus.md) — section "Résolus" pour l'historique du bug TOC.

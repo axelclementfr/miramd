@@ -46,21 +46,6 @@
 
 ---
 
-### Désynchronisation source ↔ WYSIWYG en mode split
-
-- **Symptôme** : en mode split (source + preview), une frappe rapide dans le textarea source n'est pas immédiatement reflétée dans le pane Muya, ou inversement.
-- **Périmètre** :
-  - `src/lib/components/editor/SourcePane.svelte` (textarea non-contrôlé, debounce 400 ms vers Muya)
-  - `src/lib/services/editorModes.ts` (sourceContent store)
-- **Cause probable** : `SourcePane` est un textarea non-contrôlé pour permettre une frappe fluide. La synchronisation vers Muya passe par un debounce 400 ms. Si l'utilisateur tape, switch vers le pane Muya, et tape, les deux contenus peuvent diverger pendant la fenêtre de debounce.
-- **Piste de fix** :
-  - Ajouter une garde "écrivain actif" : si focus est sur SourcePane, Muya ne reçoit la sync qu'après blur.
-  - Réduire le debounce ou passer à throttle.
-  - Test d'intégration pour ce scénario.
-- **Statut** : ouvert.
-
----
-
 ### Code blocks bash : police et style trop accentués vs autres langages
 
 - **Symptôme** : les blocs de code identifiés comme `bash` (ou `sh`, `shell`) sont rendus avec une police différente et des effets visuels (gras, couleurs très saturées, possibles backgrounds spécifiques) plus marqués que les autres blocs de code (`js`, `python`, etc.). Visuellement parasite et incohérent. L'objectif : **garder une coloration spécifique au bash** (ex. couleur dédiée pour les commandes/options) **mais aligner la police, la taille et l'intensité** sur les autres blocs.
@@ -204,6 +189,20 @@ Ces points ne sont pas des bugs à fixer mais des choix documentés.
   - `src/lib/services/autoSave.ts` ne fait pas d'IPC direct — délègue à `saveCurrentFile()`.
   - Côté Rust : `write_file` retourne `Result<(), AppError>`. Toute erreur I/O remonte proprement comme Promise rejection vers JS.
 - **Conclusion** : la doc reflétait probablement un état antérieur déjà corrigé. Aucun changement de code requis. Si une régression future réintroduisait le pattern fire-and-forget, le sujet `save` est déjà déclaré dans `DebugSubject` — instrumenter avec `dlog('save', ...)` autour de `invoke('write_file', ...)` permettrait de tracer rapidement.
+
+---
+
+### Désynchronisation source ↔ WYSIWYG en mode split
+
+- **Résolu le** : 2026-05-09 (résolution par design, pas de fix de la race elle-même).
+- **Symptôme initial** : en mode split (source + preview), une frappe rapide dans le textarea source pouvait diverger du pane Muya pendant la fenêtre de debounce 400 ms si l'utilisateur tapait dans Muya entre-temps.
+- **Cause** : SourcePane (textarea non-contrôlé pour la fluidité de frappe) syncrhonisait vers Muya via debounce. Muya pane était éditable, donc la frappe utilisateur dans Muya pouvait conflicter avec une sync entrante.
+- **Fix par design** : on assume désormais que le **mode split est un sous-mode du mode source** — son rôle est d'afficher le rendu en preview pendant qu'on édite la source. Le pane Muya est forcé en `contenteditable="false"` quand `sourceCodeMode && splitView` (déjà fait avant : `MuyaPane.svelte` ligne 131). La nouveauté : l'UI reflète maintenant cette contrainte. Les helpers purs `computeModeToggle` et `canToggleMode` (`src/lib/services/editorModes.ts`) :
+  - Grisent le bouton **Split** quand SourceMode est désactivé.
+  - Grisent **Focus** et **Typewriter** quand SourceMode est activé.
+  - Désactivent automatiquement Split quand on quitte SourceMode (évite l'état incohérent split=true + source=false).
+- **Conséquence** : la sync source → preview reste en debounce 400 ms, mais elle est désormais **strictement unidirectionnelle**, donc plus de race possible côté Muya.
+- **Tests** : 17 nouveaux tests dans `tests/services/editorModes.test.ts` couvrant `computeModeToggle`, `canToggleMode`, et l'intégration avec le store via `editorModes.toggle()`.
 
 ---
 

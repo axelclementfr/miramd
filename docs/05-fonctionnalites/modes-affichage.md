@@ -78,13 +78,24 @@ La machine à états des modes est centralisée dans un service dédié, qui dé
 
 **Comment les modes interagissent** :
 
-- Source ⇒ désactive automatiquement Focus et Typewriter (incompatibles).
-- Split ⇒ exige que Source soit actif. Le pane Muya bascule en lecture seule.
-- ReadOnly est indépendant : il peut être combiné avec n'importe quel autre mode (sauf source qui désactive l'édition de toute façon).
+- Source actif ⇒ désactive automatiquement Focus, Typewriter, et Typewriter Sounds (incompatibles).
+- Source désactivé ⇒ désactive automatiquement Split (Split exige Source actif).
+- Split ⇒ exige que Source soit actif. Le pane Muya bascule en lecture seule (`contenteditable="false"`), seul le textarea source est éditable.
+- ReadOnly (per-tab) est indépendant : combinable avec n'importe quel autre mode.
+
+**Mise en application UI** : les boutons de la status bar et les toggles dans les préférences sont **grisés (disabled)** quand le mode n'est pas activable :
+- Focus + Typewriter grisés quand Source est actif.
+- Split grisé quand Source est inactif.
+
+Implémenté par deux helpers purs dans `editorModes.ts` :
+- `computeModeToggle(prefs, mode)` — retourne le patch à appliquer (avec les side effects de compatibilité).
+- `canToggleMode(prefs, mode)` — prédicat utilisé par les `<button disabled={...}>` et `<input disabled={...}>`.
+
+Les deux sont testés exhaustivement dans `tests/services/editorModes.test.ts`.
 
 ## Pièges connus
 
-- **Désynchronisation source ↔ WYSIWYG en mode split** ⚠️ : le textarea source est non contrôlé pour permettre une frappe fluide ; sa propagation vers Muya passe par un debounce 400 ms. Pendant cette fenêtre, les deux panes peuvent diverger si tu tapes très vite ou si tu changes de pane. Voir [`problemes-connus.md#désynchronisation-source--wysiwyg-en-mode-split`](../06-references/problemes-connus.md#désynchronisation-source--wysiwyg-en-mode-split).
+- **Désynchronisation source ↔ WYSIWYG en mode split** : **résolu par design** depuis la simplification du split (le pane Muya est désormais en lecture seule, donc la sync est unidirectionnelle source → preview, plus de race possible côté Muya). Le debounce 400 ms reste pour le throttle de la sync, sans risque de divergence puisque le pane preview ne peut plus écrire.
 
 - **Pas de bouton clairement identifié pour basculer en mode source dans toutes les vues** : à vérifier visuellement. Le toggle existe dans la section "Vue" des préférences ; un raccourci direct (Ctrl+/) n'est pas implémenté dans `services/shortcuts.ts` à la lecture du code.
 

@@ -1,5 +1,5 @@
 import { writable, derived, get } from 'svelte/store';
-import { preferences } from '$lib/stores/preferences';
+import { preferences, type Preferences } from '$lib/stores/preferences';
 import { editor as editorStore } from '$lib/stores/editor';
 import { muyaService } from './muya';
 
@@ -9,6 +9,52 @@ export interface EditorState {
   splitView: boolean;
   focusMode: boolean;
   typewriterMode: boolean;
+}
+
+export type ModeKey = 'sourceCodeMode' | 'focusMode' | 'typewriterMode' | 'splitView';
+
+type ModePrefs = Pick<Preferences,
+  'sourceCodeMode' | 'focusMode' | 'typewriterMode' | 'splitView' | 'typewriterSounds'
+>;
+
+/**
+ * Pure helper : compute the preferences patch to apply when toggling `mode`.
+ * Encodes the mode-compatibility rules :
+ *   - Activating sourceCodeMode disables focus, typewriter, typewriterSounds.
+ *   - Deactivating sourceCodeMode disables splitView (split needs source).
+ *   - Deactivating typewriter disables typewriterSounds.
+ */
+export function computeModeToggle(prefs: ModePrefs, mode: ModeKey): Partial<Preferences> {
+  const next = !prefs[mode];
+  const patch: Partial<Preferences> = { [mode]: next };
+
+  if (mode === 'sourceCodeMode') {
+    if (next) {
+      patch.focusMode = false;
+      patch.typewriterMode = false;
+      patch.typewriterSounds = false;
+    } else {
+      patch.splitView = false;
+    }
+  }
+
+  if (mode === 'typewriterMode' && !next) {
+    patch.typewriterSounds = false;
+  }
+
+  return patch;
+}
+
+/**
+ * Pure predicate : can the user toggle `mode` given the current prefs?
+ *   - focusMode + typewriterMode require sourceCodeMode = false.
+ *   - splitView requires sourceCodeMode = true.
+ *   - sourceCodeMode is always toggleable.
+ */
+export function canToggleMode(prefs: Pick<Preferences, 'sourceCodeMode'>, mode: ModeKey): boolean {
+  if (mode === 'focusMode' || mode === 'typewriterMode') return !prefs.sourceCodeMode;
+  if (mode === 'splitView') return prefs.sourceCodeMode;
+  return true;
 }
 
 /**
@@ -109,37 +155,17 @@ class EditorModes {
     editorStore.toggleActiveTabReadOnly();
   }
 
-  /** Toggles source code mode; entering source disables focus and typewriter modes. */
-  toggleSource(): void {
+  /** Toggles a mode (source/focus/typewriter/split) honoring compatibility rules. No-op if the mode is unavailable. */
+  toggle(mode: ModeKey): void {
     const p = get(preferences);
-    const patch: Partial<{ sourceCodeMode: boolean; focusMode: boolean; typewriterMode: boolean }> = {
-      sourceCodeMode: !p.sourceCodeMode,
-    };
-    if (!p.sourceCodeMode) {
-      // Entering source: disable incompatible modes
-      patch.focusMode = false;
-      patch.typewriterMode = false;
-    }
-    preferences.patch(patch);
+    if (!canToggleMode(p, mode)) return;
+    preferences.patch(computeModeToggle(p, mode));
   }
 
-  /** Toggles the source/preview split view. */
-  toggleSplit(): void {
-    const p = get(preferences);
-    preferences.patch({ splitView: !p.splitView });
-  }
-
-  /** Toggles focus mode (dims inactive paragraphs). */
-  toggleFocus(): void {
-    const p = get(preferences);
-    preferences.patch({ focusMode: !p.focusMode });
-  }
-
-  /** Toggles typewriter mode (keeps cursor vertically centered). */
-  toggleTypewriter(): void {
-    const p = get(preferences);
-    preferences.patch({ typewriterMode: !p.typewriterMode });
-  }
+  toggleSource(): void { this.toggle('sourceCodeMode'); }
+  toggleSplit(): void { this.toggle('splitView'); }
+  toggleFocus(): void { this.toggle('focusMode'); }
+  toggleTypewriter(): void { this.toggle('typewriterMode'); }
 
   // --- Read-only event blocking ---
 

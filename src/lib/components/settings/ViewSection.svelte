@@ -21,9 +21,9 @@
 
 <div class="setting-group">
   <h3>{tr('display_modes')}</h3>
-  <div class="setting-row toggle-row"><div><span class="setting-label">{tr('source_code_mode')}</span><p class="setting-desc">{tr('source_code_desc')}</p></div><label class="toggle"><input type="checkbox" bind:checked={prefs.sourceCodeMode} onchange={applyPrefs} /><span class="toggle-slider"></span></label></div>
-  <div class="setting-row toggle-row"><div><span class="setting-label">{tr('focus_mode')}</span><p class="setting-desc">{tr('focus_desc')}</p></div><label class="toggle"><input type="checkbox" bind:checked={prefs.focusMode} onchange={applyPrefs} /><span class="toggle-slider"></span></label></div>
-  <div class="setting-row toggle-row"><div><span class="setting-label">{tr('typewriter_mode')}</span><p class="setting-desc">{tr('typewriter_desc')}</p></div><label class="toggle"><input type="checkbox" bind:checked={prefs.typewriterMode} onchange={() => { if (!prefs.typewriterMode) prefs.typewriterSounds = false; applyPrefs(); }} /><span class="toggle-slider"></span></label></div>
+  <div class="setting-row toggle-row"><div><span class="setting-label">{tr('source_code_mode')}</span><p class="setting-desc">{tr('source_code_desc')}</p></div><label class="toggle"><input type="checkbox" bind:checked={prefs.sourceCodeMode} onchange={() => { if (prefs.sourceCodeMode) { prefs.focusMode = false; prefs.typewriterMode = false; prefs.typewriterSounds = false; } else { prefs.splitView = false; } applyPrefs(); }} /><span class="toggle-slider"></span></label></div>
+  <div class="setting-row toggle-row"><div><span class="setting-label">{tr('focus_mode')}</span><p class="setting-desc">{tr('focus_desc')}</p></div><label class="toggle" class:disabled={prefs.sourceCodeMode}><input type="checkbox" bind:checked={prefs.focusMode} disabled={prefs.sourceCodeMode} onchange={applyPrefs} /><span class="toggle-slider"></span></label></div>
+  <div class="setting-row toggle-row"><div><span class="setting-label">{tr('typewriter_mode')}</span><p class="setting-desc">{tr('typewriter_desc')}</p></div><label class="toggle" class:disabled={prefs.sourceCodeMode}><input type="checkbox" bind:checked={prefs.typewriterMode} disabled={prefs.sourceCodeMode} onchange={() => { if (!prefs.typewriterMode) prefs.typewriterSounds = false; applyPrefs(); }} /><span class="toggle-slider"></span></label></div>
   <div class="setting-row toggle-row"><div><span class="setting-label">{tr('typewriter_sounds')}</span><p class="setting-desc">{tr('typewriter_sounds_desc')}</p></div><label class="toggle"><input type="checkbox" bind:checked={prefs.typewriterSounds} disabled={!prefs.typewriterMode} onchange={applyPrefs} /><span class="toggle-slider"></span></label></div>
   {#if prefs.typewriterSounds}
     <div class="setting-row volume-row">
@@ -43,7 +43,7 @@
       </div>
     </div>
   {/if}
-  <div class="setting-row toggle-row"><div><span class="setting-label">{tr('split_view')}</span><p class="setting-desc">{tr('split_desc')}</p></div><label class="toggle"><input type="checkbox" bind:checked={prefs.splitView} onchange={applyPrefs} /><span class="toggle-slider"></span></label></div>
+  <div class="setting-row toggle-row"><div><span class="setting-label">{tr('split_view')}</span><p class="setting-desc">{tr('split_desc')}</p></div><label class="toggle" class:disabled={!prefs.sourceCodeMode}><input type="checkbox" bind:checked={prefs.splitView} disabled={!prefs.sourceCodeMode} onchange={applyPrefs} /><span class="toggle-slider"></span></label></div>
 </div>
 <div class="setting-group">
   <h3>{tr('interface')}</h3>
@@ -79,6 +79,7 @@
     flex-shrink: 0; cursor: pointer;
   }
   .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle.disabled { opacity: 0.4; cursor: not-allowed; }
 
   .toggle-slider {
     position: absolute; inset: 0; background: var(--bg-hover);

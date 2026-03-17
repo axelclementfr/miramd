@@ -6,6 +6,7 @@
   import { t, type TranslationKey } from '$lib/i18n/index';
   import { debugFlags, ALL_SUBJECTS, type DebugSubject } from '$lib/stores/debug';
   import { debugPanelOpen } from '$lib/services/debug';
+  import { editorModes, canToggleMode } from '$lib/services/editorModes';
 
   let stats: DocumentStats = $state({ words: 0, chars: 0, lines: 0, paragraphs: 0 });
   let prefs: Preferences = $state({} as Preferences);
@@ -37,18 +38,8 @@
     document.documentElement.setAttribute('data-theme', next);
   }
 
-  function toggleMode(mode: 'sourceCodeMode' | 'focusMode' | 'typewriterMode') {
-    const patch: Partial<Preferences> = {};
-    patch[mode] = !prefs[mode];
-    if (mode === 'sourceCodeMode' && patch.sourceCodeMode) {
-      patch.focusMode = false;
-      patch.typewriterMode = false;
-    }
-    // Sounds is a sub-feature of typewriter mode: disable it when typewriter goes off.
-    if (mode === 'typewriterMode' && !patch.typewriterMode) {
-      patch.typewriterSounds = false;
-    }
-    preferences.patch(patch);
+  function toggleMode(mode: 'sourceCodeMode' | 'focusMode' | 'typewriterMode' | 'splitView') {
+    editorModes.toggle(mode);
   }
 
   function resetZoom() {
@@ -103,6 +94,7 @@
     <button
       class="mode-btn"
       class:active={prefs.focusMode}
+      disabled={!canToggleMode(prefs, 'focusMode')}
       onclick={() => toggleMode('focusMode')}
       title={tr('focus_tooltip')}
     >
@@ -112,6 +104,7 @@
     <button
       class="mode-btn"
       class:active={prefs.typewriterMode}
+      disabled={!canToggleMode(prefs, 'typewriterMode')}
       onclick={() => toggleMode('typewriterMode')}
       title={tr('typewriter_tooltip')}
     >
@@ -121,7 +114,8 @@
     <button
       class="mode-btn"
       class:active={prefs.splitView}
-      onclick={() => preferences.patch({ splitView: !prefs.splitView })}
+      disabled={!canToggleMode(prefs, 'splitView')}
+      onclick={() => toggleMode('splitView')}
       title={tr('split_desc')}
     >
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
@@ -190,7 +184,7 @@
     white-space: nowrap;
   }
 
-  .mode-btn:hover {
+  .mode-btn:hover:not(:disabled) {
     background: var(--floatHoverColor, var(--bg-hover));
     color: var(--text-primary);
   }
@@ -199,6 +193,11 @@
     background: rgba(124, 156, 238, 0.15);
     color: var(--accent);
     border-color: var(--accent);
+  }
+
+  .mode-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
   }
 
   .theme-toggle {

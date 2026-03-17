@@ -52,22 +52,15 @@
     const parts = activeTab.path.split('/').filter(Boolean);
     return parts.slice(0, parts.length - 1).slice(-3);
   }
-
-  async function startDrag(e: MouseEvent) {
-    const target = e.target as HTMLElement;
-    if (target.closest('button') || target.closest('.title-no-drag')) return;
-    if (e.detail === 2) { await toggleMaximize(); }
-    else { await appWindow?.startDragging(); }
-  }
 </script>
 
 <div>
   <div class="title-bar-editor-bg"></div>
-  <div class="title-bar" class:active={!!activeTab} role="presentation" onmousedown={startDrag}>
+  <div class="title-bar" class:active={!!activeTab}>
     <!-- MarkText: hamburger on far left, centered in the 45px icon column -->
-    <div class="left-toolbar title-no-drag">
+    <div class="left-toolbar">
       <button
-        class="frameless-titlebar-menu title-no-drag"
+        class="frameless-titlebar-menu"
         class:active={sidebarVisible}
         onclick={ontoggle}
         title="Explorateur (Ctrl+B)"
@@ -93,7 +86,7 @@
       {/if}
     </div>
 
-    <div class="right-toolbar title-no-drag">
+    <div class="right-toolbar">
       <button class="frameless-titlebar-button frameless-titlebar-close" onclick={close} title="Fermer">
         <div>
           <svg width="10" height="10" viewBox="0 0 10 10">
@@ -210,8 +203,6 @@
     align-items: center;
     flex-direction: row-reverse;
   }
-
-  .title-no-drag { -webkit-app-region: no-drag; }
 
   /* Hamburger — centered in 45px column, same axis as sidebar icons */
   .frameless-titlebar-menu {

@@ -1,8 +1,11 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
+  import { get } from 'svelte/store';
   import { fade } from 'svelte/transition';
   import { editor } from '$lib/stores/editor';
   import type { TocEntry } from '$lib/types/editor';
+  import { extractHeadings } from '$lib/services/toc';
+  import { dlog } from '$lib/services/debug';
   import { t, type TranslationKey } from '$lib/i18n/index';
 
   interface TocNode { level: number; text: string; pos: number; children: TocNode[]; collapsed: boolean; }
@@ -15,7 +18,7 @@
     unsubs.push(t.subscribe((fn) => (tr = fn)));
     unsubs.push(editor.activeTab.subscribe((tab) => {
       if (tab) {
-        buildTocTree(tab.content);
+        tocTree = buildTree(extractHeadings(tab.content));
       } else {
         tocTree = [];
       }
@@ -23,18 +26,6 @@
   });
 
   onDestroy(() => unsubs.forEach((u) => u()));
-
-  function buildTocTree(content: string) {
-    const flat: TocEntry[] = [];
-    const lines = content.split('\n');
-    let pos = 0;
-    for (const line of lines) {
-      const m = line.match(/^(#{1,6})\s+(.+)/);
-      if (m) flat.push({ level: m[1].length, text: m[2].replace(/\s*#+\s*$/, '').trim(), pos });
-      pos += line.length + 1;
-    }
-    tocTree = buildTree(flat);
-  }
 
   function buildTree(flat: TocEntry[]): TocNode[] {
     const root: TocNode[] = [];
@@ -54,18 +45,57 @@
     tocTree = [...tocTree];
   }
 
-  function scrollToHeading(text: string) {
-    const editorEl = document.querySelector('[contenteditable="true"]');
-    if (!editorEl) return;
-    const headings = editorEl.querySelectorAll('h1, h2, h3, h4, h5, h6');
-    for (const h of headings) {
-      if (h.textContent?.trim() === text) {
-        h.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        h.classList.add('toc-highlight');
-        setTimeout(() => h.classList.remove('toc-highlight'), 1500);
-        return;
-      }
+  /**
+   * Scroll the Muya editor to the heading at `targetPos` (markdown source byte offset).
+   *
+   * Strategy: find the Nth heading in the source (by pos), then pick the Nth rendered
+   * H element in the Muya DOM. This handles duplicates correctly (text-match would
+   * always navigate to the first occurrence).
+   *
+   * The selector `.muya-editor` is used instead of `[contenteditable="true"]` because
+   * the latter fails in three cases the previous version mishandled silently:
+   *  - Lock mode (per-tab readOnly): contenteditable is forced to false
+   *  - Split mode with sourceCodeMode: contenteditable is forced to false
+   *  - Pure source mode: muya-editor is hidden but query still matches → no-op scroll
+   */
+  function scrollToHeading(targetPos: number) {
+    const tab = get(editor.activeTab);
+    if (!tab) {
+      dlog('toc', 'scrollToHeading: no active tab');
+      return;
     }
+    const flat = extractHeadings(tab.content);
+    const index = flat.findIndex((h) => h.pos === targetPos);
+    if (index < 0) {
+      dlog('toc', 'scrollToHeading: pos not found in extracted headings, pos:', targetPos);
+      return;
+    }
+
+    const container = document.querySelector('.muya-editor');
+    if (!container) {
+      dlog('toc', 'scrollToHeading: .muya-editor not found in DOM');
+      return;
+    }
+
+    // Detect hidden Muya (pure source mode). scrollIntoView on hidden = no-op,
+    // and the user gets no feedback. Log it so debug-mode users see why.
+    const wysiwygPane = container.closest('.wysiwyg-pane');
+    if (wysiwygPane?.classList.contains('hidden')) {
+      dlog('toc', 'scrollToHeading: .wysiwyg-pane is hidden (source mode), skipping. Switch to normal/split view to navigate via TOC.');
+      return;
+    }
+
+    const headings = container.querySelectorAll('h1, h2, h3, h4, h5, h6');
+    const target = headings[index];
+    if (!target) {
+      dlog('toc', 'scrollToHeading: heading index', index, 'not found in DOM (rendered count:', headings.length, ')');
+      return;
+    }
+
+    dlog('toc', 'scrollToHeading: navigating to index', index, 'pos', targetPos);
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    target.classList.add('toc-highlight');
+    setTimeout(() => target.classList.remove('toc-highlight'), 1500);
   }
 </script>
 
@@ -86,7 +116,7 @@
 </div>
 
 {#snippet tocNode(node: TocNode, depth: number)}
-  <div class="toc-node" style="padding-left: {8 + depth * 14}px;" onclick={() => scrollToHeading(node.text)} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); scrollToHeading(node.text); } }} role="button" tabindex="0">
+  <div class="toc-node" style="padding-left: {8 + depth * 14}px;" onclick={() => scrollToHeading(node.pos)} onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); scrollToHeading(node.pos); } }} role="button" tabindex="0">
     {#if node.children.length > 0}
       <button class="toc-arrow-btn" aria-label="Toggle" onclick={(e) => { e.stopPropagation(); toggleCollapse(node); }}>
         <svg class="icon-arrow" class:collapsed={node.collapsed} width="14" height="14" viewBox="0 0 6 8">

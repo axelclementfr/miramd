@@ -84,26 +84,10 @@ describe('Regression Tests', () => {
     });
   });
 
-  describe('TOC extraction', () => {
-    it('updates TOC when content with headings is added', () => {
-      const content = '# Title\n\n## Section 1\n\n### Subsection\n\n## Section 2';
-      const id = editor.addTab('/doc.md', 'doc.md', content);
-      const toc = get(editor.toc);
-      expect(toc.length).toBe(4);
-      expect(toc[0].level).toBe(1);
-      expect(toc[0].text).toBe('Title');
-      expect(toc[1].level).toBe(2);
-      expect(toc[1].text).toBe('Section 1');
-    });
-
-    it('updates TOC on content change', () => {
-      vi.useFakeTimers();
-      const id = editor.addTab(null, 'test.md', '# One');
-      editor.updateContent(id, '# One\n\n## Two');
-      vi.advanceTimersByTime(300);
-      const toc = get(editor.toc);
-      expect(toc.length).toBe(2);
-      vi.useRealTimers();
-    });
-  });
+  // TOC extraction moved out of the editor store into the pure function
+  // `extractHeadings` (src/lib/services/toc.ts), with its own dedicated
+  // suite at tests/services/toc.test.ts (22 cases, including frontmatter
+  // and fenced code blocks). The store no longer holds a `toc` derived
+  // value — TocPane.svelte subscribes to activeTab and calls extractHeadings
+  // directly.
 });

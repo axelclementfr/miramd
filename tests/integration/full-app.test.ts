@@ -209,48 +209,10 @@ describe('Preferences — all settings', () => {
 });
 
 // ─── TOC ────────────────────────────────────────────────
-
-describe('TOC — Table of Contents', () => {
-  beforeEach(() => {
-    for (const t of get(editor.tabs)) editor.closeTab(t.id);
-  });
-
-  it('extracts H1-H6', () => {
-    editor.addTab(null, 'toc.md', '# H1\n## H2\n### H3\n#### H4\n##### H5\n###### H6');
-    const toc = get(editor.toc);
-    expect(toc.length).toBe(6);
-    expect(toc.map(t => t.level)).toEqual([1, 2, 3, 4, 5, 6]);
-  });
-
-  it('strips trailing hashes from headings', () => {
-    editor.addTab(null, 'toc2.md', '# Title ##');
-    const toc = get(editor.toc);
-    expect(toc[0].text).toBe('Title');
-  });
-
-  it('empty doc = no headings', () => {
-    editor.addTab(null, 'empty.md', '\n');
-    const toc = get(editor.toc);
-    expect(toc.length).toBe(0);
-  });
-
-  it('updates on content change', () => {
-    vi.useFakeTimers();
-    const id = editor.addTab(null, 'dynamic.md', '# One');
-    expect(get(editor.toc).length).toBe(1);
-    editor.updateContent(id, '# One\n## Two\n## Three');
-    vi.advanceTimersByTime(300);
-    expect(get(editor.toc).length).toBe(3);
-    vi.useRealTimers();
-  });
-
-  it('position tracking', () => {
-    editor.addTab(null, 'pos.md', '# Title\n\nText\n\n## Sub');
-    const toc = get(editor.toc);
-    expect(toc[0].pos).toBe(0);
-    expect(toc[1].pos).toBeGreaterThan(0);
-  });
-});
+// TOC extraction is now a pure function in src/lib/services/toc.ts with
+// dedicated unit tests at tests/services/toc.test.ts (22 cases including
+// frontmatter and fenced code blocks). The editor store no longer holds
+// a `toc` derived value — TocPane.svelte computes locally from activeTab.
 
 // ─── STATS ──────────────────────────────────────────────
 

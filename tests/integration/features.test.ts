@@ -81,26 +81,8 @@ describe('Editor Store — all operations', () => {
     });
   });
 
-  describe('TOC extraction', () => {
-    it('extracts headings from markdown', () => {
-      const id = editor.addTab(null, 'toc.md', '# H1\n\n## H2\n\n### H3');
-      const toc = get(editor.toc);
-      expect(toc.length).toBe(3);
-      expect(toc[0]).toEqual(expect.objectContaining({ level: 1, text: 'H1' }));
-      expect(toc[1]).toEqual(expect.objectContaining({ level: 2, text: 'H2' }));
-      expect(toc[2]).toEqual(expect.objectContaining({ level: 3, text: 'H3' }));
-    });
-
-    it('updates TOC on content change', () => {
-      vi.useFakeTimers();
-      const id = editor.addTab(null, 'toc2.md', '# One');
-      editor.updateContent(id, '# One\n\n## Two\n\n## Three');
-      vi.advanceTimersByTime(300);
-      const toc = get(editor.toc);
-      expect(toc.length).toBe(3);
-      vi.useRealTimers();
-    });
-  });
+  // TOC extraction moved to src/lib/services/toc.ts (pure function).
+  // Dedicated tests live in tests/services/toc.test.ts (22 cases).
 });
 
 describe('Preferences Store', () => {

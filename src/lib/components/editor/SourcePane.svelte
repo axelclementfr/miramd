@@ -7,7 +7,8 @@
   import { editorModes } from '$lib/services/editorModes';
   import { updateStats } from '$lib/services/stats';
   import { dlog } from '$lib/services/debug';
-  import { computeProportionalScroll } from '$lib/services/splitScrollSync';
+  import { computeAnchoredScroll, type ScrollAnchor } from '$lib/services/splitScrollSync';
+  import { extractHeadings } from '$lib/services/toc';
 
   let readOnly: boolean = $state(false);
   let splitView: boolean = $state(false);
@@ -49,9 +50,32 @@
       scrollSyncRaf = 0;
       const previewPane = document.querySelector('.wysiwyg-pane') as HTMLElement | null;
       if (!previewPane || !textareaEl) return;
-      const srcMax = textareaEl.scrollHeight - textareaEl.clientHeight;
+
+      const source = textareaEl.value;
       const dstMax = previewPane.scrollHeight - previewPane.clientHeight;
-      previewPane.scrollTop = computeProportionalScroll(textareaEl.scrollTop, srcMax, dstMax);
+      const srcCharPos = textareaEl.scrollHeight > 0
+        ? Math.round((textareaEl.scrollTop / textareaEl.scrollHeight) * source.length)
+        : 0;
+
+      // Build anchors : nth source heading ↔ nth heading element in preview
+      const headings = extractHeadings(source);
+      const previewHeadings = previewPane.querySelectorAll('h1, h2, h3, h4, h5, h6');
+      const n = Math.min(headings.length, previewHeadings.length);
+      const anchors: ScrollAnchor[] = [];
+      for (let i = 0; i < n; i++) {
+        anchors.push({
+          srcPos: headings[i].pos,
+          dstTop: (previewHeadings[i] as HTMLElement).offsetTop,
+        });
+      }
+
+      previewPane.scrollTop = computeAnchoredScroll(
+        srcCharPos,
+        source.length,
+        anchors,
+        dstMax,
+        previewPane.scrollHeight,
+      );
     });
   }
 

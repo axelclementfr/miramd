@@ -31,7 +31,7 @@ Cinq modes, indépendants ou combinables selon les compatibilités.
 - Affiche le textarea source à gauche **et** le rendu Muya à droite, en parallèle. Tu écris dans la source, tu vois le rendu en preview.
 - Le pane Muya est en mode lecture seule pendant le split (le contenteditable est désactivé). La sync est strictement unidirectionnelle source → preview.
 - La sync de **contenu** source → preview passe par un debounce 400 ms.
-- La sync de **scroll** source → preview est proportionnelle (même fraction parcourue de chaque côté), throttlée à 1 frame via `requestAnimationFrame`. Implémentée par `computeProportionalScroll` dans `src/lib/services/splitScrollSync.ts`. Approximative si les hauteurs rendues divergent fortement (images, blocs de code), mais suffit pour suivre visuellement le scroll.
+- La sync de **scroll** source → preview utilise un alignement **ancré sur les headings** (`computeAnchoredScroll` dans `src/lib/services/splitScrollSync.ts`) : chaque heading source ↔ heading preview est un point d'alignement exact ; entre deux headings, on interpole proportionnellement. Si le document n'a aucun heading, fallback sur `computeProportionalScroll`. Throttlé à 1 frame via `requestAnimationFrame`. Les anchors sont reconstruits à chaque scroll via `extractHeadings()` (toc.ts) — fonction O(n), assez rapide pour ne pas demander de cache supplémentaire.
 
 **Mode lecture seule (par onglet).**
 

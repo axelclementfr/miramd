@@ -43,9 +43,10 @@
     if (scrollSyncRaf) cancelAnimationFrame(scrollSyncRaf);
   });
 
-  function syncPreviewTo(srcCharPos: number, smooth: boolean) {
+  /** Returns the computed target scrollTop, or null if sync couldn't run. */
+  function syncPreviewTo(srcCharPos: number, smooth: boolean): { pane: HTMLElement; target: number } | null {
     const previewPane = document.querySelector('.wysiwyg-pane') as HTMLElement | null;
-    if (!previewPane || !textareaEl) return;
+    if (!previewPane || !textareaEl) return null;
 
     const source = textareaEl.value;
     const dstMax = previewPane.scrollHeight - previewPane.clientHeight;
@@ -74,6 +75,19 @@
     } else {
       previewPane.scrollTop = target;
     }
+
+    return { pane: previewPane, target };
+  }
+
+  function flashClickMarker(pane: HTMLElement, scrollTop: number) {
+    const marker = document.createElement('div');
+    marker.className = 'split-click-marker';
+    // Position the marker just below the would-be top of the visible viewport
+    // after smooth scroll lands. +6 gives a small visual offset so it doesn't
+    // ride exactly on the edge.
+    marker.style.top = `${scrollTop + 6}px`;
+    pane.appendChild(marker);
+    setTimeout(() => marker.remove(), 1300);
   }
 
   function handleScroll() {
@@ -92,7 +106,8 @@
   function handleClick() {
     if (!splitView) return;
     if (!textareaEl) return;
-    syncPreviewTo(textareaEl.selectionStart, true);
+    const result = syncPreviewTo(textareaEl.selectionStart, true);
+    if (result) flashClickMarker(result.pane, result.target);
   }
 
   function handleInput() {

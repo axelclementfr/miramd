@@ -83,21 +83,6 @@
 
   .editor-container.split-active {
     flex-direction: row;
-    container-type: inline-size;
-  }
-
-  /* Responsive split : la preview gagne du poids quand la fenêtre rétrécit */
-  :global(.split-active .source-pane) { flex: 1; }
-  :global(.split-active .wysiwyg-pane) { flex: 1; }
-
-  @container (max-width: 1000px) {
-    :global(.split-active .source-pane) { flex: 1; }
-    :global(.split-active .wysiwyg-pane) { flex: 1.5; }
-  }
-
-  @container (max-width: 700px) {
-    :global(.split-active .source-pane) { flex: 1; }
-    :global(.split-active .wysiwyg-pane) { flex: 2.5; }
   }
 
   /* Loading indicator — subtle top bar */

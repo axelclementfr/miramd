@@ -43,40 +43,56 @@
     if (scrollSyncRaf) cancelAnimationFrame(scrollSyncRaf);
   });
 
+  function syncPreviewTo(srcCharPos: number, smooth: boolean) {
+    const previewPane = document.querySelector('.wysiwyg-pane') as HTMLElement | null;
+    if (!previewPane || !textareaEl) return;
+
+    const source = textareaEl.value;
+    const dstMax = previewPane.scrollHeight - previewPane.clientHeight;
+
+    const headings = extractHeadings(source);
+    const previewHeadings = previewPane.querySelectorAll('h1, h2, h3, h4, h5, h6');
+    const n = Math.min(headings.length, previewHeadings.length);
+    const anchors: ScrollAnchor[] = [];
+    for (let i = 0; i < n; i++) {
+      anchors.push({
+        srcPos: headings[i].pos,
+        dstTop: (previewHeadings[i] as HTMLElement).offsetTop,
+      });
+    }
+
+    const target = computeAnchoredScroll(
+      srcCharPos,
+      source.length,
+      anchors,
+      dstMax,
+      previewPane.scrollHeight,
+    );
+
+    if (smooth) {
+      previewPane.scrollTo({ top: target, behavior: 'smooth' });
+    } else {
+      previewPane.scrollTop = target;
+    }
+  }
+
   function handleScroll() {
     if (!splitView) return;
     if (scrollSyncRaf) return; // already scheduled this frame
     scrollSyncRaf = requestAnimationFrame(() => {
       scrollSyncRaf = 0;
-      const previewPane = document.querySelector('.wysiwyg-pane') as HTMLElement | null;
-      if (!previewPane || !textareaEl) return;
-
-      const source = textareaEl.value;
-      const dstMax = previewPane.scrollHeight - previewPane.clientHeight;
+      if (!textareaEl) return;
       const srcCharPos = textareaEl.scrollHeight > 0
-        ? Math.round((textareaEl.scrollTop / textareaEl.scrollHeight) * source.length)
+        ? Math.round((textareaEl.scrollTop / textareaEl.scrollHeight) * textareaEl.value.length)
         : 0;
-
-      // Build anchors : nth source heading ↔ nth heading element in preview
-      const headings = extractHeadings(source);
-      const previewHeadings = previewPane.querySelectorAll('h1, h2, h3, h4, h5, h6');
-      const n = Math.min(headings.length, previewHeadings.length);
-      const anchors: ScrollAnchor[] = [];
-      for (let i = 0; i < n; i++) {
-        anchors.push({
-          srcPos: headings[i].pos,
-          dstTop: (previewHeadings[i] as HTMLElement).offsetTop,
-        });
-      }
-
-      previewPane.scrollTop = computeAnchoredScroll(
-        srcCharPos,
-        source.length,
-        anchors,
-        dstMax,
-        previewPane.scrollHeight,
-      );
+      syncPreviewTo(srcCharPos, false);
     });
+  }
+
+  function handleClick() {
+    if (!splitView) return;
+    if (!textareaEl) return;
+    syncPreviewTo(textareaEl.selectionStart, true);
   }
 
   function handleInput() {
@@ -107,6 +123,7 @@
     class="source-code-editor"
     oninput={handleInput}
     onscroll={handleScroll}
+    onclick={handleClick}
     spellcheck="true"
     readonly={readOnly}
   ></textarea>

@@ -92,6 +92,26 @@ describe('isDragTarget — interactive elements are NOT draggable', () => {
     expect(isDragTarget(el('<div role="menuitemradio"></div>'))).toBe(false);
   });
 
+  it('returns false for role="dialog" (modal backdrop)', () => {
+    expect(isDragTarget(el('<div role="dialog"></div>'))).toBe(false);
+  });
+
+  it('returns false for role="alertdialog"', () => {
+    expect(isDragTarget(el('<div role="alertdialog"></div>'))).toBe(false);
+  });
+
+  it('returns false for role="combobox" (CustomSelect)', () => {
+    expect(isDragTarget(el('<div role="combobox"></div>'))).toBe(false);
+  });
+
+  it('returns false for role="listbox"', () => {
+    expect(isDragTarget(el('<div role="listbox"></div>'))).toBe(false);
+  });
+
+  it('returns false for role="alert" (toast)', () => {
+    expect(isDragTarget(el('<div role="alert"></div>'))).toBe(false);
+  });
+
   it('returns false for .no-drag opt-out class', () => {
     expect(isDragTarget(el('<div class="no-drag"></div>'))).toBe(false);
   });
@@ -242,6 +262,27 @@ describe('isDragTarget — real-world MiraMD DOM scenarios', () => {
     const wrap = el('<div class="source-pane"><textarea>foo</textarea></div>');
     document.body.appendChild(wrap);
     expect(isDragTarget(wrap.querySelector('textarea'))).toBe(false);
+  });
+
+  it('does not drag on LockToggle button (regression: was a div with onclick)', () => {
+    const wrap = el(`
+      <div class="editor-container">
+        <button type="button" class="lock-toggle">
+          <svg><rect></rect></svg>
+        </button>
+      </div>
+    `);
+    document.body.appendChild(wrap);
+    const btn = wrap.querySelector('button')!;
+    expect(isDragTarget(btn)).toBe(false);
+    expect(isDragTarget(btn.querySelector('rect'))).toBe(false);
+  });
+
+  it('does not drag on SettingsModal backdrop (role="dialog")', () => {
+    const wrap = el('<div class="modal-backdrop" role="dialog"><div class="modal-content"></div></div>');
+    document.body.appendChild(wrap);
+    expect(isDragTarget(wrap)).toBe(false);
+    expect(isDragTarget(wrap.querySelector('.modal-content'))).toBe(false);
   });
 });
 

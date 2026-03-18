@@ -31,6 +31,11 @@ const INTERACTIVE_SELECTOR = [
   '[role="slider"]',
   '[role="spinbutton"]',
   '[role="textbox"]',
+  '[role="combobox"]',
+  '[role="listbox"]',
+  '[role="dialog"]',
+  '[role="alertdialog"]',
+  '[role="alert"]',
   '.no-drag',
   '[data-no-drag]',
 ].join(',');

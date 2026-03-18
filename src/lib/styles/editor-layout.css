@@ -64,13 +64,40 @@
   outline: none;
 }
 
-/* Split mode: full-width with fixed padding */
+/* Split mode: full-width with tight padding (preview is narrower, breathing room becomes wasted space) */
 .split-active .wysiwyg-pane > div[contenteditable],
 .split-active .wysiwyg-pane > div,
 .split-active #ag-editor-id {
   max-width: 100%;
-  padding: 20px 50px 100px 50px;
+  padding: 16px 12px 100px 12px;
   margin: 0;
+}
+
+/* Position relative pour ancrer le marqueur de click et garantir que offsetTop
+   des headings est calculé par rapport au pane (utile pour computeAnchoredScroll). */
+.split-active .wysiwyg-pane {
+  position: relative;
+}
+
+/* Marqueur transitoire qui apparaît au point cible quand l'utilisateur clique
+   dans la source — guide visuel pour repérer où le curseur a été placé. */
+.split-click-marker {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--accent, #7c9cee);
+  border-radius: 2px;
+  box-shadow: 0 0 8px rgba(124, 156, 238, 0.55);
+  pointer-events: none;
+  z-index: 5;
+  animation: split-click-marker-flash 1.2s ease-out forwards;
+}
+
+@keyframes split-click-marker-flash {
+  0%   { opacity: 0; transform: scaleX(0.5); }
+  18%  { opacity: 1; transform: scaleX(1); }
+  100% { opacity: 0; transform: scaleX(1); }
 }
 
 /* --- Muya float menus --- */

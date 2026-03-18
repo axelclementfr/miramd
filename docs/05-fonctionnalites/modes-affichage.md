@@ -32,8 +32,8 @@ Cinq modes, indépendants ou combinables selon les compatibilités.
 - Le pane Muya est en mode lecture seule pendant le split (le contenteditable est désactivé). La sync est strictement unidirectionnelle source → preview.
 - La sync de **contenu** source → preview passe par un debounce 400 ms.
 - La sync de **scroll** source → preview utilise un alignement **ancré sur les headings** (`computeAnchoredScroll` dans `src/lib/services/splitScrollSync.ts`) : chaque heading source ↔ heading preview est un point d'alignement exact ; entre deux headings, on interpole proportionnellement. Si le document n'a aucun heading, fallback sur `computeProportionalScroll`. Throttlé à 1 frame via `requestAnimationFrame`. Les anchors sont reconstruits à chaque scroll via `extractHeadings()` (toc.ts) — fonction O(n), assez rapide pour ne pas demander de cache supplémentaire.
-- **Click pour focus** : cliquer dans le textarea source déplace la preview sur la position du curseur (`textareaEl.selectionStart`) avec un scroll smooth. Utilise le même `computeAnchoredScroll` que la sync continue, donc même précision.
-- **Layout responsive** : quand la fenêtre rétrécit, la preview gagne du poids (container queries dans `EditorContainer.svelte`). Source/preview sont 50/50 par défaut, 40/60 sous 1000 px de largeur du container, et 30/70 sous 700 px. Évite que la preview reste compressée sur petits écrans.
+- **Click pour focus** : cliquer dans le textarea source déplace la preview sur la position du curseur (`textareaEl.selectionStart`) avec un scroll smooth, et fait apparaître brièvement (≈1,2s) une **barre accent horizontale** (`.split-click-marker` dans `editor-layout.css`) au point cible — guide visuel pour repérer où le curseur a été placé. La barre est ajoutée comme enfant absolu du `.wysiwyg-pane` (rendu `position: relative` en split) puis retirée du DOM après l'animation.
+- **Layout** : 50/50 source/preview en split. Le padding interne du pane preview est resserré en split (`16px 12px 100px 12px` au lieu de `20px 50px 100px 50px`) pour laisser plus de place au contenu rendu, qui est déjà contraint en largeur par le partage.
 
 **Mode lecture seule (par onglet).**
 

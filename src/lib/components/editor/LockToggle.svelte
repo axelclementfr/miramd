@@ -16,9 +16,8 @@
   }
 </script>
 
-<!-- svelte-ignore a11y_click_events_have_key_events -->
-<!-- svelte-ignore a11y_no_static_element_interactions -->
-<div
+<button
+  type="button"
   class="lock-toggle"
   class:locked={readOnly}
   onclick={toggle}
@@ -29,7 +28,7 @@
   {:else}
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
   {/if}
-</div>
+</button>
 
 <style>
   .lock-toggle {
@@ -42,6 +41,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    border: none;
+    padding: 0;
     border-radius: 4px;
     cursor: pointer;
     color: var(--text-muted);

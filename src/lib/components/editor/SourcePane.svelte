@@ -7,12 +7,14 @@
   import { editorModes } from '$lib/services/editorModes';
   import { updateStats } from '$lib/services/stats';
   import { dlog } from '$lib/services/debug';
+  import { computeProportionalScroll } from '$lib/services/splitScrollSync';
 
   let readOnly: boolean = $state(false);
   let splitView: boolean = $state(false);
   let textareaEl: HTMLTextAreaElement = $state(null as any);
   let syncTimer: ReturnType<typeof setTimeout> | null = null;
   let storeTimer: ReturnType<typeof setTimeout> | null = null;
+  let scrollSyncRaf = 0;
   let unsubs: (() => void)[] = [];
 
   onMount(() => {
@@ -37,7 +39,21 @@
     unsubs.forEach((u) => u());
     if (syncTimer) clearTimeout(syncTimer);
     if (storeTimer) clearTimeout(storeTimer);
+    if (scrollSyncRaf) cancelAnimationFrame(scrollSyncRaf);
   });
+
+  function handleScroll() {
+    if (!splitView) return;
+    if (scrollSyncRaf) return; // already scheduled this frame
+    scrollSyncRaf = requestAnimationFrame(() => {
+      scrollSyncRaf = 0;
+      const previewPane = document.querySelector('.wysiwyg-pane') as HTMLElement | null;
+      if (!previewPane || !textareaEl) return;
+      const srcMax = textareaEl.scrollHeight - textareaEl.clientHeight;
+      const dstMax = previewPane.scrollHeight - previewPane.clientHeight;
+      previewPane.scrollTop = computeProportionalScroll(textareaEl.scrollTop, srcMax, dstMax);
+    });
+  }
 
   function handleInput() {
     const value = textareaEl.value;
@@ -66,6 +82,7 @@
     bind:this={textareaEl}
     class="source-code-editor"
     oninput={handleInput}
+    onscroll={handleScroll}
     spellcheck="true"
     readonly={readOnly}
   ></textarea>

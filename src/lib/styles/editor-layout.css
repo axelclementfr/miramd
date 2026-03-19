@@ -79,25 +79,17 @@
   position: relative;
 }
 
-/* Marqueur transitoire qui apparaît au point cible quand l'utilisateur clique
-   dans la source — guide visuel pour repérer où le curseur a été placé. */
-.split-click-marker {
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: var(--accent, #7c9cee);
-  border-radius: 2px;
-  box-shadow: 0 0 8px rgba(124, 156, 238, 0.55);
-  pointer-events: none;
-  z-index: 5;
-  animation: split-click-marker-flash 1.2s ease-out forwards;
+/* Highlight transitoire entourant l'élément ciblé quand l'utilisateur double-clique
+   dans la source — guide visuel local (outline) plutôt qu'une barre invasive. */
+.split-click-target {
+  animation: split-click-target-pulse 1.6s ease-out forwards;
+  border-radius: 4px;
 }
 
-@keyframes split-click-marker-flash {
-  0%   { opacity: 0; transform: scaleX(0.5); }
-  18%  { opacity: 1; transform: scaleX(1); }
-  100% { opacity: 0; transform: scaleX(1); }
+@keyframes split-click-target-pulse {
+  0%   { outline: 0 solid transparent; outline-offset: 0; }
+  15%  { outline: 2px solid var(--accent, #7c9cee); outline-offset: 4px; }
+  100% { outline: 2px solid transparent; outline-offset: 4px; }
 }
 
 /* --- Muya float menus --- */

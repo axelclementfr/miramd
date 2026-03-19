@@ -79,15 +79,38 @@
     return { pane: previewPane, target };
   }
 
-  function flashClickMarker(pane: HTMLElement, scrollTop: number) {
-    const marker = document.createElement('div');
-    marker.className = 'split-click-marker';
-    // Position the marker just below the would-be top of the visible viewport
-    // after smooth scroll lands. +6 gives a small visual offset so it doesn't
-    // ride exactly on the edge.
-    marker.style.top = `${scrollTop + 6}px`;
-    pane.appendChild(marker);
-    setTimeout(() => marker.remove(), 1300);
+  /** Find the block-level rendered element closest to the target scrollTop. */
+  function findTargetElement(pane: HTMLElement, scrollTop: number): HTMLElement | null {
+    const candidates = pane.querySelectorAll('h1, h2, h3, h4, h5, h6, p, ul, ol, blockquote, pre, table, hr');
+    let best: HTMLElement | null = null;
+    let bestDistance = Infinity;
+    candidates.forEach((node) => {
+      const el = node as HTMLElement;
+      const distance = Math.abs(el.offsetTop - scrollTop);
+      if (distance < bestDistance) {
+        best = el;
+        bestDistance = distance;
+      }
+    });
+    return best;
+  }
+
+  let lastTarget: HTMLElement | null = null;
+  let lastTargetTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function flashClickTarget(pane: HTMLElement, scrollTop: number) {
+    // Clean previous highlight if any (rapid double-clicks)
+    if (lastTarget) lastTarget.classList.remove('split-click-target');
+    if (lastTargetTimer) clearTimeout(lastTargetTimer);
+
+    const target = findTargetElement(pane, scrollTop);
+    if (!target) return;
+    target.classList.add('split-click-target');
+    lastTarget = target;
+    lastTargetTimer = setTimeout(() => {
+      target.classList.remove('split-click-target');
+      if (lastTarget === target) lastTarget = null;
+    }, 1600);
   }
 
   function handleScroll() {
@@ -103,11 +126,11 @@
     });
   }
 
-  function handleClick() {
+  function handleDoubleClick() {
     if (!splitView) return;
     if (!textareaEl) return;
     const result = syncPreviewTo(textareaEl.selectionStart, true);
-    if (result) flashClickMarker(result.pane, result.target);
+    if (result) flashClickTarget(result.pane, result.target);
   }
 
   function handleInput() {
@@ -138,7 +161,7 @@
     class="source-code-editor"
     oninput={handleInput}
     onscroll={handleScroll}
-    onclick={handleClick}
+    ondblclick={handleDoubleClick}
     spellcheck="true"
     readonly={readOnly}
   ></textarea>

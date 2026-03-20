@@ -16,6 +16,10 @@
   let syncTimer: ReturnType<typeof setTimeout> | null = null;
   let storeTimer: ReturnType<typeof setTimeout> | null = null;
   let scrollSyncRaf = 0;
+  /** Y dans le viewport du textarea où on aligne le contenu cible dans la preview.
+   *  0 = haut. Mis à jour quand l'utilisateur double-clique (= clientY du clic).
+   *  Persistant : le scroll réutilise la dernière valeur, donc la sélection ne saute pas. */
+  let referenceY = 0;
   let unsubs: (() => void)[] = [];
 
   onMount(() => {
@@ -68,6 +72,7 @@
       anchors,
       dstMax,
       previewPane.scrollHeight,
+      referenceY,
     );
 
     if (smooth) {
@@ -119,16 +124,25 @@
     scrollSyncRaf = requestAnimationFrame(() => {
       scrollSyncRaf = 0;
       if (!textareaEl) return;
+      // Aligne le caractère qui est à Y=referenceY dans le viewport source
+      // (et non plus le caractère du tout-haut), pour rester cohérent avec la
+      // dernière position de référence posée par un double-clic.
+      const refContentY = textareaEl.scrollTop + referenceY;
       const srcCharPos = textareaEl.scrollHeight > 0
-        ? Math.round((textareaEl.scrollTop / textareaEl.scrollHeight) * textareaEl.value.length)
+        ? Math.round((refContentY / textareaEl.scrollHeight) * textareaEl.value.length)
         : 0;
       syncPreviewTo(srcCharPos, false);
     });
   }
 
-  function handleDoubleClick() {
+  function handleDoubleClick(event: MouseEvent) {
     if (!splitView) return;
     if (!textareaEl) return;
+    // Mémorise la Y du clic dans le viewport du textarea : la preview place
+    // l'élément cible à la même hauteur visuelle, et les scrolls ultérieurs
+    // gardent cette référence.
+    const rect = textareaEl.getBoundingClientRect();
+    referenceY = Math.max(0, Math.min(textareaEl.clientHeight, event.clientY - rect.top));
     const result = syncPreviewTo(textareaEl.selectionStart, true);
     if (result) flashClickTarget(result.pane, result.target);
   }
@@ -145,11 +159,34 @@
       updateStats(value, true);
     }, 150);
 
-    // Split mode: sync to Muya preview
+    // Split mode: sync to Muya preview. Save/restore focus + caret around setMarkdown
+    // because Muya re-rendering steals focus from the textarea (defocus pendant
+    // l'écriture sinon).
     if (splitView && muyaService.isReady()) {
       if (syncTimer) clearTimeout(syncTimer);
       syncTimer = setTimeout(() => {
+        const wasFocused = document.activeElement === textareaEl;
+        const selStart = textareaEl.selectionStart;
+        const selEnd = textareaEl.selectionEnd;
+        const scrollTop = textareaEl.scrollTop;
+
         try { muyaService.setMarkdown(value); } catch (e) { dlog('muya', 'SourcePane split sync:', e); }
+
+        if (wasFocused && document.activeElement !== textareaEl) {
+          textareaEl.focus({ preventScroll: true });
+          try { textareaEl.setSelectionRange(selStart, selEnd); } catch {}
+          textareaEl.scrollTop = scrollTop;
+        }
+        // Defer one microtask to defeat any focus shift Muya might queue async
+        if (wasFocused) {
+          Promise.resolve().then(() => {
+            if (document.activeElement !== textareaEl) {
+              textareaEl.focus({ preventScroll: true });
+              try { textareaEl.setSelectionRange(selStart, selEnd); } catch {}
+              textareaEl.scrollTop = scrollTop;
+            }
+          });
+        }
       }, 400);
     }
   }

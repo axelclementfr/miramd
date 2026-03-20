@@ -60,8 +60,9 @@ describe('computeAnchoredScroll — anchor-based sync', () => {
       expect(computeAnchoredScroll(0, 1000, [], 2000, 2500)).toBe(0);
     });
 
-    it('half of source maps to half of dst', () => {
-      expect(computeAnchoredScroll(500, 1000, [], 2000, 2500)).toBe(1000);
+    it('half of source maps to half of dst content (dstScrollHeight basis)', () => {
+      // 0.5 * dstScrollHeight (2500) = 1250 ; sous dstMaxScroll (2000) donc pas de clamp
+      expect(computeAnchoredScroll(500, 1000, [], 2000, 2500)).toBe(1250);
     });
 
     it('returns 0 when srcLength is zero', () => {
@@ -143,6 +144,36 @@ describe('computeAnchoredScroll — anchor-based sync', () => {
       const anchors = [{ srcPos: 200, dstTop: 100 }];
       // halfway from (0, 0) to (200, 100): srcCharPos 100 → dst 50
       expect(computeAnchoredScroll(100, 1000, anchors, 5000, 5500)).toBe(50);
+    });
+  });
+
+  describe('alignOffsetY parameter — element placement within viewport', () => {
+    const anchors: ScrollAnchor[] = [{ srcPos: 100, dstTop: 500 }];
+
+    it('alignOffsetY = 0 (default) places target at top of preview viewport', () => {
+      // Element offsetTop = 500 → scrollTop = 500
+      expect(computeAnchoredScroll(100, 1000, anchors, 5000, 5500)).toBe(500);
+      expect(computeAnchoredScroll(100, 1000, anchors, 5000, 5500, 0)).toBe(500);
+    });
+
+    it('alignOffsetY > 0 places target lower in viewport (less scroll needed)', () => {
+      // Element offsetTop = 500, want it at Y=200 in viewport → scrollTop = 300
+      expect(computeAnchoredScroll(100, 1000, anchors, 5000, 5500, 200)).toBe(300);
+    });
+
+    it('alignOffsetY equal to element offset clamps to scrollTop = 0 (element at the same Y as alignOffset)', () => {
+      // Element offsetTop = 500, alignOffsetY = 500 → scrollTop = 0
+      expect(computeAnchoredScroll(100, 1000, anchors, 5000, 5500, 500)).toBe(0);
+    });
+
+    it('alignOffsetY larger than element offset clamps to 0 (cannot scroll negative)', () => {
+      expect(computeAnchoredScroll(100, 1000, anchors, 5000, 5500, 800)).toBe(0);
+    });
+
+    it('alignOffsetY does not prevent clamping to dstMaxScroll', () => {
+      // Element near bottom; even with alignOffsetY > 0, can't exceed dstMaxScroll
+      const tallAnchors = [{ srcPos: 100, dstTop: 6000 }];
+      expect(computeAnchoredScroll(100, 1000, tallAnchors, 5000, 6500, 100)).toBe(5000);
     });
   });
 });

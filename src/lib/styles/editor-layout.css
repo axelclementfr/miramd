@@ -121,8 +121,10 @@
   display: none;
 }
 
-/* Make preview non-interactive */
+/* En split, l'utilisateur peut sélectionner/copier le texte rendu dans la preview.
+   Le contenteditable est forcé à false côté MuyaPane.svelte donc il n'est pas
+   éditable, mais user-select reste actif pour permettre la copie. */
 .split-active .wysiwyg-pane {
-  pointer-events: none;
-  user-select: none;
+  user-select: text;
+  -webkit-user-select: text;
 }

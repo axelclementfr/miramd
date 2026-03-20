@@ -20,6 +20,9 @@
    *  0 = haut. Mis à jour quand l'utilisateur double-clique (= clientY du clic).
    *  Persistant : le scroll réutilise la dernière valeur, donc la sélection ne saute pas. */
   let referenceY = 0;
+  /** Contenu en attente d'être pushé vers Muya. On défère le push tant que le
+   *  textarea est focus (sinon Muya re-render et vole le focus). Flush sur blur. */
+  let pendingMuyaContent: string | null = null;
   let unsubs: (() => void)[] = [];
 
   onMount(() => {
@@ -84,14 +87,16 @@
     return { pane: previewPane, target };
   }
 
-  /** Find the block-level rendered element closest to the target scrollTop. */
-  function findTargetElement(pane: HTMLElement, scrollTop: number): HTMLElement | null {
+  /** Find the block-level rendered element closest to the target Y in pane content coords.
+   *  targetContentY = scrollTop + alignOffsetY (= où le curseur se trouve dans la preview viewport). */
+  function findTargetElement(pane: HTMLElement, scrollTop: number, alignOffsetY: number): HTMLElement | null {
+    const targetContentY = scrollTop + alignOffsetY;
     const candidates = pane.querySelectorAll('h1, h2, h3, h4, h5, h6, p, ul, ol, blockquote, pre, table, hr');
     let best: HTMLElement | null = null;
     let bestDistance = Infinity;
     candidates.forEach((node) => {
       const el = node as HTMLElement;
-      const distance = Math.abs(el.offsetTop - scrollTop);
+      const distance = Math.abs(el.offsetTop - targetContentY);
       if (distance < bestDistance) {
         best = el;
         bestDistance = distance;
@@ -103,12 +108,12 @@
   let lastTarget: HTMLElement | null = null;
   let lastTargetTimer: ReturnType<typeof setTimeout> | null = null;
 
-  function flashClickTarget(pane: HTMLElement, scrollTop: number) {
+  function flashClickTarget(pane: HTMLElement, scrollTop: number, alignOffsetY: number) {
     // Clean previous highlight if any (rapid double-clicks)
     if (lastTarget) lastTarget.classList.remove('split-click-target');
     if (lastTargetTimer) clearTimeout(lastTargetTimer);
 
-    const target = findTargetElement(pane, scrollTop);
+    const target = findTargetElement(pane, scrollTop, alignOffsetY);
     if (!target) return;
     target.classList.add('split-click-target');
     lastTarget = target;
@@ -144,7 +149,7 @@
     const rect = textareaEl.getBoundingClientRect();
     referenceY = Math.max(0, Math.min(textareaEl.clientHeight, event.clientY - rect.top));
     const result = syncPreviewTo(textareaEl.selectionStart, true);
-    if (result) flashClickTarget(result.pane, result.target);
+    if (result) flashClickTarget(result.pane, result.target, referenceY);
   }
 
   function handleInput() {
@@ -159,35 +164,35 @@
       updateStats(value, true);
     }, 150);
 
-    // Split mode: sync to Muya preview. Save/restore focus + caret around setMarkdown
-    // because Muya re-rendering steals focus from the textarea (defocus pendant
-    // l'écriture sinon).
+    // Split mode : on diffère le push vers Muya tant que le textarea est focus.
+    // Sinon muyaService.setMarkdown re-render le DOM du pane et vole le focus
+    // (l'utilisateur ne peut plus taper). Flush sur blur ou sur pause >1.5s.
     if (splitView && muyaService.isReady()) {
+      pendingMuyaContent = value;
       if (syncTimer) clearTimeout(syncTimer);
-      syncTimer = setTimeout(() => {
-        const wasFocused = document.activeElement === textareaEl;
-        const selStart = textareaEl.selectionStart;
-        const selEnd = textareaEl.selectionEnd;
-        const scrollTop = textareaEl.scrollTop;
+      syncTimer = setTimeout(tryFlushPendingMuyaContent, 1500);
+    }
+  }
 
-        try { muyaService.setMarkdown(value); } catch (e) { dlog('muya', 'SourcePane split sync:', e); }
+  function tryFlushPendingMuyaContent() {
+    if (pendingMuyaContent === null) return;
+    if (!muyaService.isReady()) return;
+    // Skip si encore focus — réessaye plus tard.
+    if (document.activeElement === textareaEl) {
+      syncTimer = setTimeout(tryFlushPendingMuyaContent, 1500);
+      return;
+    }
+    try { muyaService.setMarkdown(pendingMuyaContent); } catch (e) { dlog('muya', 'SourcePane split sync:', e); }
+    pendingMuyaContent = null;
+  }
 
-        if (wasFocused && document.activeElement !== textareaEl) {
-          textareaEl.focus({ preventScroll: true });
-          try { textareaEl.setSelectionRange(selStart, selEnd); } catch {}
-          textareaEl.scrollTop = scrollTop;
-        }
-        // Defer one microtask to defeat any focus shift Muya might queue async
-        if (wasFocused) {
-          Promise.resolve().then(() => {
-            if (document.activeElement !== textareaEl) {
-              textareaEl.focus({ preventScroll: true });
-              try { textareaEl.setSelectionRange(selStart, selEnd); } catch {}
-              textareaEl.scrollTop = scrollTop;
-            }
-          });
-        }
-      }, 400);
+  function handleBlur() {
+    // Blur = pas de risque de defocus puisque le textarea n'est déjà plus focus.
+    // Flush immédiat de tout contenu en attente.
+    if (syncTimer) { clearTimeout(syncTimer); syncTimer = null; }
+    if (pendingMuyaContent !== null && splitView && muyaService.isReady()) {
+      try { muyaService.setMarkdown(pendingMuyaContent); } catch (e) { dlog('muya', 'SourcePane split sync on blur:', e); }
+      pendingMuyaContent = null;
     }
   }
 </script>
@@ -199,6 +204,7 @@
     oninput={handleInput}
     onscroll={handleScroll}
     ondblclick={handleDoubleClick}
+    onblur={handleBlur}
     spellcheck="true"
     readonly={readOnly}
   ></textarea>

@@ -20,9 +20,11 @@
    *  0 = haut. Mis à jour quand l'utilisateur double-clique (= clientY du clic).
    *  Persistant : le scroll réutilise la dernière valeur, donc la sélection ne saute pas. */
   let referenceY = 0;
-  /** Contenu en attente d'être pushé vers Muya. On défère le push tant que le
-   *  textarea est focus (sinon Muya re-render et vole le focus). Flush sur blur. */
+  /** Contenu en attente d'être pushé vers Muya. Flush sur pause OU blur. */
   let pendingMuyaContent: string | null = null;
+  /** Suppress handleScroll jusqu'à ce timestamp — évite que le smooth scroll
+   *  post-double-clic soit interrompu par les events scroll qu'il déclenche. */
+  let suppressScrollSyncUntil = 0;
   let unsubs: (() => void)[] = [];
 
   onMount(() => {
@@ -123,8 +125,132 @@
     }, 1600);
   }
 
+  /** Walk text nodes inside `root` and return a Range surrounding the
+   *  `occurrenceIndex`-th occurrence of `word`. */
+  function findTextOccurrence(root: Node, word: string, occurrenceIndex: number): Range | null {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    let count = 0;
+    let node: Node | null;
+    while ((node = walker.nextNode())) {
+      const text = node.textContent || '';
+      let pos = 0;
+      while ((pos = text.indexOf(word, pos)) !== -1) {
+        if (count === occurrenceIndex) {
+          const range = document.createRange();
+          range.setStart(node, pos);
+          range.setEnd(node, pos + word.length);
+          return range;
+        }
+        count++;
+        pos += word.length;
+      }
+    }
+    return null;
+  }
+
+  let highlightTimer: ReturnType<typeof setTimeout> | null = null;
+  const HIGHLIGHT_API: any =
+    typeof CSS !== 'undefined' && (CSS as any).highlights ? (CSS as any).highlights : null;
+
+  /** Highlight the same word the user double-clicked in source, in the preview.
+   *  Returns true if highlight succeeded (used to skip the block-outline fallback). */
+  function highlightWordInPreview(pane: HTMLElement, source: string, selStart: number, selEnd: number): boolean {
+    const word = source.substring(selStart, selEnd);
+    if (!word.trim() || word.length < 1) return false;
+
+    // Count occurrences of `word` in source up to selStart → which occurrence
+    // index does this match in the preview's rendered text content?
+    let occurrenceIndex = 0;
+    let pos = 0;
+    while ((pos = source.indexOf(word, pos)) !== -1 && pos < selStart) {
+      occurrenceIndex++;
+      pos += word.length;
+    }
+
+    const range = findTextOccurrence(pane, word, occurrenceIndex);
+    if (!range) return false;
+
+    if (highlightTimer) clearTimeout(highlightTimer);
+
+    if (HIGHLIGHT_API) {
+      try {
+        HIGHLIGHT_API.delete('split-word-target');
+        // @ts-ignore — Highlight constructor available in modern browsers
+        const highlight = new Highlight(range);
+        HIGHLIGHT_API.set('split-word-target', highlight);
+        highlightTimer = setTimeout(() => HIGHLIGHT_API.delete('split-word-target'), 1800);
+        return true;
+      } catch (e) { dlog('muya', 'CSS Highlight API failed:', e); }
+    }
+
+    // Fallback : Selection API (visualisation native du browser)
+    try {
+      const sel = window.getSelection();
+      if (sel) {
+        sel.removeAllRanges();
+        sel.addRange(range);
+        highlightTimer = setTimeout(() => {
+          const s = window.getSelection();
+          // Only clear if the selection still belongs to our range
+          if (s && s.rangeCount > 0) s.removeAllRanges();
+        }, 1800);
+        return true;
+      }
+    } catch (e) { dlog('muya', 'Selection API fallback failed:', e); }
+
+    return false;
+  }
+
+  /** Sync setMarkdown vers Muya tout en préservant agressivement le focus du
+   *  textarea. Solution : focusin guardian + plusieurs tentatives de refocus
+   *  (sync + microtask + raf + raf+raf + final 200ms). */
+  function applySetMarkdownPreservingFocus(value: string) {
+    if (!muyaService.isReady()) return;
+    const wasFocused = document.activeElement === textareaEl;
+    if (!wasFocused) {
+      try { muyaService.setMarkdown(value); } catch (e) { dlog('muya', 'setMarkdown:', e); }
+      return;
+    }
+
+    const selStart = textareaEl.selectionStart;
+    const selEnd = textareaEl.selectionEnd;
+    const scrollTop = textareaEl.scrollTop;
+    const previewPane = document.querySelector('.wysiwyg-pane') as HTMLElement | null;
+
+    const refocus = () => {
+      if (document.activeElement === textareaEl) return;
+      const cur = document.activeElement;
+      if (cur instanceof HTMLElement && cur !== document.body) cur.blur();
+      textareaEl.focus({ preventScroll: true });
+      try { textareaEl.setSelectionRange(selStart, selEnd); } catch {}
+      textareaEl.scrollTop = scrollTop;
+    };
+
+    // Guard : tout focusin sur un descendant de previewPane → refocus textarea
+    const guardian = (e: FocusEvent) => {
+      const target = e.target as Node | null;
+      if (previewPane && target && previewPane.contains(target)) refocus();
+    };
+    document.addEventListener('focusin', guardian, true);
+
+    try { muyaService.setMarkdown(value); } catch (e) { dlog('muya', 'setMarkdown:', e); }
+
+    refocus();
+    Promise.resolve().then(refocus);
+    requestAnimationFrame(() => {
+      refocus();
+      requestAnimationFrame(refocus);
+    });
+
+    setTimeout(() => {
+      document.removeEventListener('focusin', guardian, true);
+      refocus();
+    }, 200);
+  }
+
   function handleScroll() {
     if (!splitView) return;
+    if (Date.now() < suppressScrollSyncUntil) return;
     if (scrollSyncRaf) return; // already scheduled this frame
     scrollSyncRaf = requestAnimationFrame(() => {
       scrollSyncRaf = 0;
@@ -148,8 +274,26 @@
     // gardent cette référence.
     const rect = textareaEl.getBoundingClientRect();
     referenceY = Math.max(0, Math.min(textareaEl.clientHeight, event.clientY - rect.top));
+
+    // Suppress scroll sync pendant 500ms : le smooth scroll qui suit déclenche
+    // des events scroll sur la textarea (auto-scroll vers caret), qui sinon
+    // re-synthétiseraient un target différent et provoqueraient un rollback.
+    suppressScrollSyncUntil = Date.now() + 500;
+
     const result = syncPreviewTo(textareaEl.selectionStart, true);
-    if (result) flashClickTarget(result.pane, result.target, referenceY);
+    if (!result) return;
+
+    // Highlight le mot exact double-cliqué dans la preview ; si introuvable
+    // (cross-boundary, syntax mismatch), fallback sur l'outline du bloc.
+    const wordHighlighted = highlightWordInPreview(
+      result.pane,
+      textareaEl.value,
+      textareaEl.selectionStart,
+      textareaEl.selectionEnd,
+    );
+    if (!wordHighlighted) {
+      flashClickTarget(result.pane, result.target, referenceY);
+    }
   }
 
   function handleInput() {
@@ -164,31 +308,21 @@
       updateStats(value, true);
     }, 150);
 
-    // Split mode : on diffère le push vers Muya tant que le textarea est focus.
-    // Sinon muyaService.setMarkdown re-render le DOM du pane et vole le focus
-    // (l'utilisateur ne peut plus taper). Flush sur blur ou sur pause >1.5s.
+    // Split mode : sync live vers Muya avec préservation agressive du focus
+    // (focusin guardian + multiples refocus). Debounce 400ms pour live feel.
     if (splitView && muyaService.isReady()) {
       pendingMuyaContent = value;
       if (syncTimer) clearTimeout(syncTimer);
-      syncTimer = setTimeout(tryFlushPendingMuyaContent, 1500);
+      syncTimer = setTimeout(() => {
+        if (pendingMuyaContent === null) return;
+        applySetMarkdownPreservingFocus(pendingMuyaContent);
+        pendingMuyaContent = null;
+      }, 400);
     }
-  }
-
-  function tryFlushPendingMuyaContent() {
-    if (pendingMuyaContent === null) return;
-    if (!muyaService.isReady()) return;
-    // Skip si encore focus — réessaye plus tard.
-    if (document.activeElement === textareaEl) {
-      syncTimer = setTimeout(tryFlushPendingMuyaContent, 1500);
-      return;
-    }
-    try { muyaService.setMarkdown(pendingMuyaContent); } catch (e) { dlog('muya', 'SourcePane split sync:', e); }
-    pendingMuyaContent = null;
   }
 
   function handleBlur() {
-    // Blur = pas de risque de defocus puisque le textarea n'est déjà plus focus.
-    // Flush immédiat de tout contenu en attente.
+    // Blur : flush immédiat (pas de risque de defocus puisque déjà non-focus).
     if (syncTimer) { clearTimeout(syncTimer); syncTimer = null; }
     if (pendingMuyaContent !== null && splitView && muyaService.isReady()) {
       try { muyaService.setMarkdown(pendingMuyaContent); } catch (e) { dlog('muya', 'SourcePane split sync on blur:', e); }

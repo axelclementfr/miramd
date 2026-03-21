@@ -158,31 +158,36 @@
     return null;
   }
 
-  /** Cleanup unifié de tous les highlights (word + outline + selection custom).
+  /** Cleanup unifié de tous les highlights (word spans + outline du bloc).
    *  Appelé en tête de chaque double-clic pour éviter d'avoir 2 sélections
-   *  visuelles simultanées (l'ancienne pas encore expirée + la nouvelle). */
+   *  visuelles simultanées (l'ancienne pas encore expirée + la nouvelle).
+   *  Robuste : retire TOUS les .split-word-highlight présents dans la preview,
+   *  pas seulement celui dont on a la référence (couvre les leftovers après
+   *  re-render de Muya, double-clic rapide, etc.). */
   function clearAllSplitHighlights() {
     if (highlightTimer) { clearTimeout(highlightTimer); highlightTimer = null; }
-    if (HIGHLIGHT_API) HIGHLIGHT_API.delete('split-word-target');
-    // Ne clear que la Selection si elle pointe dans la preview (sinon = sélection
-    // utilisateur dans la sidebar/source/etc., à préserver).
-    const sel = window.getSelection();
-    if (sel && sel.rangeCount > 0) {
-      const range = sel.getRangeAt(0);
-      const previewPane = document.querySelector('.wysiwyg-pane');
-      if (previewPane && previewPane.contains(range.commonAncestorContainer)) {
-        sel.removeAllRanges();
-      }
+    const previewPane = document.querySelector('.wysiwyg-pane');
+    if (previewPane) {
+      const wraps = previewPane.querySelectorAll('.split-word-highlight');
+      wraps.forEach((s) => unwrapSpan(s as HTMLSpanElement));
     }
     if (lastTarget) { lastTarget.classList.remove('split-click-target'); lastTarget = null; }
     if (lastTargetTimer) { clearTimeout(lastTargetTimer); lastTargetTimer = null; }
   }
 
   let highlightTimer: ReturnType<typeof setTimeout> | null = null;
-  const HIGHLIGHT_API: any =
-    typeof CSS !== 'undefined' && (CSS as any).highlights ? (CSS as any).highlights : null;
+
+  /** Unwrap a span : remplace le span par ses enfants dans le parent. */
+  function unwrapSpan(span: HTMLSpanElement) {
+    const parent = span.parentNode;
+    if (!parent) return;
+    while (span.firstChild) parent.insertBefore(span.firstChild, span);
+    parent.removeChild(span);
+    if ('normalize' in parent) (parent as Element).normalize();
+  }
 
   /** Highlight the same word the user double-clicked in source, in the preview.
+   *  Approche span-wrapping (plus prévisible que CSS Highlight / Selection API).
    *  Returns true if highlight succeeded (used to skip the block-outline fallback). */
   function highlightWordInPreview(pane: HTMLElement, source: string, selStart: number, selEnd: number): boolean {
     const word = source.substring(selStart, selEnd);
@@ -200,31 +205,17 @@
     const range = findTextOccurrence(pane, word, occurrenceIndex);
     if (!range) return false;
 
-    if (HIGHLIGHT_API) {
-      try {
-        // @ts-ignore — Highlight constructor available in modern browsers
-        const highlight = new Highlight(range);
-        HIGHLIGHT_API.set('split-word-target', highlight);
-        highlightTimer = setTimeout(() => HIGHLIGHT_API.delete('split-word-target'), 1800);
-        return true;
-      } catch (e) { dlog('muya', 'CSS Highlight API failed:', e); }
+    const span = document.createElement('span');
+    span.className = 'split-word-highlight';
+    try {
+      range.surroundContents(span);
+    } catch (e) {
+      dlog('muya', 'surroundContents failed (cross-boundary range):', e);
+      return false;
     }
 
-    // Fallback : Selection API (visualisation native du browser)
-    try {
-      const sel = window.getSelection();
-      if (sel) {
-        sel.removeAllRanges();
-        sel.addRange(range);
-        highlightTimer = setTimeout(() => {
-          const s = window.getSelection();
-          if (s && s.rangeCount > 0) s.removeAllRanges();
-        }, 1800);
-        return true;
-      }
-    } catch (e) { dlog('muya', 'Selection API fallback failed:', e); }
-
-    return false;
+    highlightTimer = setTimeout(() => unwrapSpan(span), 1800);
+    return true;
   }
 
   /** Sync setMarkdown vers Muya tout en préservant agressivement le focus du

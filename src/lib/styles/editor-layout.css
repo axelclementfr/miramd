@@ -80,16 +80,13 @@
 }
 
 /* Highlight du mot exact double-cliqué dans la source, retrouvé dans la preview.
-   CSS Highlight API : transparent pour les navigateurs qui ne supportent pas. */
-::highlight(split-word-target) {
-  background: rgba(124, 156, 238, 0.45);
-  color: inherit;
-}
-
-/* Fallback : si la CSS Highlight API est absente, on enveloppe dans un span. */
-.split-word-target-fallback {
+   Approche span-wrapping : on enveloppe le mot trouvé dans un span dédié. Plus
+   prévisible que CSS Highlight API ou Selection API qui ont des quirks suivant
+   l'élément hôte (heading vs paragraphe vs lien) et la version de WebKit. */
+.split-word-highlight {
   background: rgba(124, 156, 238, 0.45);
   border-radius: 2px;
+  padding: 0 1px;
 }
 
 /* Outline transitoire sur le bloc contenant le mot — orientation visuelle

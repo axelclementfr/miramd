@@ -25,6 +25,11 @@
   /** Suppress handleScroll jusqu'à ce timestamp — évite que le smooth scroll
    *  post-double-clic soit interrompu par les events scroll qu'il déclenche. */
   let suppressScrollSyncUntil = 0;
+  /** Anchor capturé après un double-clic. Si présent, handleScroll passe en mode
+   *  delta (preview scroll = anchor.dst + (current_src - anchor.src) * ratio) au
+   *  lieu de recomputer via scrollTop+referenceY. Évite le rollback. Reset à null
+   *  au tab switch (contenu différent = anchor obsolète). */
+  let scrollAnchor: { srcScroll: number; dstScroll: number } | null = null;
   let unsubs: (() => void)[] = [];
 
   onMount(() => {
@@ -42,6 +47,8 @@
 
     unsubs.push(editorStore.activeTab.subscribe((tab) => {
       readOnly = !!tab?.readOnly;
+      // Tab switch : contenu potentiellement très différent, anchor obsolète.
+      scrollAnchor = null;
     }));
   });
 
@@ -126,26 +133,49 @@
   }
 
   /** Walk text nodes inside `root` and return a Range surrounding the
-   *  `occurrenceIndex`-th occurrence of `word`. */
+   *  `occurrenceIndex`-th word-boundary occurrence of `word`. Word-boundary
+   *  match évite que "the" matche dans "weather". */
   function findTextOccurrence(root: Node, word: string, occurrenceIndex: number): Range | null {
+    const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const re = new RegExp('\\b' + escaped + '\\b', 'g');
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     let count = 0;
     let node: Node | null;
     while ((node = walker.nextNode())) {
       const text = node.textContent || '';
-      let pos = 0;
-      while ((pos = text.indexOf(word, pos)) !== -1) {
+      re.lastIndex = 0;
+      let m: RegExpExecArray | null;
+      while ((m = re.exec(text)) !== null) {
         if (count === occurrenceIndex) {
           const range = document.createRange();
-          range.setStart(node, pos);
-          range.setEnd(node, pos + word.length);
+          range.setStart(node, m.index);
+          range.setEnd(node, m.index + word.length);
           return range;
         }
         count++;
-        pos += word.length;
       }
     }
     return null;
+  }
+
+  /** Cleanup unifié de tous les highlights (word + outline + selection custom).
+   *  Appelé en tête de chaque double-clic pour éviter d'avoir 2 sélections
+   *  visuelles simultanées (l'ancienne pas encore expirée + la nouvelle). */
+  function clearAllSplitHighlights() {
+    if (highlightTimer) { clearTimeout(highlightTimer); highlightTimer = null; }
+    if (HIGHLIGHT_API) HIGHLIGHT_API.delete('split-word-target');
+    // Ne clear que la Selection si elle pointe dans la preview (sinon = sélection
+    // utilisateur dans la sidebar/source/etc., à préserver).
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      const range = sel.getRangeAt(0);
+      const previewPane = document.querySelector('.wysiwyg-pane');
+      if (previewPane && previewPane.contains(range.commonAncestorContainer)) {
+        sel.removeAllRanges();
+      }
+    }
+    if (lastTarget) { lastTarget.classList.remove('split-click-target'); lastTarget = null; }
+    if (lastTargetTimer) { clearTimeout(lastTargetTimer); lastTargetTimer = null; }
   }
 
   let highlightTimer: ReturnType<typeof setTimeout> | null = null;
@@ -158,23 +188,20 @@
     const word = source.substring(selStart, selEnd);
     if (!word.trim() || word.length < 1) return false;
 
-    // Count occurrences of `word` in source up to selStart → which occurrence
-    // index does this match in the preview's rendered text content?
+    // Compte les occurrences word-boundary du mot dans source[0..selStart] →
+    // index identique à utiliser dans le preview.
+    const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const re = new RegExp('\\b' + escaped + '\\b', 'g');
     let occurrenceIndex = 0;
-    let pos = 0;
-    while ((pos = source.indexOf(word, pos)) !== -1 && pos < selStart) {
-      occurrenceIndex++;
-      pos += word.length;
-    }
+    let m: RegExpExecArray | null;
+    const before = source.substring(0, selStart);
+    while ((m = re.exec(before)) !== null) occurrenceIndex++;
 
     const range = findTextOccurrence(pane, word, occurrenceIndex);
     if (!range) return false;
 
-    if (highlightTimer) clearTimeout(highlightTimer);
-
     if (HIGHLIGHT_API) {
       try {
-        HIGHLIGHT_API.delete('split-word-target');
         // @ts-ignore — Highlight constructor available in modern browsers
         const highlight = new Highlight(range);
         HIGHLIGHT_API.set('split-word-target', highlight);
@@ -191,7 +218,6 @@
         sel.addRange(range);
         highlightTimer = setTimeout(() => {
           const s = window.getSelection();
-          // Only clear if the selection still belongs to our range
           if (s && s.rangeCount > 0) s.removeAllRanges();
         }, 1800);
         return true;
@@ -255,36 +281,55 @@
     scrollSyncRaf = requestAnimationFrame(() => {
       scrollSyncRaf = 0;
       if (!textareaEl) return;
-      // Aligne le caractère qui est à Y=referenceY dans le viewport source
-      // (et non plus le caractère du tout-haut), pour rester cohérent avec la
-      // dernière position de référence posée par un double-clic.
-      const refContentY = textareaEl.scrollTop + referenceY;
-      const srcCharPos = textareaEl.scrollHeight > 0
-        ? Math.round((refContentY / textareaEl.scrollHeight) * textareaEl.value.length)
-        : 0;
-      syncPreviewTo(srcCharPos, false);
+      const previewPane = document.querySelector('.wysiwyg-pane') as HTMLElement | null;
+      if (!previewPane) return;
+
+      const srcMax = textareaEl.scrollHeight - textareaEl.clientHeight;
+      const dstMax = previewPane.scrollHeight - previewPane.clientHeight;
+
+      if (scrollAnchor && srcMax > 0 && dstMax > 0) {
+        // Mode delta post-double-clic : preview suit la source proportionnellement
+        // depuis l'anchor. Pas de recompute → pas de rollback.
+        const deltaSrc = textareaEl.scrollTop - scrollAnchor.srcScroll;
+        const ratio = dstMax / srcMax;
+        const newDst = scrollAnchor.dstScroll + deltaSrc * ratio;
+        previewPane.scrollTop = Math.max(0, Math.min(dstMax, newDst));
+      } else {
+        // Mode anchored par défaut (avant tout double-clic).
+        const refContentY = textareaEl.scrollTop + referenceY;
+        const srcCharPos = textareaEl.scrollHeight > 0
+          ? Math.round((refContentY / textareaEl.scrollHeight) * textareaEl.value.length)
+          : 0;
+        syncPreviewTo(srcCharPos, false);
+      }
     });
   }
 
   function handleDoubleClick(event: MouseEvent) {
     if (!splitView) return;
     if (!textareaEl) return;
-    // Mémorise la Y du clic dans le viewport du textarea : la preview place
-    // l'élément cible à la même hauteur visuelle, et les scrolls ultérieurs
-    // gardent cette référence.
+
+    // Cleanup d'abord : évite d'avoir 2 highlights superposés (l'ancien pas
+    // encore expiré et le nouveau).
+    clearAllSplitHighlights();
+
+    // Mémorise la Y du clic dans le viewport du textarea.
     const rect = textareaEl.getBoundingClientRect();
     referenceY = Math.max(0, Math.min(textareaEl.clientHeight, event.clientY - rect.top));
 
-    // Suppress scroll sync pendant 500ms : le smooth scroll qui suit déclenche
-    // des events scroll sur la textarea (auto-scroll vers caret), qui sinon
-    // re-synthétiseraient un target différent et provoqueraient un rollback.
+    // Suppress scroll sync pendant 500ms (smooth scroll en cours).
     suppressScrollSyncUntil = Date.now() + 500;
 
     const result = syncPreviewTo(textareaEl.selectionStart, true);
     if (!result) return;
 
-    // Highlight le mot exact double-cliqué dans la preview ; si introuvable
-    // (cross-boundary, syntax mismatch), fallback sur l'outline du bloc.
+    // Capture l'anchor : scrolls ultérieurs en mode delta depuis cette position.
+    scrollAnchor = {
+      srcScroll: textareaEl.scrollTop,
+      dstScroll: result.target,
+    };
+
+    // Highlight le mot exact ; fallback outline du bloc si non trouvable.
     const wordHighlighted = highlightWordInPreview(
       result.pane,
       textareaEl.value,

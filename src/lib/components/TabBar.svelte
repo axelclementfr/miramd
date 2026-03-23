@@ -3,7 +3,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { editor } from '$lib/stores/editor';
   import type { Tab } from '$lib/types/editor';
-  import { invoke } from '@tauri-apps/api/core';
+  import { invokeWithTimeout } from '$lib/services/ipc';
   import { message } from '@tauri-apps/plugin-dialog';
   import { showToast } from '$lib/stores/toast';
   import { t, type TranslationKey } from '$lib/i18n/index';
@@ -45,7 +45,7 @@
       if (result === 'Yes') {
         if (tab.path) {
           try {
-            await invoke('write_file', { path: tab.path, content: tab.content });
+            await invokeWithTimeout('write_file', { path: tab.path, content: tab.content });
             editor.markSaved(id);
           } catch (err) {
             console.error('Save failed:', err);

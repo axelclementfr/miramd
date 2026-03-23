@@ -1,7 +1,10 @@
 import { writable, get } from 'svelte/store';
-import { invoke } from '@tauri-apps/api/core';
+import { invokeWithTimeout } from '$lib/services/ipc';
 import { showToast } from '$lib/stores/toast';
 import { t, type TranslationKey } from '$lib/i18n/index';
+
+/** Prefs files are small JSON — anything over a few seconds means trouble. */
+const PREFS_TIMEOUT_MS = 5_000;
 
 export interface Preferences {
   theme: string;
@@ -158,7 +161,7 @@ function createPreferencesStore() {
 
   async function load() {
     try {
-      const result = await invoke<LoadResult>('load_preferences');
+      const result = await invokeWithTimeout<LoadResult>('load_preferences', undefined, PREFS_TIMEOUT_MS);
       set(result.prefs);
       reportWarnings(result.warnings);
     } catch {
@@ -169,7 +172,7 @@ function createPreferencesStore() {
   async function save(prefs: Preferences) {
     set(prefs);
     try {
-      const result = await invoke<SaveResult>('save_preferences', { prefs });
+      const result = await invokeWithTimeout<SaveResult>('save_preferences', { prefs }, PREFS_TIMEOUT_MS);
       reportWarnings(result.warnings);
     } catch (e) {
       reportSaveError(e);
@@ -180,7 +183,7 @@ function createPreferencesStore() {
   function patch(partial: Partial<Preferences>) {
     update((current) => {
       const updated = { ...current, ...partial };
-      invoke<SaveResult>('save_preferences', { prefs: updated })
+      invokeWithTimeout<SaveResult>('save_preferences', { prefs: updated }, PREFS_TIMEOUT_MS)
         .then((r) => reportWarnings(r.warnings))
         .catch(reportSaveError);
       return updated;

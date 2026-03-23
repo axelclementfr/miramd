@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { fly, slide, fade } from 'svelte/transition';
-  import { invoke } from '@tauri-apps/api/core';
+  import { invokeWithTimeout } from '$lib/services/ipc';
   import { editor } from '$lib/stores/editor';
   import type { Tab } from '$lib/types/editor';
   import type { FileEntry, DirectoryListing, FolderNode, OpenedProject } from '$lib/types/filesystem';
@@ -37,7 +37,7 @@
     for (const tab of openedTabs) {
       if (tab.isModified && tab.path) {
         try {
-          await invoke('write_file', { path: tab.path, content: tab.content });
+          await invokeWithTimeout('write_file', { path: tab.path, content: tab.content });
           editor.markSaved(tab.id);
         } catch (err) {
           console.error('Failed to save file:', err);
@@ -69,7 +69,7 @@
       );
       if (result === 'Cancel') return;
       if (result === 'Yes' && tab.path) {
-        try { await invoke('write_file', { path: tab.path, content: tab.content }); editor.markSaved(id); }
+        try { await invokeWithTimeout('write_file', { path: tab.path, content: tab.content }); editor.markSaved(id); }
         catch (err) { console.error('Failed to save file:', err); showToast(tr('error_save_file'), 'error'); return; }
       }
     }
@@ -87,7 +87,7 @@
   async function toggleFolder(folder: FolderNode) {
     if (folder.collapsed && folder.files.length === 0 && folder.folders.length === 0) {
       try {
-        const listing = await invoke<DirectoryListing>('list_directory_entries', { dir: folder.path });
+        const listing = await invokeWithTimeout<DirectoryListing>('list_directory_entries', { dir: folder.path });
         const tree = buildFolderTree(listing.entries);
         folder.folders = tree.folders;
         folder.files = tree.mdFiles;
@@ -104,7 +104,7 @@
     if (openedProjects.some(p => p.dir === dir)) return;
     loading = true;
     try {
-      const listing = await invoke<DirectoryListing>('list_directory_entries', { dir });
+      const listing = await invokeWithTimeout<DirectoryListing>('list_directory_entries', { dir });
       const tree = buildFolderTree(listing.entries);
       const name = dir.split('/').pop() || dir;
       openedProjects = [...openedProjects, { dir, name, files: listing.entries.filter(e => !e.is_dir), folders: tree.folders, collapsed: false }];
@@ -119,7 +119,7 @@
   async function openFile(entry: FileEntry) {
     if (entry.is_dir) { await openDirectory(entry.path); return; }
     try {
-      const file = await invoke<{ path: string; name: string; content: string; size: number }>('read_file', { path: entry.path });
+      const file = await invokeWithTimeout<{ path: string; name: string; content: string; size: number }>('read_file', { path: entry.path });
       editor.addTab(file.path, file.name, file.content);
     } catch (err) {
       console.error('Failed to open file:', err);

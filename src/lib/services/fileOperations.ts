@@ -1,9 +1,9 @@
-import { invoke } from '@tauri-apps/api/core';
 import { open, message, save } from '@tauri-apps/plugin-dialog';
 import { get } from 'svelte/store';
 import { editor } from '$lib/stores/editor';
 import type { Tab } from '$lib/types/editor';
 import { muyaService } from '$lib/services/muya';
+import { invokeWithTimeout } from '$lib/services/ipc';
 import { showToast } from '$lib/stores/toast';
 import type { TranslationKey } from '$lib/i18n/index';
 
@@ -26,7 +26,7 @@ export async function openFileDialog(tr: (k: TranslationKey) => string) {
     const paths = Array.isArray(selected) ? selected : [selected];
     for (const filePath of paths) {
       try {
-        const file = await invoke<{ path: string; name: string; content: string; size: number }>(
+        const file = await invokeWithTimeout<{ path: string; name: string; content: string; size: number }>(
           'read_file',
           { path: filePath }
         );
@@ -48,7 +48,7 @@ export async function saveCurrentFile(tr: (k: TranslationKey) => string) {
 
   if (tab.path) {
     try {
-      await invoke('write_file', { path: tab.path, content });
+      await invokeWithTimeout('write_file', { path: tab.path, content });
       editor.markSaved(tab.id, content);
     } catch (err) {
       console.error('Failed to save:', err);
@@ -61,7 +61,7 @@ export async function saveCurrentFile(tr: (k: TranslationKey) => string) {
     });
     if (path) {
       try {
-        await invoke('write_file', { path, content });
+        await invokeWithTimeout('write_file', { path, content });
         editor.markSaved(tab.id, content);
         editor.tabs.update((t) =>
           t.map((tt) => tt.id === tab.id ? { ...tt, path, name: path.split('/').pop() || tab.name } : tt)
@@ -90,7 +90,7 @@ export async function closeTabWithConfirm(id: string, tr: (k: TranslationKey) =>
     if (result === 'Cancel') return;
     if (result === 'Yes' && tab.path) {
       try {
-        await invoke('write_file', { path: tab.path, content: tab.content });
+        await invokeWithTimeout('write_file', { path: tab.path, content: tab.content });
         editor.markSaved(id);
       } catch (err) {
         console.error('Save failed:', err);
@@ -130,7 +130,7 @@ export async function openDroppedMarkdownFiles(paths: string[], tr: (k: Translat
 /** Opens a file from a known filesystem path and adds it as a tab. */
 export async function openFileFromPath(path: string, tr: (k: TranslationKey) => string) {
   try {
-    const file = await invoke<{ path: string; name: string; content: string; size: number }>(
+    const file = await invokeWithTimeout<{ path: string; name: string; content: string; size: number }>(
       'read_file',
       { path }
     );

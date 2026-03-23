@@ -84,6 +84,9 @@ const translations: Record<string, string> = {
     save_btn: 'Save', discard_btn: 'Don\'t save', cancel_btn: 'Cancel',
     error_open_file: 'Failed to open file', error_save_file: 'Failed to save file',
     error_cli_file: 'Failed to open file from command line', error_list_directory: 'Failed to list directory contents',
+    error_prefs_save: 'Failed to save preferences',
+    warning_prefs_tmp_fallback: 'Config directory unavailable — preferences stored in /tmp will be lost on reboot',
+    warning_prefs_backup_failed: 'Could not back up preferences before saving',
 
 };
 

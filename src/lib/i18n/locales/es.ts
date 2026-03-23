@@ -73,6 +73,9 @@ const translations: Record<string, string> = {
     save_btn: 'Guardar', discard_btn: 'No guardar', cancel_btn: 'Cancelar',
     error_open_file: 'No se pudo abrir el archivo', error_save_file: 'No se pudo guardar el archivo',
     error_cli_file: 'No se pudo abrir el archivo de la línea de comandos', error_list_directory: 'No se pudo listar el contenido del directorio',
+    error_prefs_save: 'No se pudieron guardar las preferencias',
+    warning_prefs_tmp_fallback: 'Directorio de configuración no disponible — las preferencias en /tmp se perderán al reiniciar',
+    warning_prefs_backup_failed: 'No se pudo crear una copia de seguridad de las preferencias',
 
 };
 

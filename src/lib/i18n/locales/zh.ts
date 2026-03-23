@@ -69,6 +69,9 @@ const translations: Record<string, string> = {
     save_btn: '保存', discard_btn: '不保存', cancel_btn: '取消',
     error_open_file: '无法打开文件', error_save_file: '无法保存文件',
     error_cli_file: '无法打开命令行文件', error_list_directory: '无法列出目录内容',
+    error_prefs_save: '无法保存偏好设置',
+    warning_prefs_tmp_fallback: '配置目录不可用 — 偏好设置存储在 /tmp 中，重启后将丢失',
+    warning_prefs_backup_failed: '无法创建偏好设置的备份',
 
 };
 

@@ -87,6 +87,9 @@ const translations = {
     save_btn: 'Sauvegarder', discard_btn: 'Ne pas sauvegarder', cancel_btn: 'Annuler',
     error_open_file: 'Impossible d\'ouvrir le fichier', error_save_file: 'Impossible de sauvegarder le fichier',
     error_cli_file: 'Impossible d\'ouvrir le fichier passé en argument', error_list_directory: 'Impossible de lister le contenu du dossier',
+    error_prefs_save: 'Impossible de sauvegarder les préférences',
+    warning_prefs_tmp_fallback: 'Dossier de configuration indisponible — préférences stockées dans /tmp et perdues au redémarrage',
+    warning_prefs_backup_failed: 'Impossible de sauvegarder une copie de secours des préférences',
 
 } as const;
 

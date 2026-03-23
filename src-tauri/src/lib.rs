@@ -34,13 +34,9 @@ pub fn run() {
                 }
 
                 // If a file was passed, tell the frontend to open it
-                if args.len() > 1 {
-                    let file_path = &args[1];
-                    let path = std::path::Path::new(file_path);
-                    if path.exists() && path.is_file() && is_markdown_file(path) {
-                        if let Err(e) = window.emit("open-file", file_path.clone()) {
-                            log::warn!("Failed to emit open-file event: {}", e);
-                        }
+                if let Some(file_path) = validated_cli_file(&args) {
+                    if let Err(e) = window.emit("open-file", file_path) {
+                        log::warn!("Failed to emit open-file event: {}", e);
                     }
                 }
             }
@@ -60,17 +56,7 @@ pub fn run() {
         .setup(|app| {
             // Store CLI file path
             let args: Vec<String> = std::env::args().collect();
-            let cli_file = if args.len() > 1 {
-                let path = std::path::Path::new(&args[1]);
-                if path.exists() && path.is_file() && is_markdown_file(path) {
-                    Some(args[1].clone())
-                } else {
-                    None
-                }
-            } else {
-                None
-            };
-            app.manage(CliFile(cli_file));
+            app.manage(CliFile(validated_cli_file(&args)));
 
             // Build tray icon — MiraMD stays resident when window is closed
             let quit = MenuItem::with_id(app, "quit", "Quitter MiraMD", true, None::<&str>)?;
@@ -148,6 +134,14 @@ fn is_markdown_file(path: &std::path::Path) -> bool {
         path.extension().and_then(|e| e.to_str()).map(|e| e.to_lowercase()).as_deref(),
         Some("md" | "markdown" | "mmd" | "mdx" | "mkd")
     )
+}
+
+/// Extract a validated markdown file path from CLI args.
+/// Returns `args[1]` if it points to an existing markdown file, else `None`.
+fn validated_cli_file(args: &[String]) -> Option<String> {
+    let arg = args.get(1)?;
+    let path = std::path::Path::new(arg);
+    (path.exists() && path.is_file() && is_markdown_file(path)).then(|| arg.clone())
 }
 
 struct CliFile(Option<String>);

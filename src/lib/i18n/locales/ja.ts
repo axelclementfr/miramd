@@ -76,6 +76,7 @@ const translations: Record<string, string> = {
     error_prefs_save: '設定を保存できませんでした',
     warning_prefs_tmp_fallback: '設定ディレクトリが利用できません — /tmp に保存され、再起動時に失われます',
     warning_prefs_backup_failed: '設定のバックアップを作成できませんでした',
+    warning_prefs_future_version: '設定がより新しいバージョンの MiraMD で保存されました — 一部の項目が想定外に動作する可能性があります',
 
 };
 

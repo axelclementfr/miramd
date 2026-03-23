@@ -136,6 +136,7 @@ interface SaveResult {
 const WARNING_KIND: Record<string, 'warning' | 'error' | 'info'> = {
   prefs_tmp_fallback: 'warning',
   prefs_backup_failed: 'warning',
+  prefs_future_version: 'warning',
 };
 
 function reportWarnings(warnings: string[]) {

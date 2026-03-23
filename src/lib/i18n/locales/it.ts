@@ -76,6 +76,7 @@ const translations: Record<string, string> = {
     error_prefs_save: 'Impossibile salvare le preferenze',
     warning_prefs_tmp_fallback: 'Cartella di configurazione non disponibile — le preferenze in /tmp andranno perse al riavvio',
     warning_prefs_backup_failed: 'Impossibile creare una copia di backup delle preferenze',
+    warning_prefs_future_version: 'Preferenze salvate da una versione più recente di MiraMD — alcune impostazioni potrebbero comportarsi in modo imprevisto',
 
 };
 

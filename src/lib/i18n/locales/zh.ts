@@ -72,6 +72,7 @@ const translations: Record<string, string> = {
     error_prefs_save: '无法保存偏好设置',
     warning_prefs_tmp_fallback: '配置目录不可用 — 偏好设置存储在 /tmp 中，重启后将丢失',
     warning_prefs_backup_failed: '无法创建偏好设置的备份',
+    warning_prefs_future_version: '偏好设置由更新版本的 MiraMD 保存 — 部分设置可能表现异常',
 
 };
 

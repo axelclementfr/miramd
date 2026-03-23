@@ -76,6 +76,7 @@ const translations: Record<string, string> = {
     error_prefs_save: 'Einstellungen konnten nicht gespeichert werden',
     warning_prefs_tmp_fallback: 'Konfigurationsordner nicht verfügbar — Einstellungen in /tmp gehen beim Neustart verloren',
     warning_prefs_backup_failed: 'Sicherungskopie der Einstellungen konnte nicht erstellt werden',
+    warning_prefs_future_version: 'Einstellungen wurden von einer neueren Version von MiraMD gespeichert — einige Optionen verhalten sich möglicherweise unerwartet',
 
 };
 

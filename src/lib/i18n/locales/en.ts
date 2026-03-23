@@ -87,6 +87,7 @@ const translations: Record<string, string> = {
     error_prefs_save: 'Failed to save preferences',
     warning_prefs_tmp_fallback: 'Config directory unavailable — preferences stored in /tmp will be lost on reboot',
     warning_prefs_backup_failed: 'Could not back up preferences before saving',
+    warning_prefs_future_version: 'Preferences were saved by a newer version of MiraMD — some settings may behave unexpectedly',
 
 };
 

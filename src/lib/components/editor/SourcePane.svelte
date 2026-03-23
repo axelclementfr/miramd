@@ -9,6 +9,12 @@
   import { dlog } from '$lib/services/debug';
   import { computeAnchoredScroll, type ScrollAnchor } from '$lib/services/splitScrollSync';
   import { extractHeadings } from '$lib/services/toc';
+  import {
+    findTargetElement,
+    highlightWordInPreview,
+    clearAllSplitHighlights,
+    unwrapSpan,
+  } from '$lib/services/splitWordHighlight';
 
   let readOnly: boolean = $state(false);
   let splitView: boolean = $state(false);
@@ -96,29 +102,10 @@
     return { pane: previewPane, target };
   }
 
-  /** Find the block-level rendered element closest to the target Y in pane content coords.
-   *  targetContentY = scrollTop + alignOffsetY (= où le curseur se trouve dans la preview viewport). */
-  function findTargetElement(pane: HTMLElement, scrollTop: number, alignOffsetY: number): HTMLElement | null {
-    const targetContentY = scrollTop + alignOffsetY;
-    const candidates = pane.querySelectorAll('h1, h2, h3, h4, h5, h6, p, ul, ol, blockquote, pre, table, hr');
-    let best: HTMLElement | null = null;
-    let bestDistance = Infinity;
-    candidates.forEach((node) => {
-      const el = node as HTMLElement;
-      const distance = Math.abs(el.offsetTop - targetContentY);
-      if (distance < bestDistance) {
-        best = el;
-        bestDistance = distance;
-      }
-    });
-    return best;
-  }
-
   let lastTarget: HTMLElement | null = null;
   let lastTargetTimer: ReturnType<typeof setTimeout> | null = null;
 
   function flashClickTarget(pane: HTMLElement, scrollTop: number, alignOffsetY: number) {
-    // Clean previous highlight if any (rapid double-clicks)
     if (lastTarget) lastTarget.classList.remove('split-click-target');
     if (lastTargetTimer) clearTimeout(lastTargetTimer);
 
@@ -132,91 +119,15 @@
     }, 1600);
   }
 
-  /** Walk text nodes inside `root` and return a Range surrounding the
-   *  `occurrenceIndex`-th word-boundary occurrence of `word`. Word-boundary
-   *  match évite que "the" matche dans "weather". */
-  function findTextOccurrence(root: Node, word: string, occurrenceIndex: number): Range | null {
-    const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const re = new RegExp('\\b' + escaped + '\\b', 'g');
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-    let count = 0;
-    let node: Node | null;
-    while ((node = walker.nextNode())) {
-      const text = node.textContent || '';
-      re.lastIndex = 0;
-      let m: RegExpExecArray | null;
-      while ((m = re.exec(text)) !== null) {
-        if (count === occurrenceIndex) {
-          const range = document.createRange();
-          range.setStart(node, m.index);
-          range.setEnd(node, m.index + word.length);
-          return range;
-        }
-        count++;
-      }
-    }
-    return null;
-  }
-
-  /** Cleanup unifié de tous les highlights (word spans + outline du bloc).
-   *  Appelé en tête de chaque double-clic pour éviter d'avoir 2 sélections
-   *  visuelles simultanées (l'ancienne pas encore expirée + la nouvelle).
-   *  Robuste : retire TOUS les .split-word-highlight présents dans la preview,
-   *  pas seulement celui dont on a la référence (couvre les leftovers après
-   *  re-render de Muya, double-clic rapide, etc.). */
-  function clearAllSplitHighlights() {
+  /** Wrapper local : nettoie les timers du composant + appelle le service. */
+  function clearAllHighlightsLocal() {
     if (highlightTimer) { clearTimeout(highlightTimer); highlightTimer = null; }
-    const previewPane = document.querySelector('.wysiwyg-pane');
-    if (previewPane) {
-      const wraps = previewPane.querySelectorAll('.split-word-highlight');
-      wraps.forEach((s) => unwrapSpan(s as HTMLSpanElement));
-    }
-    if (lastTarget) { lastTarget.classList.remove('split-click-target'); lastTarget = null; }
     if (lastTargetTimer) { clearTimeout(lastTargetTimer); lastTargetTimer = null; }
+    lastTarget = null;
+    clearAllSplitHighlights(document.querySelector('.wysiwyg-pane') as HTMLElement | null);
   }
 
   let highlightTimer: ReturnType<typeof setTimeout> | null = null;
-
-  /** Unwrap a span : remplace le span par ses enfants dans le parent. */
-  function unwrapSpan(span: HTMLSpanElement) {
-    const parent = span.parentNode;
-    if (!parent) return;
-    while (span.firstChild) parent.insertBefore(span.firstChild, span);
-    parent.removeChild(span);
-    if ('normalize' in parent) (parent as Element).normalize();
-  }
-
-  /** Highlight the same word the user double-clicked in source, in the preview.
-   *  Approche span-wrapping (plus prévisible que CSS Highlight / Selection API).
-   *  Returns true if highlight succeeded (used to skip the block-outline fallback). */
-  function highlightWordInPreview(pane: HTMLElement, source: string, selStart: number, selEnd: number): boolean {
-    const word = source.substring(selStart, selEnd);
-    if (!word.trim() || word.length < 1) return false;
-
-    // Compte les occurrences word-boundary du mot dans source[0..selStart] →
-    // index identique à utiliser dans le preview.
-    const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const re = new RegExp('\\b' + escaped + '\\b', 'g');
-    let occurrenceIndex = 0;
-    let m: RegExpExecArray | null;
-    const before = source.substring(0, selStart);
-    while ((m = re.exec(before)) !== null) occurrenceIndex++;
-
-    const range = findTextOccurrence(pane, word, occurrenceIndex);
-    if (!range) return false;
-
-    const span = document.createElement('span');
-    span.className = 'split-word-highlight';
-    try {
-      range.surroundContents(span);
-    } catch (e) {
-      dlog('muya', 'surroundContents failed (cross-boundary range):', e);
-      return false;
-    }
-
-    highlightTimer = setTimeout(() => unwrapSpan(span), 1800);
-    return true;
-  }
 
   /** Sync setMarkdown vers Muya tout en préservant agressivement le focus du
    *  textarea. Solution : focusin guardian + plusieurs tentatives de refocus
@@ -302,7 +213,7 @@
 
     // Cleanup d'abord : évite d'avoir 2 highlights superposés (l'ancien pas
     // encore expiré et le nouveau).
-    clearAllSplitHighlights();
+    clearAllHighlightsLocal();
 
     // Mémorise la Y du clic dans le viewport du textarea.
     const rect = textareaEl.getBoundingClientRect();
@@ -321,13 +232,15 @@
     };
 
     // Highlight le mot exact ; fallback outline du bloc si non trouvable.
-    const wordHighlighted = highlightWordInPreview(
+    const span = highlightWordInPreview(
       result.pane,
       textareaEl.value,
       textareaEl.selectionStart,
       textareaEl.selectionEnd,
     );
-    if (!wordHighlighted) {
+    if (span) {
+      highlightTimer = setTimeout(() => unwrapSpan(span), 1800);
+    } else {
       flashClickTarget(result.pane, result.target, referenceY);
     }
   }

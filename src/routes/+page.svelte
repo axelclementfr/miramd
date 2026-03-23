@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { slide } from 'svelte/transition';
-  import { invoke } from '@tauri-apps/api/core';
+  import { invokeWithTimeout } from '$lib/services/ipc';
   import { listen } from '@tauri-apps/api/event';
   import { getCurrentWebview } from '@tauri-apps/api/webview';
   import { open } from '@tauri-apps/plugin-dialog';
@@ -88,7 +88,7 @@
 
     // Check if a file was passed via CLI (double-click .md from file manager)
     try {
-      const cliFile = await invoke<string | null>('get_cli_file');
+      const cliFile = await invokeWithTimeout<string | null>('get_cli_file', undefined, 5_000);
       if (cliFile) await openFileFromPath(cliFile, tr);
     } catch (err) {
       console.error('Failed to open CLI file:', err);

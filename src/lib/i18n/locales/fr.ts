@@ -90,6 +90,7 @@ const translations = {
     error_prefs_save: 'Impossible de sauvegarder les préférences',
     warning_prefs_tmp_fallback: 'Dossier de configuration indisponible — préférences stockées dans /tmp et perdues au redémarrage',
     warning_prefs_backup_failed: 'Impossible de sauvegarder une copie de secours des préférences',
+    warning_prefs_future_version: 'Préférences enregistrées par une version plus récente de MiraMD — certains réglages peuvent se comporter de manière inattendue',
 
 } as const;
 

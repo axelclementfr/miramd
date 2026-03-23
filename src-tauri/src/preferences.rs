@@ -103,7 +103,12 @@ pub struct Preferences {
     pub word_wrap_in_toc: bool,
 }
 
-fn default_prefs_version() -> u32 { 1 }
+/// Current schema version of the on-disk preferences file. Bump whenever
+/// a breaking change is made (renamed field, changed semantics) and add a
+/// matching step in `migrate_preferences` below.
+pub const CURRENT_PREFS_VERSION: u32 = 1;
+
+fn default_prefs_version() -> u32 { CURRENT_PREFS_VERSION }
 fn default_true() -> bool { true }
 fn default_code_font_family() -> String { "DejaVu Sans Mono".to_string() }
 fn default_code_font_size() -> u32 { 14 }
@@ -205,6 +210,36 @@ pub const WARN_TMP_FALLBACK: &str = "prefs_tmp_fallback";
 /// Warning code emitted when the .bak copy of preferences could not be
 /// written before a save (the save itself still succeeds).
 pub const WARN_BACKUP_FAILED: &str = "prefs_backup_failed";
+/// Warning code emitted when the loaded prefs file was written by a newer
+/// version of MiraMD (downgrade scenario). Settings still load best-effort.
+pub const WARN_FUTURE_VERSION: &str = "prefs_future_version";
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum MigrationResult {
+    AlreadyCurrent,
+    Migrated { from: u32 },
+    FutureVersion { actual: u32 },
+}
+
+/// Bring preferences up to the current schema version.
+/// Returns the outcome so the caller can decide whether to persist (when
+/// migrated) or warn the user (when the file was saved by a newer build).
+pub fn migrate_preferences(prefs: &mut Preferences) -> MigrationResult {
+    use std::cmp::Ordering;
+    match prefs.prefs_version.cmp(&CURRENT_PREFS_VERSION) {
+        Ordering::Equal => MigrationResult::AlreadyCurrent,
+        Ordering::Less => {
+            let from = prefs.prefs_version;
+            log::info!("Migrating preferences from v{} to v{}", from, CURRENT_PREFS_VERSION);
+            // Future migrations chain here:
+            //   if from < 2 { migrate_v1_to_v2(prefs); }
+            //   if from < 3 { migrate_v2_to_v3(prefs); }
+            prefs.prefs_version = CURRENT_PREFS_VERSION;
+            MigrationResult::Migrated { from }
+        }
+        Ordering::Greater => MigrationResult::FutureVersion { actual: prefs.prefs_version },
+    }
+}
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -239,7 +274,7 @@ fn prefs_path_with_warnings() -> (PathBuf, Vec<String>) {
 
 #[tauri::command]
 pub fn load_preferences() -> LoadResult {
-    let (path, warnings) = prefs_path_with_warnings();
+    let (path, mut warnings) = prefs_path_with_warnings();
     let mut prefs = match fs::read_to_string(&path) {
         Ok(content) => match serde_json::from_str::<Preferences>(&content) {
             Ok(p) => p,
@@ -256,6 +291,21 @@ pub fn load_preferences() -> LoadResult {
             prefs
         }
     };
+    match migrate_preferences(&mut prefs) {
+        MigrationResult::Migrated { from: _ } => {
+            // Persist immediately so we don't run the migration on every launch.
+            let _ = save_preferences(prefs.clone());
+        }
+        MigrationResult::FutureVersion { actual } => {
+            log::warn!(
+                "Preferences saved by a newer build (v{}, current is v{}); loading best-effort",
+                actual,
+                CURRENT_PREFS_VERSION
+            );
+            warnings.push(WARN_FUTURE_VERSION.to_string());
+        }
+        MigrationResult::AlreadyCurrent => {}
+    }
     validate_preferences(&mut prefs);
     LoadResult { prefs, warnings }
 }
@@ -351,5 +401,43 @@ mod tests {
         let result: Result<Preferences, _> = serde_json::from_str(json);
         // Should not fail — unknown fields are silently ignored with serde default
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_migrate_already_current_is_noop() {
+        let mut prefs = Preferences::default();
+        // default_prefs_version() returns CURRENT_PREFS_VERSION
+        assert_eq!(prefs.prefs_version, CURRENT_PREFS_VERSION);
+        let result = migrate_preferences(&mut prefs);
+        assert_eq!(result, MigrationResult::AlreadyCurrent);
+        assert_eq!(prefs.prefs_version, CURRENT_PREFS_VERSION);
+    }
+
+    #[test]
+    fn test_migrate_old_version_bumps_to_current() {
+        let mut prefs = Preferences::default();
+        prefs.prefs_version = 0;
+        let result = migrate_preferences(&mut prefs);
+        assert_eq!(result, MigrationResult::Migrated { from: 0 });
+        assert_eq!(prefs.prefs_version, CURRENT_PREFS_VERSION);
+    }
+
+    #[test]
+    fn test_migrate_future_version_flagged() {
+        let mut prefs = Preferences::default();
+        prefs.prefs_version = CURRENT_PREFS_VERSION + 5;
+        let result = migrate_preferences(&mut prefs);
+        assert_eq!(result, MigrationResult::FutureVersion { actual: CURRENT_PREFS_VERSION + 5 });
+        // Should not be touched — we don't know how to "downgrade" a newer file
+        assert_eq!(prefs.prefs_version, CURRENT_PREFS_VERSION + 5);
+    }
+
+    #[test]
+    fn test_default_prefs_version_matches_current() {
+        // Guard against drift: the serde default and the migration target
+        // must agree, otherwise loading a fresh default would trip the
+        // migration loop.
+        let prefs = Preferences::default();
+        assert_eq!(prefs.prefs_version, CURRENT_PREFS_VERSION);
     }
 }

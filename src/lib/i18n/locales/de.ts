@@ -73,6 +73,9 @@ const translations: Record<string, string> = {
     save_btn: 'Speichern', discard_btn: 'Nicht speichern', cancel_btn: 'Abbrechen',
     error_open_file: 'Datei konnte nicht geöffnet werden', error_save_file: 'Datei konnte nicht gespeichert werden',
     error_cli_file: 'Datei aus der Befehlszeile konnte nicht geöffnet werden', error_list_directory: 'Verzeichnisinhalt konnte nicht aufgelistet werden',
+    error_prefs_save: 'Einstellungen konnten nicht gespeichert werden',
+    warning_prefs_tmp_fallback: 'Konfigurationsordner nicht verfügbar — Einstellungen in /tmp gehen beim Neustart verloren',
+    warning_prefs_backup_failed: 'Sicherungskopie der Einstellungen konnte nicht erstellt werden',
 
 };
 

@@ -73,6 +73,9 @@ const translations: Record<string, string> = {
     save_btn: 'Salvar', discard_btn: 'Não salvar', cancel_btn: 'Cancelar',
     error_open_file: 'Falha ao abrir o arquivo', error_save_file: 'Falha ao salvar o arquivo',
     error_cli_file: 'Falha ao abrir o arquivo da linha de comando', error_list_directory: 'Falha ao listar o conteúdo do diretório',
+    error_prefs_save: 'Falha ao salvar as preferências',
+    warning_prefs_tmp_fallback: 'Diretório de configuração indisponível — preferências em /tmp serão perdidas ao reiniciar',
+    warning_prefs_backup_failed: 'Não foi possível criar cópia de segurança das preferências',
 
 };
 

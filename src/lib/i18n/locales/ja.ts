@@ -73,6 +73,9 @@ const translations: Record<string, string> = {
     save_btn: '保存', discard_btn: '保存しない', cancel_btn: 'キャンセル',
     error_open_file: 'ファイルを開けませんでした', error_save_file: 'ファイルを保存できませんでした',
     error_cli_file: 'コマンドラインのファイルを開けませんでした', error_list_directory: 'ディレクトリの内容を取得できませんでした',
+    error_prefs_save: '設定を保存できませんでした',
+    warning_prefs_tmp_fallback: '設定ディレクトリが利用できません — /tmp に保存され、再起動時に失われます',
+    warning_prefs_backup_failed: '設定のバックアップを作成できませんでした',
 
 };
 

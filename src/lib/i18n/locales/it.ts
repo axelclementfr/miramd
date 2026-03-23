@@ -73,6 +73,9 @@ const translations: Record<string, string> = {
     save_btn: 'Salva', discard_btn: 'Non salvare', cancel_btn: 'Annulla',
     error_open_file: 'Impossibile aprire il file', error_save_file: 'Impossibile salvare il file',
     error_cli_file: 'Impossibile aprire il file dalla riga di comando', error_list_directory: 'Impossibile elencare il contenuto della cartella',
+    error_prefs_save: 'Impossibile salvare le preferenze',
+    warning_prefs_tmp_fallback: 'Cartella di configurazione non disponibile — le preferenze in /tmp andranno perse al riavvio',
+    warning_prefs_backup_failed: 'Impossibile creare una copia di backup delle preferenze',
 
 };
 

@@ -1,5 +1,7 @@
-import { writable } from 'svelte/store';
+import { writable, get } from 'svelte/store';
 import { invoke } from '@tauri-apps/api/core';
+import { showToast } from '$lib/stores/toast';
+import { t, type TranslationKey } from '$lib/i18n/index';
 
 export interface Preferences {
   theme: string;
@@ -122,13 +124,42 @@ const defaults: Preferences = {
   wordWrapInToc: false,
 };
 
+interface LoadResult {
+  prefs: Preferences;
+  warnings: string[];
+}
+
+interface SaveResult {
+  warnings: string[];
+}
+
+const WARNING_KIND: Record<string, 'warning' | 'error' | 'info'> = {
+  prefs_tmp_fallback: 'warning',
+  prefs_backup_failed: 'warning',
+};
+
+function reportWarnings(warnings: string[]) {
+  if (!warnings || warnings.length === 0) return;
+  const tr = get(t);
+  for (const code of warnings) {
+    const key = `warning_${code}` as TranslationKey;
+    showToast(tr(key), WARNING_KIND[code] ?? 'warning');
+  }
+}
+
+function reportSaveError(e: unknown) {
+  console.error('[Preferences] save failed:', e);
+  showToast(get(t)('error_prefs_save'), 'error');
+}
+
 function createPreferencesStore() {
   const { subscribe, set, update } = writable<Preferences>(defaults);
 
   async function load() {
     try {
-      const prefs = await invoke<Preferences>('load_preferences');
-      set(prefs);
+      const result = await invoke<LoadResult>('load_preferences');
+      set(result.prefs);
+      reportWarnings(result.warnings);
     } catch {
       set(defaults);
     }
@@ -136,13 +167,21 @@ function createPreferencesStore() {
 
   async function save(prefs: Preferences) {
     set(prefs);
-    await invoke('save_preferences', { prefs });
+    try {
+      const result = await invoke<SaveResult>('save_preferences', { prefs });
+      reportWarnings(result.warnings);
+    } catch (e) {
+      reportSaveError(e);
+      throw e;
+    }
   }
 
-  async function patch(partial: Partial<Preferences>) {
+  function patch(partial: Partial<Preferences>) {
     update((current) => {
       const updated = { ...current, ...partial };
-      invoke('save_preferences', { prefs: updated }).catch((e) => console.warn('[Preferences] save failed:', e));
+      invoke<SaveResult>('save_preferences', { prefs: updated })
+        .then((r) => reportWarnings(r.warnings))
+        .catch(reportSaveError);
       return updated;
     });
   }

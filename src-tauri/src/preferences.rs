@@ -199,23 +199,47 @@ fn validate_preferences(prefs: &mut Preferences) {
     prefs.tab_size = prefs.tab_size.clamp(1, 8);
 }
 
-fn prefs_path() -> PathBuf {
+/// Warning code emitted when the XDG config dir is unavailable and prefs
+/// fall back to /tmp (lost at reboot).
+pub const WARN_TMP_FALLBACK: &str = "prefs_tmp_fallback";
+/// Warning code emitted when the .bak copy of preferences could not be
+/// written before a save (the save itself still succeeds).
+pub const WARN_BACKUP_FAILED: &str = "prefs_backup_failed";
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LoadResult {
+    pub prefs: Preferences,
+    pub warnings: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SaveResult {
+    pub warnings: Vec<String>,
+}
+
+/// Resolve the preferences file path. Returns the path plus any warnings
+/// raised during resolution (e.g. /tmp fallback).
+fn prefs_path_with_warnings() -> (PathBuf, Vec<String>) {
+    let mut warnings = Vec::new();
     let config_dir = dirs::config_dir()
         .or_else(|| dirs::home_dir().map(|h| h.join(".config")))
         .unwrap_or_else(|| {
             log::warn!("Could not determine config directory, using /tmp");
+            warnings.push(WARN_TMP_FALLBACK.to_string());
             PathBuf::from("/tmp")
         });
     let dir = config_dir.join("miramd");
     if let Err(e) = fs::create_dir_all(&dir) {
         log::warn!("Failed to create preferences directory: {}", e);
     }
-    dir.join("preferences.json")
+    (dir.join("preferences.json"), warnings)
 }
 
 #[tauri::command]
-pub fn load_preferences() -> Preferences {
-    let path = prefs_path();
+pub fn load_preferences() -> LoadResult {
+    let (path, warnings) = prefs_path_with_warnings();
     let mut prefs = match fs::read_to_string(&path) {
         Ok(content) => match serde_json::from_str::<Preferences>(&content) {
             Ok(p) => p,
@@ -227,30 +251,35 @@ pub fn load_preferences() -> Preferences {
         Err(_) => {
             log::info!("No preferences file found, creating defaults");
             let prefs = Preferences::default();
-            save_preferences(prefs.clone()).ok();
+            // Discard warnings here — load_preferences already captured them
+            let _ = save_preferences(prefs.clone());
             prefs
         }
     };
     validate_preferences(&mut prefs);
-    prefs
+    LoadResult { prefs, warnings }
 }
 
 #[tauri::command]
-pub fn save_preferences(mut prefs: Preferences) -> Result<(), crate::error::AppError> {
+pub fn save_preferences(mut prefs: Preferences) -> Result<SaveResult, crate::error::AppError> {
     validate_preferences(&mut prefs);
-    let path = prefs_path();
+    // /tmp fallback is reported only by load_preferences; save discards it
+    // to avoid a toast on every keystroke-driven save.
+    let (path, _) = prefs_path_with_warnings();
+    let mut warnings = Vec::new();
 
     // Backup existing preferences before overwriting
     if path.exists() {
         let backup = path.with_extension("json.bak");
         if let Err(e) = fs::copy(&path, &backup) {
             log::warn!("Failed to backup preferences: {}", e);
+            warnings.push(WARN_BACKUP_FAILED.to_string());
         }
     }
 
     let json = serde_json::to_string_pretty(&prefs)?;
     fs::write(path, json)?;
-    Ok(())
+    Ok(SaveResult { warnings })
 }
 
 #[cfg(test)]

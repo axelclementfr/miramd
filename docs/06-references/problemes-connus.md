@@ -1,7 +1,7 @@
 # Problèmes connus
 
 > Inventaire des bugs et limites identifiés dans MiraMD au 2026-04-29, après analyse profonde du code.
-> Dernière mise à jour : 2026-05-10. Sept entrées résolues (Ctrl+Z faux positif après refonte split, plus la dette structurelle complète : erreurs prefs silencieuses, backup `.bak`, fallback `/tmp`, migration de schéma, validation CLI dupliquée, timeout IPC).
+> Dernière mise à jour : 2026-05-10. Dix entrées résolues : Ctrl+Z (faux positif après refonte split), dette structurelle complète (erreurs prefs silencieuses, backup `.bak`, fallback `/tmp`, migration de schéma, validation CLI dupliquée, timeout IPC), plus les trois investigations par feature (typewriter-sounds via pivot HTML5 audio, dev-environment via workaround stable, zoom clos sans fix).
 > Pour chaque entrée : symptôme observable, où ça vit dans le code, hypothèse de cause, piste de fix, et statut.
 > À tenir à jour : marquer comme **résolu** quand un fix est mergé.
 
@@ -190,6 +190,34 @@ Ces points ne sont pas des bugs à fixer mais des choix documentés.
 - **Résolu le** : 2026-05-10, commit `488f2a6`.
 - **Symptôme initial** : le guard `path.exists() && path.is_file() && is_markdown_file(path)` était dupliqué entre le single-instance handler (`lib.rs:40`) et le setup principal (`lib.rs:64`).
 - **Fix** : helper `validated_cli_file(args: &[String]) -> Option<String>` extrait le pattern. Les deux call sites se réduisent à `if let Some(file_path) = validated_cli_file(&args) { … }` et `app.manage(CliFile(validated_cli_file(&args)));`. Le helper utilise `args.get(1)?` pour gérer l'absence d'argument et `(predicate).then(|| arg.clone())` pour le retour conditionnel idiomatique. -18/+12 lignes nettes.
+
+---
+
+### Typewriter sounds : silencieux en Tauri sur WebKitGTK
+
+- **Résolu le** : 2026-05-10 (commit historique `d29fb4d`, marqué résolu officiellement aujourd'hui).
+- **Symptôme initial** : aucun son sortant des haut-parleurs en Tauri, alors que le code JS rapportait `AudioContext state=running, sampleRate=44100` et qu'aucune erreur ne remontait. En navigateur (Chrome/Firefox visitant `localhost:1420`), le son fonctionnait.
+- **Cause racine** : `WebKitGTK` route Web Audio via `AudioDestinationGStreamer`, qui dans la version embarquée par Tauri retourne `maxChannelCount = 0`. Avec zéro channel de sortie, peu importe les `GainNode`/oscillateurs configurés en amont, aucun signal ne peut atteindre le sink. Confirmé par diagnostic utilisateur : `ctx.state === 'running'` ET `ctx.destination.maxChannelCount === 0`.
+- **Fix** : pivot complet hors de Web Audio API. `src/lib/services/typewriterSound.ts` synthétise désormais en JS pur des échantillons 16-bit PCM pour clack/backspace/ding (4 variantes par son, jitter de pitch pour casser la boucle perçue), les encode en WAV avec un header générique, transforme en URLs `data:audio/wav;base64,...` et alimente des `HTMLAudioElement` poolés en round-robin. Le `<audio>` HTML5 emprunte `MediaPlayerPrivateGStreamer` (le même pipeline que `<video>`, basé sur `playbin` GStreamer) qui route correctement vers la sortie système. Volume contrôlé via `audio.volume`.
+- **Conséquence** : plus aucune dépendance à Web Audio. Le son fonctionne identiquement en dev et en prod sur Linux (testé). `problems/typewriter-sounds.md` reste comme référence diagnostique pour qui rencontrerait un symptôme similaire avec Web Audio sur WebKitGTK dans un autre projet.
+
+---
+
+### Vite HMR drop les styles scopés de `+page.svelte` après long usage
+
+- **Résolu le** : 2026-05-10 (clos avec workaround stable, pas de fix code).
+- **Symptôme initial** : après ~1h de `npm run tauri dev`, le layout devenait cassé (sidebar mal dimensionnée, éditeur à des positions étranges, espace vide en bas). Les règles CSS du bloc `<style>` de `+page.svelte` (`.editor-container`, `.editor-middle`, `.sidebar-wrapper`, `.editor-area`) avaient disparu du stylesheet chargé dans la page, alors que les éléments DOM portaient toujours leur classe scopée Svelte (`s-y_bCXRrkrYfP`).
+- **Cause racine** : bug en amont dans Vite/SvelteKit, probabiliste, pas reproductible dans le build de production. État cassé dans le runtime du dev server (caches `.vite` et `.svelte-kit/output`), pas dans les fichiers source.
+- **Fix** : pas de fix possible côté MiraMD (le bug n'est pas dans notre code). Mitigé par un script `npm run dev:fresh` ajouté à `package.json` qui exécute `rm -rf node_modules/.vite .svelte-kit/output && npm run tauri dev` — clear caches puis relance Tauri proprement. Geste de référence quand le symptôme apparaît. `problems/dev-environment.md` est conservé comme runbook avec la commande de vérification DevTools (`Array.from(document.styleSheets)...filter(r => r.cssText?.includes('editor-middle')).length` doit être `> 0`).
+
+---
+
+### Zoom : sidebar non-responsive et fluidité résiduelle Ctrl+molette
+
+- **Résolu le** : 2026-05-10 (clos sans fix dédié, acceptable en l'état).
+- **Symptôme initial** : (1) à fort zoom WebKit (150%/200%), la sidebar (largeur fixe `SIDEBAR_WIDTH = 284px`) ne se redimensionnait pas proprement vis-à-vis du `MIN_WIDTH` de la fenêtre, créant des troncatures visuelles ; (2) le Ctrl+molette laissait sentir des micro-saccades vs le rendu fluide d'un navigateur natif, à cause du re-layout WebKit déclenché à chaque `set_zoom` sans throttle au taux d'écran.
+- **Évaluation 2026-05-10** : après usage prolongé sur des configs réelles, l'expérience est jugée acceptable. La sidebar tronque à des zooms extrêmes mais n'est pas un blocage usuel ; les micro-saccades sont perceptibles mais pas gênantes pour l'édition. La refonte zoom du 2026-05-08 (`docs/superpowers/specs/2026-05-08-zoom-redesign-design.md`) avait déjà adressé le pire (vrai zoom WebKit natif via `set_app_zoom`, fin du multiplicateur de fontSize).
+- **Pistes archivées** dans `problems/zoom.md` pour réouverture éventuelle si une régression apparaît : recalculer `SIDEBAR_WIDTH × zoom` pour les `setMinSize` Tauri ; throttler le handler wheel via `requestAnimationFrame` (1 `set_zoom` par frame max) ; coalescer les ticks rapides en accumulant le delta.
 
 ---
 

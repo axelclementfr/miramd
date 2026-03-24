@@ -1,34 +1,13 @@
 # Problèmes connus
 
 > Inventaire des bugs et limites identifiés dans MiraMD au 2026-04-29, après analyse profonde du code.
-> Dernière mise à jour : 2026-05-08. Cinq entrées ajoutées (TOC clic, zoom système, mode Lecture, typewriter, code blocks bash) ; deux résolues le même jour : "Slider de zoom système" (refonte du zoom) et "Mode Lecture / lock" (classe CSS `.muya-readonly`).
+> Dernière mise à jour : 2026-05-10. Sept entrées résolues (Ctrl+Z faux positif après refonte split, plus la dette structurelle complète : erreurs prefs silencieuses, backup `.bak`, fallback `/tmp`, migration de schéma, validation CLI dupliquée, timeout IPC).
 > Pour chaque entrée : symptôme observable, où ça vit dans le code, hypothèse de cause, piste de fix, et statut.
 > À tenir à jour : marquer comme **résolu** quand un fix est mergé.
 
 ---
 
 ## Bugs visibles côté utilisateur
-
-### Ctrl+Z se comporte mal au changement d'onglet
-
-- **Symptôme** : annuler après un changement d'onglet ramène parfois à un état inattendu, ou ne fait rien, ou semble sauter des étapes.
-- **Périmètre** :
-  - `src/lib/components/editor/MuyaPane.svelte` (intercept clavier capture phase Ctrl+Z/Y, sauvegarde/restauration de l'historique au changement d'onglet)
-  - `src/lib/services/historyCache.ts` (cache `Map<tabId, history>`)
-  - `src/lib/services/muya.ts` (`getHistory()` / `setHistory()` / `clearHistory()`)
-  - Muya internal `history.js` (vendored, format opaque)
-- **Cause probable** : trois mécanismes empilés qui se marchent dessus.
-  1. Muya gère son propre historique en interne.
-  2. `historyCache` snapshot/restore l'historique Muya à chaque tab switch.
-  3. `MuyaPane` intercepte Ctrl+Z/Y en **capture phase** parce que WebKitGTK ne supporte pas correctement le contenteditable natif.
-  Si le snapshot d'historique est pris au mauvais moment (avant que Muya ait fini de traiter une frappe), ou si le format d'historique Muya change subtilement, l'état restauré n'est plus cohérent. L'intercept en capture phase bypasse aussi l'état natif du navigateur.
-- **Piste de fix** :
-  - Ajouter un test d'intégration "tape, switch, switch back, undo" et observer les divergences.
-  - Tracer chaque appel à `getHistory()` / `setHistory()` avec le `tabId` et la taille de l'historique.
-  - Vérifier l'ordre des opérations dans `MuyaPane.onMount` et `subscribe(activeTabId)` : le snapshot doit avoir lieu **avant** `setMarkdown` du nouvel onglet.
-- **Statut** : ouvert.
-
----
 
 ### Bugs sur les tableaux
 
@@ -61,67 +40,6 @@
   - Vérifier que le fix n'altère pas les autres langages.
   - Documenter le choix dans `docs/05-fonctionnalites/themes.md` ou équivalent.
 - **Statut** : ouvert, priorité basse (cosmétique).
-
----
-
-## Bugs invisibles / silencieux
-
-### Erreurs préférences silencieuses
-
-- **Symptôme** : aucun, c'est ça le problème. Un changement de préférence peut échouer côté backend sans que l'utilisateur s'en aperçoive — il revient à zéro au prochain redémarrage.
-- **Périmètre** : `src/lib/stores/preferences.ts` (`patch()` fire-and-forget)
-- **Cause probable** : `invoke('save_preferences', ...).catch(...)` log seulement, ne notifie rien.
-- **Piste de fix** : toast d'erreur explicite, ou banner persistant si la sauvegarde échoue plusieurs fois.
-- **Statut** : ouvert.
-
----
-
-### Backup `.bak` silencieux
-
-- **Symptôme** : si le `.bak` ne peut pas être écrit (disque plein, permissions), l'écriture principale tente quand même, et en cas de corruption il n'y a plus de backup.
-- **Périmètre** : `src-tauri/src/preferences.rs:242` (warning loggué, ignoré)
-- **Cause probable** : choix volontaire pour ne pas bloquer l'écriture des préférences. Mais l'utilisateur ne sait pas qu'il vient de perdre son backup.
-- **Piste de fix** : émettre un événement Tauri vers le frontend pour afficher un toast warning. Ne pas bloquer l'écriture.
-- **Statut** : ouvert, priorité basse.
-
----
-
-### Fallback `/tmp` pour les préférences
-
-- **Symptôme** : si la config dir XDG est inaccessible, les préférences sont sauvées dans `/tmp/miramd/preferences.json`, qui peut être nettoyé au reboot.
-- **Périmètre** : `src-tauri/src/preferences.rs:202-204` (cascade de fallbacks)
-- **Cause probable** : choix défensif pour éviter un crash. Mais l'utilisateur perd ses prefs sans le savoir.
-- **Piste de fix** : afficher un toast au boot si on a fallback dans `/tmp`.
-- **Statut** : ouvert, priorité basse.
-
----
-
-## Bugs structurels / dette
-
-### Migration de schéma préférences non implémentée
-
-- **Symptôme** : aucun pour l'instant, mais à la première migration breaking, les utilisateurs perdront leurs settings.
-- **Périmètre** : `src-tauri/src/preferences.rs` (`prefs_version: u32` déclaré, jamais lu).
-- **Piste de fix** : implémenter `migrate_preferences(prefs)` qui inspecte `prefs_version` et applique des transformations idempotentes.
-- **Statut** : ouvert, à traiter avant le prochain changement breaking de schéma.
-
----
-
-### Validation CLI dupliquée
-
-- **Symptôme** : aucun, juste de la dette.
-- **Périmètre** : `src-tauri/src/lib.rs:40` et `lib.rs:64` — `is_markdown_file()` appelé deux fois dans deux contextes (setup + single-instance event handler).
-- **Piste de fix** : extraire un helper `validate_and_register_cli_file(path, state)`.
-- **Statut** : ouvert, priorité basse.
-
----
-
-### Pas de timeout IPC
-
-- **Symptôme** : si une commande IPC se fige (ex: parse markdown sur un fichier de 9.99 MB plein de tableaux imbriqués), l'UI se fige sans feedback.
-- **Périmètre** : toutes les commandes Tauri.
-- **Piste de fix** : wrapper `invokeWithTimeout(cmd, args, ms)` côté frontend qui rejette après N secondes et affiche un toast.
-- **Statut** : ouvert, priorité moyenne.
 
 ---
 
@@ -219,6 +137,72 @@ Ces points ne sont pas des bugs à fixer mais des choix documentés.
   - Sélecteur changé en `.muya-editor`. Le cas Muya hidden (source mode) est explicitement détecté avec un `dlog('toc', '...')` au lieu d'échouer silencieusement.
 - **Doc associée** : sujet `'toc'` ajouté à `DebugSubject` (`src/lib/stores/debug.ts`) — activable via Ctrl+Shift+D.
 - **Limite restante** : navigation TOC en pure source mode pas implémentée (Muya est hidden, le scroll DOM ne fait rien). Pourrait à l'avenir scroller le `<textarea>` source via la position offset (déjà calculée et passée au handler).
+
+---
+
+### Ctrl+Z se comporte mal au changement d'onglet
+
+- **Résolu le** : 2026-05-10 (faux positif, plus reproductible). Aucun fix dédié.
+- **Symptôme initial** : annuler après un changement d'onglet ramenait parfois à un état inattendu, ou ne faisait rien, ou semblait sauter des étapes. La doc soupçonnait l'empilement de trois mécanismes : Muya history interne, `historyCache` snapshot/restore au tab switch, intercept Ctrl+Z/Y en capture phase pour contourner WebKitGTK.
+- **Vérification** : non reproductible après la refonte du split mode (commits `5af588f` à `3fcc63c` du 2026-05-10) et l'unification de la matrice des modes éditeur (`computeModeToggle` + `canToggleMode` dans `editorModes.ts`). Les conditions de course liées à des `setMarkdown()` mal séquencés autour des changements de mode/tab ont été éliminées.
+- **Conclusion** : pas de fix de la chaîne d'historique elle-même, mais le contexte qui la déclenchait n'existe plus. Le sujet `ctrlz` reste instrumenté (`dlog('ctrlz', …)`, voir `MuyaPane.svelte` editorKeydown + `services/muya.ts` undo/redo) pour rouvrir rapidement si une régression apparaît.
+
+---
+
+### Erreurs préférences silencieuses
+
+- **Résolu le** : 2026-05-10, commit `242a453`.
+- **Symptôme initial** : `invoke('save_preferences', ...).catch((e) => console.warn(...))` dans `src/lib/stores/preferences.ts` log seulement. Côté `save()`, aucun `catch` du tout — la promesse rejetée remontait dans des call sites en `setTimeout` non-await, donc unhandled silently.
+- **Fix** : `save()` enroule `invoke` en try/catch + `showToast(tr('error_prefs_save'), 'error')` puis re-throw. `patch()` appelle `.catch(reportSaveError)` sur sa promesse fire-and-forget. Helpers internes `reportWarnings` et `reportSaveError` traduisent via `get(t)` (le store i18n est lu à l'instant du toast). Nouvelle clé i18n `error_prefs_save` × 8 locales.
+
+---
+
+### Backup `.bak` silencieux
+
+- **Résolu le** : 2026-05-10, commit `242a453`.
+- **Symptôme initial** : `save_preferences` (Rust) loggait un warning et continuait l'écriture principale si la copie `.bak` ne pouvait pas être écrite. L'utilisateur ne savait pas qu'il venait de perdre son backup.
+- **Fix** : `save_preferences` retourne désormais `Result<SaveResult, AppError>` au lieu de `Result<(), AppError>`. `SaveResult` contient un `Vec<String>` de codes de warning. La constante `WARN_BACKUP_FAILED = "prefs_backup_failed"` est ajoutée au vec quand `fs::copy(&path, &backup)` échoue. L'écriture principale n'est pas bloquée. Côté frontend, `reportWarnings` traduit chaque code en clé i18n `warning_<code>` et toast en kind `warning`. Nouvelle clé `warning_prefs_backup_failed` × 8 locales.
+
+---
+
+### Fallback `/tmp` pour les préférences
+
+- **Résolu le** : 2026-05-10, commit `242a453`.
+- **Symptôme initial** : si la config dir XDG est inaccessible, les préférences sont sauvées dans `/tmp/miramd/preferences.json`, perdues au reboot. Aucun feedback à l'utilisateur.
+- **Fix** : `prefs_path()` est devenu `prefs_path_with_warnings()` qui retourne `(PathBuf, Vec<String>)`. Quand le `.unwrap_or_else` du chemin atterrit sur `/tmp`, on pousse `WARN_TMP_FALLBACK = "prefs_tmp_fallback"` dans le vec. `load_preferences` retourne `LoadResult { prefs, warnings }` ; le frontend toast une fois au démarrage. **`save_preferences` discard le warning du même appel** (`let (path, _) = prefs_path_with_warnings();`) pour éviter un toast à chaque keystroke-driven save. Nouvelle clé `warning_prefs_tmp_fallback` × 8 locales.
+
+---
+
+### Migration de schéma préférences non implémentée
+
+- **Résolu le** : 2026-05-10, commit `75b50c2`. (Squelette uniquement — aucune migration v0→v1 réelle aujourd'hui, mais l'emplacement est prêt pour la prochaine breaking change.)
+- **Symptôme initial** : `prefs_version: u32` déclaré dans la struct mais jamais lu. À la première migration breaking, les utilisateurs auraient perdu leurs settings.
+- **Fix** : Constante `CURRENT_PREFS_VERSION = 1`, `default_prefs_version()` pointe sur la constante. Helper `migrate_preferences(&mut prefs) -> MigrationResult` avec trois branches :
+  - `AlreadyCurrent` (no-op),
+  - `Migrated { from }` (chaîne `if from < N` à compléter, persiste après),
+  - `FutureVersion { actual }` (cas downgrade : la lecture est best-effort, on warn `prefs_future_version`).
+  `load_preferences` appelle ce helper, persiste si migré, push le warning si futur. **Garde-fou test** `test_default_prefs_version_matches_current` empêche la dérive entre la valeur par défaut serde et la cible de migration. 4 tests + nouvelle clé i18n `warning_prefs_future_version` × 8 locales.
+
+---
+
+### Validation CLI dupliquée
+
+- **Résolu le** : 2026-05-10, commit `488f2a6`.
+- **Symptôme initial** : le guard `path.exists() && path.is_file() && is_markdown_file(path)` était dupliqué entre le single-instance handler (`lib.rs:40`) et le setup principal (`lib.rs:64`).
+- **Fix** : helper `validated_cli_file(args: &[String]) -> Option<String>` extrait le pattern. Les deux call sites se réduisent à `if let Some(file_path) = validated_cli_file(&args) { … }` et `app.manage(CliFile(validated_cli_file(&args)));`. Le helper utilise `args.get(1)?` pour gérer l'absence d'argument et `(predicate).then(|| arg.clone())` pour le retour conditionnel idiomatique. -18/+12 lignes nettes.
+
+---
+
+### Pas de timeout IPC
+
+- **Résolu le** : 2026-05-10, commit `cde5017`.
+- **Symptôme initial** : si une commande Tauri se figeait (deadlock Rust, disque réseau cassé, parse markdown sur un fichier extrême), le `await invoke(...)` côté frontend ne reprenait jamais — l'UI gelait sans aucune indication.
+- **Fix** : nouveau module `src/lib/services/ipc.ts` exposant :
+  - `withTimeout(promise, command, timeoutMs)` — race une promesse contre un `setTimeout`, rejette `IpcTimeoutError` si le délai expire. Pure et testable.
+  - `invokeWithTimeout<T>(command, args?, timeoutMs?)` — drop-in pour `invoke`, default `DEFAULT_IPC_TIMEOUT_MS = 30_000`.
+  - `IpcTimeoutError` qui porte `command` et `timeoutMs` pour le debug.
+
+  **Le Rust n'est pas annulé** — la promesse JS abandonne juste l'attente. Appliqué aux flows user-initiated : `read_file`, `write_file`, `list_directory_entries`, `get_cli_file` (30 s par défaut) ; `load_preferences` et `save_preferences` (5 s, vu que c'est un petit JSON). Hot paths laissés en `invoke` direct : `set_app_zoom` (zoom wheel ticks). 6 tests vitest couvrent le résolu-avant-deadline, le timeout, la propagation d'erreur, et le `clearTimeout` de cleanup pour ne pas leaker.
 
 ---
 

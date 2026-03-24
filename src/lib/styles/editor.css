@@ -68,6 +68,42 @@ i.icon > i.icon-inner {
 [data-theme="one-dark"] .token.punctuation,
 [data-theme="material-dark"] .token.punctuation { color: #abb2bf !important; }
 
+/* Tokens supplémentaires utilisés notamment par bash (variable, builtin,
+   parameter) et regex. Sans ces overrides, le thème light Prism embarqué
+   dans Muya leur applique des couleurs claires (#690 vert, #e90 orange)
+   qui clashent visuellement avec un fond dark. */
+[data-theme="dark"] .token.variable,
+[data-theme="one-dark"] .token.variable,
+[data-theme="material-dark"] .token.variable { color: #e06c75 !important; }
+
+[data-theme="dark"] .token.builtin,
+[data-theme="one-dark"] .token.builtin,
+[data-theme="material-dark"] .token.builtin { color: #61afef !important; }
+
+[data-theme="dark"] .token.parameter,
+[data-theme="one-dark"] .token.parameter,
+[data-theme="material-dark"] .token.parameter { color: #d19a66 !important; }
+
+[data-theme="dark"] .token.regex,
+[data-theme="dark"] .token.important,
+[data-theme="one-dark"] .token.regex,
+[data-theme="one-dark"] .token.important,
+[data-theme="material-dark"] .token.regex,
+[data-theme="material-dark"] .token.important { color: #c678dd !important; }
+
+/* Neutralise les styles agressifs hérités du thème light Prism embarqué
+   dans Muya (bold, italic, text-shadow, background sur certains tokens).
+   Bash en hérite massivement parce que son tokenizer marque beaucoup
+   d'éléments en `.token.bold` ou `.token.important`. On garde uniquement
+   les couleurs définies au-dessus pour un rendu uniforme entre langages. */
+.ag-paragraph code .token,
+figure.ag-container-block .token {
+  font-weight: normal !important;
+  font-style: normal !important;
+  text-shadow: none !important;
+  background: transparent !important;
+}
+
 /* ---- Container block code area (HTML Block, Math, etc.) ----
    Remove ALL Prism effects: no background, no border, no shadow, no outline, no text-shadow */
 figure.ag-container-block pre,

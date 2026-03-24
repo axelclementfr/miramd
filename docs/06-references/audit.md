@@ -1,18 +1,20 @@
 # Audit complet — MiraMD
 
-**Date** : 2026-04-29
+**Date** : 2026-05-10 (refresh ; précédente version 2026-04-29)
 **Version analysée** : 0.1.0
 **Stack** : Tauri 2 (Rust) · Svelte 5 · Muya (vendored, chargé en `window.Muya`) · Vite 6 · Biome 2 · comrak 0.36
 
-> Cet audit remplace l'ancien `review.md`. Il est basé sur une analyse profonde du code (5 rapports d'analyse parallèles couvrant backend Rust, services frontend, composants Svelte, intégration Muya, build/tests/CI).
+> Refresh déclenché par 10+ entrées de `problemes-connus.md` résolues entre le 2026-04-29 et le 2026-05-10. Sont mises à jour : le résumé, les listes de friction de chaque section, les compteurs de tests, et le top-5 des chantiers (les 5 originaux sont tous terminés).
 
 ---
 
 ## Résumé exécutif
 
-MiraMD est une réécriture moderne et bien architecturée de MarkText. Le backend Rust est minimaliste, sûr (path traversal protégé, limites de taille, comrak avec `unsafe_=false`), et bien testé (28 tests). Le frontend Svelte 5 est découpé proprement en services singletons et stores, avec un seul point d'accès à Muya (`MuyaService`). Le pipeline CI/CD est complet : 7 jobs en parallèle, audit sécurité bloquant, builds multi-OS.
+MiraMD est une réécriture moderne et bien architecturée de MarkText. Le backend Rust est minimaliste, sûr (path traversal protégé, limites de taille, comrak avec `unsafe_=false`), et bien testé (32 tests Rust + 436 tests frontend, soit 468 au total). Le frontend Svelte 5 est découpé proprement en services singletons et stores, avec un seul point d'accès à Muya (`MuyaService`). Le pipeline CI/CD est complet : 7 jobs en parallèle, audit sécurité bloquant, builds multi-OS.
 
-Le projet est cependant **alpha en termes de stabilité** : plusieurs bugs fonctionnels touchent l'expérience utilisateur (undo/redo, sauvegarde, table des matières), principalement dans la **couche d'intégration custom** entre Muya et l'orchestration Svelte. Le moteur Muya lui-même reste celui de MarkText (vendored), donc les fonctionnalités d'édition héritent de sa maturité, mais aussi de ses limites.
+Depuis l'audit du 2026-04-29, le projet a fait un **bond significatif vers la stabilité** : refonte du zoom (vrai zoom WebKit natif), refonte du mode lecture (classe CSS `.muya-readonly`), refonte du mode typewriter (fallback parent rect), refonte complète du mode split (sous-mode du source, sync ancrée sur les headings, double-clic word highlight, mode delta scroll), drag fenêtre global Linux/WebKitGTK, mode debug global (`dlog(subject, ...)` + panneau Ctrl+Shift+D), et liquidation complète de la dette structurelle persistante (toasts UX sur erreurs prefs, migration schéma câblée, timeout IPC, factorisation CLI).
+
+Il reste deux bugs cosmétiques mineurs (police bash neutralisée le 2026-05-10 mais à vérifier visuellement, bugs tableaux Muya vendored hérités) et le moteur Muya lui-même reste celui de MarkText (vendored), donc les fonctionnalités d'édition continuent d'hériter de sa maturité comme de ses limites. Hors Muya, **MiraMD est désormais en état beta exploitable**.
 
 ---
 
@@ -21,15 +23,14 @@ Le projet est cependant **alpha en termes de stabilité** : plusieurs bugs fonct
 ### Forces
 - **Trois couches nettement séparées** : UI Svelte (composants + stores), moteur Muya (vendored), backend Rust (Tauri).
 - **MuyaService = passerelle unique** vers l'instance Muya (singleton, encapsule tous les appels). Aucun composant Svelte ne touche Muya directement.
-- **Backend Rust à responsabilité claire** : 5 modules (`lib.rs`, `error.rs`, `filesystem.rs`, `markdown.rs`, `preferences.rs`), aucun module > 250 lignes.
-- **9 commandes IPC** bien typées, retours `Result<T, AppError>` sérialisés en string.
-- **Pattern services singletons** côté frontend : ~11 services (muya, autoSave, fileOperations, shortcuts, editorModes, zoom, lineNumbers, typewriterScroller, windowInit, stats, historyCache).
-- **Stores Svelte cohérents** : `editor` (tabs + activeTab + stats + toc), `preferences`, `toast`, `muyaInstance`.
+- **Backend Rust à responsabilité claire** : 5 modules (`lib.rs`, `error.rs`, `filesystem.rs`, `markdown.rs`, `preferences.rs`), aucun module > 270 lignes.
+- **9 commandes IPC** bien typées, retours `Result<T, AppError>` sérialisés en string ; `load_preferences` et `save_preferences` retournent désormais `LoadResult/SaveResult { warnings: Vec<String> }` pour bubble up des codes de warning non-fatals.
+- **Pattern services singletons** côté frontend : ~17 services (muya, autoSave, fileOperations, shortcuts, editorModes, zoom, appZoomWheel, lineNumbers, typewriterScroller, typewriterPadding, typewriterSound, windowInit, windowDrag, stats, historyCache, toc, splitScrollSync, splitWordHighlight, ipc, debug). La règle "pure functions extraites en services pour testabilité" est désormais systématique.
+- **Stores Svelte cohérents** : `editor` (tabs + activeTab + stats), `preferences`, `toast`, `muyaInstance`, `debug` (flags par sujet typé).
 
 ### Friction
 - **Muya chargé en script global `window.Muya`** depuis `static/muya/index.min.js` (pas de bundle Vite). Choix justifié par la nature vendored, mais le couple `window.Muya` + intégration TypeScript via `(window as any).Muya` réduit la sûreté de typage.
 - **Pas de bus d'événements** au niveau frontend : la coordination entre services passe par les stores. C'est correct mais peut devenir confus quand plusieurs services lisent/écrivent le même store.
-- **Code dupliqué** : `is_markdown_file()` validé deux fois côté CLI (setup + single-instance) dans `lib.rs`.
 
 ---
 
@@ -51,7 +52,7 @@ Le projet est cependant **alpha en termes de stabilité** : plusieurs bugs fonct
 
 ### Bémols
 - **`script-src 'unsafe-eval'`** dans la CSP : nécessaire pour Muya (utilisé pour la coloration syntaxique). Documenté comme dette technique. Suppression prévue à terme (sortie de Muya = sortie de `unsafe-eval`).
-- **Pas de timeout côté IPC** : une commande très lourde peut figer l'UI (mais les limites de taille atténuent).
+- **Cancellation IPC absente** : `invokeWithTimeout` (commit `cde5017`) garantit que le frontend ne reste pas bloqué (rejet après 30 s pour les flows file I/O, 5 s pour les prefs) mais n'annule pas le travail Rust côté backend — il continue. À considérer si on voulait vraiment couper une opération longue.
 
 ---
 
@@ -59,38 +60,37 @@ Le projet est cependant **alpha en termes de stabilité** : plusieurs bugs fonct
 
 ### Forces
 - **Footprint exceptionnel** : ~5 MB de binaire, ~30 MB de RAM (vs ~200 MB / 300 MB pour MarkText).
-- **Debouncing systématique** : content update 100 ms, stats 300 ms, TOC 300 ms, prefs save 200 ms, source→Muya sync 400 ms.
+- **Debouncing systématique** : content update 100 ms, stats 300 ms, prefs save 200 ms, source→Muya sync 400 ms.
 - **Throttle typewriter** : 50 ms via `requestAnimationFrame` — pas de layout thrashing.
+- **Sync split scroll ancrée sur les headings** (`splitScrollSync.ts`) : interpolation entre headings, fallback proportionnel, mode delta après double-clic pour éviter le rollback. Évite le re-layout cascade.
 - **Pagination backend** : `list_directory_entries(offset, limit)` supporte le découpage.
 - **Lazy imports Tauri** : `await import('@tauri-apps/api/window')` dans `windowInit.ts`.
 - **Cleanup des timers** : `contentTimer`, `statsTimer` annulés au changement d'onglet et au démontage.
 
 ### Friction
-- **I/O Rust synchrone** : `read_file`, `write_file`, `create_file`, `list_directory_entries` sont tous synchrones. Acceptable pour un éditeur, mais un fichier de 50 MB ou un dossier de 10 000 fichiers bloquera l'event loop Tauri.
+- **I/O Rust synchrone** : `read_file`, `write_file`, `create_file`, `list_directory_entries` sont tous synchrones. Acceptable pour un éditeur, mais un fichier de 50 MB ou un dossier de 10 000 fichiers bloquera l'event loop Tauri. Atténué par `invokeWithTimeout` côté frontend (UI ne gèle pas), pas par le runtime Rust.
 - **Pas de virtualisation** dans `TabBar` ni `FileTreePane` : tous les éléments sont rendus dans le DOM. Pas un problème pour des usages courants, mais pourrait gratter sur de gros workspaces.
 
 ---
 
-## 4. Données / Persistance (8 / 10)
+## 4. Données / Persistance (9 / 10)
 
 ### Forces
 - **XDG-compliant** : `~/.config/miramd/preferences.json` via `dirs::config_dir()`.
 - **Rétrocompatibilité serde** : `#[serde(default)]` sur chaque champ + `#[serde(rename_all = "camelCase")]`.
 - **Forward-compatible** : test `serde_unknown_fields_ignored` qui vérifie que les champs inconnus n'explosent pas.
-- **Backup automatique** : `.json.bak` avant chaque écriture.
-- **Fallback gracieux en cascade** : `dirs::config_dir()` → `home_dir/.config` → `/tmp`.
+- **Backup automatique** : `.json.bak` avant chaque écriture, **avec feedback** si l'écriture du `.bak` échoue (toast warning frontend via warning code `prefs_backup_failed`, l'écriture principale n'est pas bloquée).
+- **Fallback gracieux en cascade** : `dirs::config_dir()` → `home_dir/.config` → `/tmp`. **Avec feedback** : `prefs_path_with_warnings()` retourne `(PathBuf, Vec<String>)`, `load_preferences` propage le code `prefs_tmp_fallback` une fois au démarrage si tombé sur `/tmp`. `save_preferences` discard ce warning pour éviter le spam.
 - **JSON corrompu → defaults** : pas de crash, log warning et recréation.
-- **`prefsVersion: u32`** déclaré (default = 1), prêt pour de futures migrations.
+- **Migration de schéma câblée** : constante `CURRENT_PREFS_VERSION`, helper `migrate_preferences()` retourne `MigrationResult` (AlreadyCurrent / Migrated{from} / FutureVersion{actual}). `load_preferences` persiste après migration. Cas downgrade détecté (warning `prefs_future_version`). 4 tests + garde-fou contre la dérive `default_prefs_version` ↔ `CURRENT_PREFS_VERSION`.
+- **Erreurs `save_preferences` toastées côté frontend** : `save()` enroule en try/catch + toast d'erreur explicite, `patch()` chaîne `.catch(reportSaveError)` au lieu du précédent `console.warn` silencieux.
 
 ### Friction
-- **Pas de migration de schéma implémentée** : `prefs_version` existe mais n'est jamais vérifié. Un changement breaking utiliserait silencieusement les defaults.
-- **Backup silencieux** : si l'écriture du `.bak` échoue (disque plein, permissions), erreur loggée WARN et ignored.
-- **Fallback `/tmp`** : si la config dir n'est pas accessible, les prefs partent dans `/tmp` — perdues au prochain boot.
-- **`preferences.patch()` est fire-and-forget** : `catch()` ajouté côté frontend, mais l'utilisateur n'est pas averti d'une erreur de sauvegarde.
+- (résiduel) — Les toasts spam si le disque est cassé : `patch()` est appelé sur chaque mode toggle / Ctrl+wheel zoom, donc un disque inopérant peut générer une avalanche. Acceptable car pathologique (l'app est globalement non-utilisable dans ce cas), mais une dédup côté frontend (un seul toast par session) serait propre.
 
 ---
 
-## 5. Gestion d'erreurs / Fiabilité (6.5 / 10)
+## 5. Gestion d'erreurs / Fiabilité (8.5 / 10)
 
 ### Forces
 - **Type d'erreur custom Rust** : `AppError` enum (6 variantes), `thiserror` pour la dérivation, `?` pour la propagation.
@@ -98,14 +98,15 @@ Le projet est cependant **alpha en termes de stabilité** : plusieurs bugs fonct
 - **Logging structuré** côté Rust : `log::info!`, `log::warn`, `log::debug` (env_logger en dev, no-op en release).
 - **Toast store côté frontend** : `showToast(text, kind, duration)` pour notifier l'utilisateur (kind: error / warning / info / success).
 - **Try-catch systématiques** dans `MuyaService` autour de chaque appel Muya.
+- **Mode debug global** (livré 2026-05-09) : helper `dlog(subject, ...args)` (`src/lib/services/debug.ts`) gate par sujet typé (9 sujets : `typewriter, ctrlz, save, muya, zoom, editorModes, prefs, sound, toc`). Activation via `localStorage.miramd_debug` ou panneau flottant `Ctrl+Shift+D`. Badge orange `DEBUG: ...` dans la status bar quand ≥1 sujet actif. Doc : `docs/05-fonctionnalites/mode-debug.md`. **C'était le plus gros manque de l'audit précédent.**
+- **Erreurs `write_file` correctement propagées** : audit 2026-05-09 a vérifié que les 4 call sites de `write_file` côté frontend (`fileOperations.ts:51,64,93` + `TabBar.svelte:48`) ont try/catch + toast + skip `markSaved` — la doc précédente reflétait probablement un état antérieur déjà fixé.
+- **Erreurs `save_preferences` toastées** (commit `242a453`) : remplace les `.catch(console.warn)` silencieux. Plus de Promise rejections unhandled sur les flows `setTimeout`.
+- **Timeout IPC sur les flows user-initiated** (commit `cde5017`) : `invokeWithTimeout` race contre `setTimeout`, rejette `IpcTimeoutError` avec `command` et `timeoutMs` portés sur l'erreur. 30 s pour file I/O, 5 s pour les prefs.
 
-### Friction (importante)
-- **`autoSave` fire-and-forget** : le callback de sauvegarde est invoqué sans attendre de confirmation backend. Pas de retry, pas de notification explicite. Si l'écriture échoue, l'utilisateur croit que c'est sauvegardé.
-- **`preferences.patch()` silencieux** : `.catch()` log seulement, l'utilisateur ne voit rien.
-- **Pas de timeout** sur les commandes IPC : une commande qui se fige fige l'UI sans feedback.
-- **Stack traces non exposées** : c'est correct pour la prod, mais en dev il manque un mode verbose.
-
-C'est probablement la source de **« je ne détecte pas mes propres bugs »** mentionné par l'utilisateur : les chemins d'erreur sont silencieux par défaut. Voir `problemes-connus.md` pour les pistes.
+### Friction résiduelle
+- **`autoSave` fire-and-forget** : le callback de sauvegarde est invoqué sans attendre de confirmation backend. Au moins maintenant les erreurs `write_file` sous-jacentes toastent (vu que `saveCurrentFile` les capture), mais autoSave en lui-même ne traite pas l'absence de path ou les erreurs réseau d'une manière différente d'un save manuel. **Plus prioritaire** : ajouter un retry exponentiel et une déduplication idempotente (skip si contenu inchangé).
+- **Pas de cancellation IPC** : `invokeWithTimeout` abandonne la promesse JS mais le Rust continue. Pour vraiment couper, il faudrait un mécanisme de cancellation token côté Rust.
+- **Stack traces non exposées** : c'est correct pour la prod, mais en dev les erreurs frontend pourraient utiliser le sujet `prefs`/`save` du mode debug pour tracer.
 
 ---
 
@@ -121,8 +122,7 @@ C'est probablement la source de **« je ne détecte pas mes propres bugs »** me
 
 ### Friction
 - **Muya vendored sans synchronisation upstream** : `src/lib/muya/` est figé. Si MarkText sort un fix Muya, il faut le rapatrier manuellement.
-- **Code dupliqué** : `is_markdown_file()` (lib.rs:40, lib.rs:64), pattern `setAttribute('data-theme')` + `setProperty('--font-size')` dupliqué entre `+page.svelte` et `SettingsModal.svelte`.
-- **TOC extraction naïve** : regex `^(#{1,6})\s+(.+)` (editor.ts) — ne tient pas compte des blocs de code, des fenced regions, des frontmatters.
+- **Code dupliqué résiduel** : pattern `setAttribute('data-theme')` + `setProperty('--font-size')` dupliqué entre `+page.svelte` et `SettingsModal.svelte` (la duplication CLI `is_markdown_file` a été factorisée dans `validated_cli_file()` le 2026-05-10).
 - **Stats côté frontend** : `stats.ts` calcule en local. Cohérent en single-source-of-truth, mais pose la question si on voulait des stats plus complexes.
 - **Pas de TypeScript** sur le code Muya (vendored JS), donc pas de garantie d'API stable côté wrapper `MuyaService`.
 
@@ -145,7 +145,7 @@ C'est probablement la source de **« je ne détecte pas mes propres bugs »** me
 
 ### Notes
 - **Pas de virtual DOM côté Svelte** : Svelte compile vers du DOM natif. Le seul VDOM dans le projet est Snabbdom à l'intérieur de Muya.
-- **WebKitGTK sur Linux** : utilisé par Tauri pour le rendu. Il **ne supporte pas certains contenteditable behaviors natifs** (Ctrl+Z notamment) — d'où l'intercept capture phase dans `MuyaPane.svelte`. C'est une source potentielle de bugs subtils.
+- **WebKitGTK sur Linux** : utilisé par Tauri pour le rendu. Plusieurs comportements divergent de Chromium et ont demandé du contournement : (1) **contenteditable Ctrl+Z** non natif → intercept capture phase dans `MuyaPane.svelte` ; (2) **`-webkit-app-region: drag` inopérant** → drag fenêtre programmatique via `appWindow.startDragging()` (`src/lib/services/windowDrag.ts`, listener mousedown global avec sélecteur d'exclusion exhaustif) ; (3) **Web Audio `AudioDestinationGStreamer.maxChannelCount = 0`** → pivot HTML5 `<audio>` + base64 WAV pour les typewriter sounds ; (4) **CSS Highlight API et Selection API instables cross-éléments** → span-wrapping pur pour le word highlight du mode split ; (5) **`muya.setMarkdown()` qui vole le focus** → focusin guardian sur document + multi-passe refocus en `applySetMarkdownPreservingFocus()`. Toutes ces solutions sont stables aujourd'hui mais à connaître pour ne pas réintroduire le bug naïvement.
 
 ---
 
@@ -154,24 +154,22 @@ C'est probablement la source de **« je ne détecte pas mes propres bugs »** me
 ### Tests
 | Type | Framework | Nombre | Couverture |
 |---|---|---|---|
-| Unit Rust | `#[cfg(test)]` | 28 | markdown.rs, preferences.rs, filesystem.rs |
-| Unit/Integration JS | Vitest + jsdom | 13 fichiers (~1842 lignes) | services (6), stores (3), intégration (4) |
+| Unit Rust | `#[cfg(test)]` | 32 | markdown.rs, preferences.rs (incl. 4 tests migration), filesystem.rs |
+| Unit/Integration JS | Vitest + jsdom | 26 fichiers, **436 tests** | services, stores, intégration |
 | Coverage | V8 (frontend), tarpaulin (Rust) | text + lcov + cobertura | Reportée en CI |
 
-**13 fichiers de test frontend** :
-- Services : editorModes, fileOperations, lineNumbers, stats, typewriterScroller, zoom
-- Stores : editor, preferences, toast
-- Intégration : full-app, features, regression, keyboard
+**26 fichiers de test frontend** couvrent désormais : appZoomWheel, debug, editorModes, fileOperations, fontSize, ipc, lineNumbers, muyaHeading, splitScrollSync, splitWordHighlight, stats, toc, typewriterPadding, typewriterScroller, typewriterSound, windowDrag, zoom (côté services) ; editor, preferences, toast (stores) ; full-app, features, regression, keyboard (intégration). La discipline "extraire la logique non-triviale d'un `.svelte` vers un service pour testabilité vitest" est maintenant systématique.
 
 ### Observabilité en runtime
-- **`debug_log` IPC command** : conditionnée à `#[cfg(debug_assertions)]` — no-op en release.
+- **Mode debug global `dlog(subject, ...args)`** (livré 2026-05-09) : 9 sujets typés (`typewriter, ctrlz, save, muya, zoom, editorModes, prefs, sound, toc`), gating zéro-coût quand off, panneau flottant Ctrl+Shift+D, badge status bar quand actif. Persistance localStorage. Documenté dans `docs/05-fonctionnalites/mode-debug.md`. **A remplacé le manque "Pas d'instrumentation centralisée" de l'audit précédent.**
+- **`debug_log` IPC command** : conditionnée à `#[cfg(debug_assertions)]` — no-op en release. Permet au frontend de loguer dans la console Rust en dev.
 - **`electron-log` équivalent** non utilisé : `log` + `env_logger` côté Rust seulement.
 - **Pas de telemetry**, pas de crash reporter (correct pour un éditeur de texte local-first).
 
 ### Manques
-- **Pas de tests E2E** réels (Playwright/WebDriver) — l'app n'est pas lancée pour vérifier les flux complets.
-- **Pas de tests pour MuyaPane.svelte** : c'est le composant le plus complexe, pas de test direct.
-- **Pas d'instrumentation centralisée** : pour comprendre un bug en prod (Ctrl+Z, sauvegarde), il faut reproduire localement avec des `console.log`. Voir `problemes-connus.md` pour la suggestion d'un mode debug global.
+- **Pas de tests E2E** réels (Playwright/WebDriver) — l'app n'est pas lancée pour vérifier les flux complets bout-en-bout (le tunnel `npm run tauri dev` + clic-and-vérif reste manuel).
+- **Pas de tests pour MuyaPane.svelte** : c'est le composant le plus complexe, pas de test direct (les helpers extraits sont testés, mais l'orchestration ne l'est pas).
+- **Pas de test du SourcePane non plus** (split mode preview) — la logique pure est extraite et testée (`splitScrollSync`, `splitWordHighlight`, `editorModes`) mais le binding Svelte ne l'est pas.
 
 ---
 
@@ -213,42 +211,46 @@ C'est probablement la source de **« je ne détecte pas mes propres bugs »** me
 
 ### Friction
 - **Pas de TypeScript sur Muya** : l'API est typée à la main dans `src/lib/types/muya-instance.ts`. Si Muya change, le typage diverge silencieusement.
-- **Pas de mode "debug global"** : impossible d'activer un toggle qui ferait pleuvoir les logs de tous les services. Pour débugger un bug de Ctrl+Z, il faut sprinkler des `console.log` dans plusieurs fichiers.
 - **Pas de Storybook ou playground** pour les composants Svelte isolés.
+- ~~**Pas de mode "debug global"**~~ — résolu 2026-05-09 par `dlog()` + panneau Ctrl+Shift+D.
 
 ---
 
 ## Synthèse finale
 
-### Score global : **8.0 / 10**
+### Score global : **8.6 / 10** (était 8.0)
 
-| Dimension | Score | Niveau |
-|---|---|---|
-| Architecture | 8.5 | ✅ |
-| Sécurité | 9.0 | ✅ |
-| Performance | 8.0 | ✅ |
-| Données / Persistance | 8.0 | ✅ |
-| Gestion d'erreurs | 6.5 | ⚠️ |
-| Maintenabilité | 7.0 | ⚠️ |
-| Frontend / Tauri | 8.5 | ✅ |
-| Tests / Observabilité | 7.0 | ⚠️ |
-| Deployment / CI | 9.0 | ✅ |
-| DX | 8.0 | ✅ |
+| Dimension | Score | Δ | Niveau |
+|---|---|---|---|
+| Architecture | 8.5 | = | ✅ |
+| Sécurité | 9.0 | = | ✅ |
+| Performance | 8.0 | = | ✅ |
+| Données / Persistance | 9.0 | +1.0 | ✅ |
+| Gestion d'erreurs | 8.5 | +2.0 | ✅ |
+| Maintenabilité | 7.5 | +0.5 | ⚠️ |
+| Frontend / Tauri | 8.5 | = | ✅ |
+| Tests / Observabilité | 8.5 | +1.5 | ✅ |
+| Deployment / CI | 9.0 | = | ✅ |
+| DX | 9.0 | +1.0 | ✅ |
 
-### Top 5 chantiers prioritaires
+Les progrès viennent essentiellement de la résolution de la dette d'observabilité (mode debug global), de la fiabilisation de la persistance (toasts UX, migration schéma) et de l'expansion massive des tests (28→32 Rust, ~13 fichiers→26 fichiers / 436 tests vitest).
+
+### Top 5 chantiers prioritaires (refresh)
+
+Les 5 originaux du 2026-04-29 sont **tous terminés** (instrumentation gestion d'erreurs, stabilisation undo/redo, refonte TOC, fiabilisation persistance, migration schéma). Voici les nouveaux prioritaires :
 
 | # | Action | Priorité | Effort |
 |---|---|---|---|
-| 1 | **Instrumenter la gestion d'erreurs** : remplacer les `.catch(...)` silencieux d'`autoSave` et `preferences.patch()` par des notifications utilisateur via `toast`. Mode debug global (logger toutes les transitions de Muya, autoSave, preferences). | 🚨 P0 | Faible |
-| 2 | **Stabiliser undo/redo** : auditer l'interaction `historyCache` ↔ Muya internal history ↔ intercept Ctrl+Z capture phase. Ajouter des tests d'intégration sur le scénario "tab switch + undo". | 🚨 P0 | Moyen |
-| 3 | **Stabiliser la TOC** : remplacer la regex naïve par un parsing AST (réutiliser comrak côté frontend ou créer une commande IPC `extract_headings`). | ⚠️ P1 | Moyen |
-| 4 | **Améliorer la fiabilité de `autoSave`** : retry exponentiel, notification utilisateur en cas d'échec, idempotence (pas d'écriture si contenu inchangé). | ⚠️ P1 | Faible |
-| 5 | **Migration de schéma `preferences`** : implémenter le mécanisme `prefs_version` (déjà déclaré) avant de pousser un nouveau champ breaking. | ⚠️ P2 | Faible |
+| 1 | **Améliorer la fiabilité de `autoSave`** : retry exponentiel, idempotence (skip si contenu inchangé), traçage via `dlog('save', ...)` (déjà déclaré). C'est le seul flow user-critical encore "fire-and-forget par design". | ⚠️ P1 | Faible |
+| 2 | **Tests E2E réels** (Playwright/WebDriver) sur les flows critiques : ouvrir/éditer/sauvegarder, split mode round-trip, multi-tabs avec undo. Aujourd'hui seul le `npm run tauri dev` + clic manuel valide les composants Svelte non-extraits (MuyaPane, SourcePane). | ⚠️ P1 | Moyen |
+| 3 | **Tester l'audit `audit_with_warnings`** sur des cas extrêmes côté disque : disque plein, permission read-only sur `~/.config`, fichiers prefs avec `prefsVersion: 99` (futur), `prefsVersion: 0` (legacy). Les tests unitaires couvrent `migrate_preferences` mais pas les chemins I/O complets. | ⚠️ P2 | Faible |
+| 4 | **Bugs Muya tableaux** (vendored) — soit rapatrier des fixes upstream depuis le repo MarkText, soit anticiper le remplacement de Muya (cf. ADR `04-muya-conserve.md`). C'est devenu le bug visible le plus impactant. | 🟦 P2 | Grand |
+| 5 | **Cancellation IPC côté Rust** : `invokeWithTimeout` abandonne la promesse JS mais le Rust continue tourner. Pour des opérations vraiment lourdes (read d'un fichier 50 MB sur disque réseau), un `CancellationToken` côté Rust permettrait de couper proprement. | 🟦 P3 | Moyen |
 
 ### Verdict
 
-MiraMD est une **réécriture techniquement saine et bien sécurisée** de MarkText, avec un footprint exceptionnel et une architecture lisible. Le projet n'est pas en danger sur ses fondations : Tauri/Svelte/Rust sont tous des choix solides et récents.
+MiraMD est passée d'**alpha avec bugs subtils** (audit du 2026-04-29) à **beta exploitable au quotidien** (état 2026-05-10). La voie de progression suggérée par l'audit précédent — "instrumentation et fiabilisation, pas refonte" — a été suivie quasi à la lettre : 17 nouveaux services, 9 sujets de debug instrumentés, +6 entrées résolues dans `problemes-connus.md`, +138 tests vitest, refonte du split mode comme cas d'application de la doctrine "logique non-triviale → service pur testable".
 
-La **dette principale est dans la couche d'intégration custom** (services qui orchestrent Muya, gestion d'erreurs silencieuse, debouncings empilés) — c'est elle qui produit les bugs visibles par l'utilisateur (Ctrl+Z, sauvegarde, TOC). Le moteur Muya en lui-même reste celui de MarkText, donc bon, mais le wrapper a tendance à laisser passer les erreurs sans les remonter.
+Il reste de la dette résiduelle (autoSave robust, E2E tests, Muya tableaux) mais elle est **bien identifiée et localisée** — plus de zones grises où les bugs disparaissent dans le silence. Le projet est prêt à accumuler des features sans s'effondrer sous son propre poids ; le moteur Muya vendored reste le principal facteur limitant pour la maturité de l'édition elle-même.
 
-**La voie de progression la plus efficace n'est pas une refonte mais un travail d'instrumentation et de fiabilisation** : rendre les erreurs visibles, ajouter des tests d'intégration sur les scénarios fragiles (tab switching, undo, autoSave), durcir les chemins critiques. Avec 2 à 4 semaines de ce type de travail, MiraMD passerait probablement de "alpha avec des bugs subtils" à "beta exploitable au quotidien".
+**Prochain palier** : sortir Muya (remplacement progressif ou full rewrite) pour adresser à la fois `unsafe-eval` dans la CSP, les bugs de tableaux, et le couplage `window.Muya` non-typé. Hors ça, c'est de la consolidation incrémentale.

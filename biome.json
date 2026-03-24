@@ -6,13 +6,16 @@
 		"useIgnoreFile": true
 	},
 	"files": {
-		"ignore": [
-			"static/muya/",
-			"node_modules/",
-			"src-tauri/target/",
-			".svelte-kit/",
-			"build/",
-			"tests/"
+		"includes": [
+			"**",
+			"!**/node_modules/**",
+			"!**/.svelte-kit/**",
+			"!**/build/**",
+			"!**/src-tauri/target/**",
+			"!**/static/muya/**",
+			"!**/src/lib/muya/**",
+			"!**/tests/**",
+			"!**/*.svelte"
 		]
 	},
 	"formatter": {
@@ -30,7 +33,16 @@
 			"style": {
 				"noNonNullAssertion": "off",
 				"useConst": "warn",
-				"noParameterAssign": "off"
+				"noParameterAssign": "off",
+				"useAsConstAssertion": "error",
+				"useDefaultParameterLast": "error",
+				"useEnumInitializers": "error",
+				"useSelfClosingElements": "error",
+				"useSingleVarDeclarator": "error",
+				"noUnusedTemplateLiteral": "error",
+				"useNumberNamespace": "error",
+				"noInferrableTypes": "error",
+				"noUselessElse": "error"
 			},
 			"complexity": {
 				"noForEach": "off"

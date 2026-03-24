@@ -12,10 +12,10 @@
 /* Copy buttons always visible and clickable in read-only */
 .read-only .ag-code-copy,
 .read-only .ag-code-copy * {
-  pointer-events: auto;
-  cursor: pointer;
-  display: block;
-  opacity: 1;
+	pointer-events: auto;
+	cursor: pointer;
+	display: block;
+	opacity: 1;
 }
 
 /* Hide ALL editing affordances in read-only */
@@ -25,31 +25,31 @@
 .read-only .ag-drag-handler,
 .read-only .ag-table-bar,
 .read-only .ag-tool-bar {
-  display: none !important;
+	display: none !important;
 }
 
 /* Disable all table cell editing in read-only */
 .read-only .ag-cell-content {
-  pointer-events: none;
+	pointer-events: none;
 }
 
 /* Allow text selection in read-only */
 .read-only .muya-editor {
-  user-select: text;
-  -webkit-user-select: text;
-  cursor: text;
+	user-select: text;
+	-webkit-user-select: text;
+	cursor: text;
 }
 
 .read-only [contenteditable="false"] {
-  pointer-events: auto;
-  user-select: text;
-  -webkit-user-select: text;
-  cursor: text;
+	pointer-events: auto;
+	user-select: text;
+	-webkit-user-select: text;
+	cursor: text;
 }
 
 /* Keep lock toggle clickable in read-only */
 .read-only .lock-toggle {
-  pointer-events: auto;
+	pointer-events: auto;
 }
 
 /* --- Muya content area padding --- */
@@ -57,26 +57,26 @@
 /* Standard mode: centered with max-width */
 .wysiwyg-pane > div[contenteditable],
 #ag-editor-id {
-  padding: 20px clamp(15px, 4vw, 15px) 100px clamp(15px, 4vw, 15px);
-  max-width: var(--editorAreaWidth, 750px);
-  min-width: 0;
-  margin: 0 auto;
-  outline: none;
+	padding: 20px clamp(15px, 4vw, 15px) 100px clamp(15px, 4vw, 15px);
+	max-width: var(--editorAreaWidth, 750px);
+	min-width: 0;
+	margin: 0 auto;
+	outline: none;
 }
 
 /* Split mode: full-width with tight padding (preview is narrower, breathing room becomes wasted space) */
 .split-active .wysiwyg-pane > div[contenteditable],
 .split-active .wysiwyg-pane > div,
 .split-active #ag-editor-id {
-  max-width: 100%;
-  padding: 16px 12px 100px 12px;
-  margin: 0;
+	max-width: 100%;
+	padding: 16px 12px 100px 12px;
+	margin: 0;
 }
 
 /* Position relative pour ancrer le marqueur de click et garantir que offsetTop
    des headings est calculé par rapport au pane (utile pour computeAnchoredScroll). */
 .split-active .wysiwyg-pane {
-  position: relative;
+	position: relative;
 }
 
 /* Highlight du mot exact double-cliqué dans la source, retrouvé dans la preview.
@@ -84,57 +84,66 @@
    prévisible que CSS Highlight API ou Selection API qui ont des quirks suivant
    l'élément hôte (heading vs paragraphe vs lien) et la version de WebKit. */
 .split-word-highlight {
-  background: rgba(124, 156, 238, 0.45);
-  border-radius: 2px;
-  padding: 0 1px;
+	background: rgba(124, 156, 238, 0.45);
+	border-radius: 2px;
+	padding: 0 1px;
 }
 
 /* Outline transitoire sur le bloc contenant le mot — orientation visuelle
    (au cas où la sélection du mot exact échoue : cross-boundary, etc.). */
 .split-click-target {
-  animation: split-click-target-pulse 1.6s ease-out forwards;
-  border-radius: 4px;
+	animation: split-click-target-pulse 1.6s ease-out forwards;
+	border-radius: 4px;
 }
 
 @keyframes split-click-target-pulse {
-  0%   { outline: 0 solid transparent; outline-offset: 0; }
-  15%  { outline: 2px solid var(--accent, #7c9cee); outline-offset: 4px; }
-  100% { outline: 2px solid transparent; outline-offset: 4px; }
+	0% {
+		outline: 0 solid transparent;
+		outline-offset: 0;
+	}
+	15% {
+		outline: 2px solid var(--accent, #7c9cee);
+		outline-offset: 4px;
+	}
+	100% {
+		outline: 2px solid transparent;
+		outline-offset: 4px;
+	}
 }
 
 /* --- Muya float menus --- */
 .ag-float-wrapper {
-  z-index: 10000;
-  pointer-events: auto;
+	z-index: 10000;
+	pointer-events: auto;
 }
 
 .ag-float-wrapper * {
-  pointer-events: auto;
+	pointer-events: auto;
 }
 
 /* Table picker needs more width for the 6x8 grid */
 .ag-table-picker {
-  min-width: 155px;
+	min-width: 155px;
 }
 
 /* --- Split mode: preview is read-only reflection --- */
 
 /* Hide placeholder "Type @ to insert..." */
 .split-active .wysiwyg-pane .ag-paragraph > span.ag-paragraph-content:empty::after {
-  display: none;
+	display: none;
 }
 
 /* Hide editing icons */
 .split-active .wysiwyg-pane .ag-front-icon,
 .split-active .wysiwyg-pane .ag-front-menu,
 .split-active .wysiwyg-pane .ag-drag-handler {
-  display: none;
+	display: none;
 }
 
 /* En split, l'utilisateur peut sélectionner/copier le texte rendu dans la preview.
    Le contenteditable est forcé à false côté MuyaPane.svelte donc il n'est pas
    éditable, mais user-select reste actif pour permettre la copie. */
 .split-active .wysiwyg-pane {
-  user-select: text;
-  -webkit-user-select: text;
+	user-select: text;
+	-webkit-user-select: text;
 }

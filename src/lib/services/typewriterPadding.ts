@@ -15,72 +15,70 @@
  * so the service installs a ResizeObserver to keep the padding in sync.
  */
 export interface TypewriterPaddingController {
-  setActive: (active: boolean) => void;
-  destroy: () => void;
+	setActive: (active: boolean) => void;
+	destroy: () => void;
 }
 
-export function initTypewriterPadding(
-  getPane: () => HTMLElement | null,
-): TypewriterPaddingController {
-  let active = false;
-  let observer: ResizeObserver | null = null;
+export function initTypewriterPadding(getPane: () => HTMLElement | null): TypewriterPaddingController {
+	let active = false;
+	let observer: ResizeObserver | null = null;
 
-  function getContainer(): HTMLElement | null {
-    const pane = getPane();
-    if (!pane) return null;
-    return pane.querySelector('.muya-editor') as HTMLElement | null;
-  }
+	function getContainer(): HTMLElement | null {
+		const pane = getPane();
+		if (!pane) return null;
+		return pane.querySelector('.muya-editor') as HTMLElement | null;
+	}
 
-  function apply(): void {
-    const pane = getPane();
-    const container = getContainer();
-    if (!pane || !container) return;
-    const half = Math.max(0, Math.floor(pane.clientHeight / 2));
-    container.style.paddingTop = `${half}px`;
-    container.style.paddingBottom = `${half}px`;
-  }
+	function apply(): void {
+		const pane = getPane();
+		const container = getContainer();
+		if (!pane || !container) return;
+		const half = Math.max(0, Math.floor(pane.clientHeight / 2));
+		container.style.paddingTop = `${half}px`;
+		container.style.paddingBottom = `${half}px`;
+	}
 
-  function clear(): void {
-    const container = getContainer();
-    if (!container) return;
-    container.style.removeProperty('padding-top');
-    container.style.removeProperty('padding-bottom');
-  }
+	function clear(): void {
+		const container = getContainer();
+		if (!container) return;
+		container.style.removeProperty('padding-top');
+		container.style.removeProperty('padding-bottom');
+	}
 
-  function startObserving(): void {
-    const pane = getPane();
-    if (!pane || typeof ResizeObserver === 'undefined') return;
-    if (observer) observer.disconnect();
-    observer = new ResizeObserver(() => {
-      if (active) apply();
-    });
-    observer.observe(pane);
-  }
+	function startObserving(): void {
+		const pane = getPane();
+		if (!pane || typeof ResizeObserver === 'undefined') return;
+		if (observer) observer.disconnect();
+		observer = new ResizeObserver(() => {
+			if (active) apply();
+		});
+		observer.observe(pane);
+	}
 
-  function stopObserving(): void {
-    if (observer) {
-      observer.disconnect();
-      observer = null;
-    }
-  }
+	function stopObserving(): void {
+		if (observer) {
+			observer.disconnect();
+			observer = null;
+		}
+	}
 
-  function setActive(value: boolean): void {
-    if (value === active) return;
-    active = value;
-    if (active) {
-      apply();
-      startObserving();
-    } else {
-      clear();
-      stopObserving();
-    }
-  }
+	function setActive(value: boolean): void {
+		if (value === active) return;
+		active = value;
+		if (active) {
+			apply();
+			startObserving();
+		} else {
+			clear();
+			stopObserving();
+		}
+	}
 
-  function destroy(): void {
-    clear();
-    stopObserving();
-    active = false;
-  }
+	function destroy(): void {
+		clear();
+		stopObserving();
+		active = false;
+	}
 
-  return { setActive, destroy };
+	return { setActive, destroy };
 }

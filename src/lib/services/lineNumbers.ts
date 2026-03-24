@@ -9,26 +9,26 @@ import { preferences } from '$lib/stores/preferences';
  * The CSS rules are in editor.css targeting `.wysiwyg-pane.show-line-numbers`.
  */
 class LineNumbersService {
-  private unsub: (() => void) | null = null;
-  private paneElement: HTMLElement | null = null;
+	private unsub: (() => void) | null = null;
+	private paneElement: HTMLElement | null = null;
 
-  /** Binds to the given pane element and toggles the line-numbers CSS class based on preferences. */
-  init(pane: HTMLElement): void {
-    this.paneElement = pane;
+	/** Binds to the given pane element and toggles the line-numbers CSS class based on preferences. */
+	init(pane: HTMLElement): void {
+		this.paneElement = pane;
 
-    this.unsub = preferences.subscribe((p) => {
-      if (this.paneElement) {
-        this.paneElement.classList.toggle('show-line-numbers', p.editorLineNumbers);
-      }
-    });
-  }
+		this.unsub = preferences.subscribe((p) => {
+			if (this.paneElement) {
+				this.paneElement.classList.toggle('show-line-numbers', p.editorLineNumbers);
+			}
+		});
+	}
 
-  /** Unsubscribes and clears the pane reference. */
-  destroy(): void {
-    this.unsub?.();
-    this.unsub = null;
-    this.paneElement = null;
-  }
+	/** Unsubscribes and clears the pane reference. */
+	destroy(): void {
+		this.unsub?.();
+		this.unsub = null;
+		this.paneElement = null;
+	}
 }
 
 export const lineNumbersService = new LineNumbersService();

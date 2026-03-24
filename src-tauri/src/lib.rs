@@ -4,10 +4,9 @@ mod markdown;
 mod preferences;
 
 use tauri::{
-    Emitter,
-    Manager,
-    tray::TrayIconBuilder,
     menu::{Menu, MenuItem},
+    tray::TrayIconBuilder,
+    Emitter, Manager,
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -66,23 +65,21 @@ pub fn run() {
             let mut tray_builder = TrayIconBuilder::new()
                 .tooltip("MiraMD")
                 .menu(&menu)
-                .on_menu_event(|app, event| {
-                    match event.id.as_ref() {
-                        "quit" => {
-                            app.exit(0);
-                        }
-                        "show" => {
-                            if let Some(window) = app.get_webview_window("main") {
-                                if let Err(e) = window.show() {
-                                    log::debug!("Failed to show window: {}", e);
-                                }
-                                if let Err(e) = window.set_focus() {
-                                    log::debug!("Failed to set focus: {}", e);
-                                }
+                .on_menu_event(|app, event| match event.id.as_ref() {
+                    "quit" => {
+                        app.exit(0);
+                    }
+                    "show" => {
+                        if let Some(window) = app.get_webview_window("main") {
+                            if let Err(e) = window.show() {
+                                log::debug!("Failed to show window: {}", e);
+                            }
+                            if let Err(e) = window.set_focus() {
+                                log::debug!("Failed to set focus: {}", e);
                             }
                         }
-                        _ => {}
                     }
+                    _ => {}
                 })
                 .on_tray_icon_event(|tray, event| {
                     if let tauri::tray::TrayIconEvent::Click { .. } = event {
@@ -106,7 +103,8 @@ pub fn run() {
             tray_builder.build(app)?;
 
             // When the window is closed, hide instead of quitting (stay resident)
-            let window = app.get_webview_window("main")
+            let window = app
+                .get_webview_window("main")
                 .ok_or_else(|| tauri::Error::WindowNotFound)?;
             let win_clone = window.clone();
             window.on_window_event(move |event| {
@@ -131,7 +129,10 @@ pub fn run() {
 /// Check if a file has a recognized markdown extension
 fn is_markdown_file(path: &std::path::Path) -> bool {
     matches!(
-        path.extension().and_then(|e| e.to_str()).map(|e| e.to_lowercase()).as_deref(),
+        path.extension()
+            .and_then(|e| e.to_str())
+            .map(|e| e.to_lowercase())
+            .as_deref(),
         Some("md" | "markdown" | "mmd" | "mdx" | "mkd")
     )
 }

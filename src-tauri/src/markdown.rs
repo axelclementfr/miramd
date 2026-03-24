@@ -1,5 +1,5 @@
-use comrak::{markdown_to_html, Options};
 use crate::error::AppError;
+use comrak::{markdown_to_html, Options};
 
 /// Maximum content size for markdown parsing (10 MB)
 const MAX_PARSE_SIZE: usize = 10 * 1024 * 1024;
@@ -72,5 +72,4 @@ mod tests {
         let huge = "x".repeat(MAX_PARSE_SIZE + 1);
         assert!(parse_markdown(&huge).is_err());
     }
-
 }

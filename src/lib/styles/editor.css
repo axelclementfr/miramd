@@ -11,11 +11,11 @@
    and must NOT be disabled globally. Only .icon-inner elements (used in
    copy/edit buttons with direct PNG backgrounds) need the fix. */
 i.icon > i.icon-inner {
-  filter: none !important;
-  left: 0 !important;
-  position: absolute !important;
-  width: 100% !important;
-  height: 100% !important;
+	filter: none !important;
+	left: 0 !important;
+	position: absolute !important;
+	width: 100% !important;
+	height: 100% !important;
 }
 
 /* ---- Override Prism light theme for dark themes ----
@@ -24,49 +24,69 @@ i.icon > i.icon-inner {
 [data-theme="dark"] .ag-paragraph code,
 [data-theme="one-dark"] .ag-paragraph code,
 [data-theme="material-dark"] .ag-paragraph code {
-  color: var(--editorColor) !important;
+	color: var(--editorColor) !important;
 }
 
 /* Token colors for dark themes (MarkText Prism dark) */
 [data-theme="dark"] .token.tag,
 [data-theme="one-dark"] .token.tag,
-[data-theme="material-dark"] .token.tag { color: #e06c75 !important; }
+[data-theme="material-dark"] .token.tag {
+	color: #e06c75 !important;
+}
 
 [data-theme="dark"] .token.attr-name,
 [data-theme="one-dark"] .token.attr-name,
-[data-theme="material-dark"] .token.attr-name { color: #d19a66 !important; }
+[data-theme="material-dark"] .token.attr-name {
+	color: #d19a66 !important;
+}
 
 [data-theme="dark"] .token.attr-value,
 [data-theme="one-dark"] .token.attr-value,
-[data-theme="material-dark"] .token.attr-value { color: #98c379 !important; }
+[data-theme="material-dark"] .token.attr-value {
+	color: #98c379 !important;
+}
 
 [data-theme="dark"] .token.string,
 [data-theme="one-dark"] .token.string,
-[data-theme="material-dark"] .token.string { color: #98c379 !important; }
+[data-theme="material-dark"] .token.string {
+	color: #98c379 !important;
+}
 
 [data-theme="dark"] .token.keyword,
 [data-theme="one-dark"] .token.keyword,
-[data-theme="material-dark"] .token.keyword { color: #c678dd !important; }
+[data-theme="material-dark"] .token.keyword {
+	color: #c678dd !important;
+}
 
 [data-theme="dark"] .token.comment,
 [data-theme="one-dark"] .token.comment,
-[data-theme="material-dark"] .token.comment { color: #5c6370 !important; }
+[data-theme="material-dark"] .token.comment {
+	color: #5c6370 !important;
+}
 
 [data-theme="dark"] .token.function,
 [data-theme="one-dark"] .token.function,
-[data-theme="material-dark"] .token.function { color: #61afef !important; }
+[data-theme="material-dark"] .token.function {
+	color: #61afef !important;
+}
 
 [data-theme="dark"] .token.number,
 [data-theme="one-dark"] .token.number,
-[data-theme="material-dark"] .token.number { color: #d19a66 !important; }
+[data-theme="material-dark"] .token.number {
+	color: #d19a66 !important;
+}
 
 [data-theme="dark"] .token.operator,
 [data-theme="one-dark"] .token.operator,
-[data-theme="material-dark"] .token.operator { color: #56b6c2 !important; }
+[data-theme="material-dark"] .token.operator {
+	color: #56b6c2 !important;
+}
 
 [data-theme="dark"] .token.punctuation,
 [data-theme="one-dark"] .token.punctuation,
-[data-theme="material-dark"] .token.punctuation { color: #abb2bf !important; }
+[data-theme="material-dark"] .token.punctuation {
+	color: #abb2bf !important;
+}
 
 /* Tokens supplémentaires utilisés notamment par bash (variable, builtin,
    parameter) et regex. Sans ces overrides, le thème light Prism embarqué
@@ -74,22 +94,30 @@ i.icon > i.icon-inner {
    qui clashent visuellement avec un fond dark. */
 [data-theme="dark"] .token.variable,
 [data-theme="one-dark"] .token.variable,
-[data-theme="material-dark"] .token.variable { color: #e06c75 !important; }
+[data-theme="material-dark"] .token.variable {
+	color: #e06c75 !important;
+}
 
 [data-theme="dark"] .token.builtin,
 [data-theme="one-dark"] .token.builtin,
-[data-theme="material-dark"] .token.builtin { color: #61afef !important; }
+[data-theme="material-dark"] .token.builtin {
+	color: #61afef !important;
+}
 
 [data-theme="dark"] .token.parameter,
 [data-theme="one-dark"] .token.parameter,
-[data-theme="material-dark"] .token.parameter { color: #d19a66 !important; }
+[data-theme="material-dark"] .token.parameter {
+	color: #d19a66 !important;
+}
 
 [data-theme="dark"] .token.regex,
 [data-theme="dark"] .token.important,
 [data-theme="one-dark"] .token.regex,
 [data-theme="one-dark"] .token.important,
 [data-theme="material-dark"] .token.regex,
-[data-theme="material-dark"] .token.important { color: #c678dd !important; }
+[data-theme="material-dark"] .token.important {
+	color: #c678dd !important;
+}
 
 /* Neutralise les styles agressifs hérités du thème light Prism embarqué
    dans Muya (bold, italic, text-shadow, background sur certains tokens).
@@ -98,10 +126,10 @@ i.icon > i.icon-inner {
    les couleurs définies au-dessus pour un rendu uniforme entre langages. */
 .ag-paragraph code .token,
 figure.ag-container-block .token {
-  font-weight: normal !important;
-  font-style: normal !important;
-  text-shadow: none !important;
-  background: transparent !important;
+	font-weight: normal !important;
+	font-style: normal !important;
+	text-shadow: none !important;
+	background: transparent !important;
 }
 
 /* ---- Container block code area (HTML Block, Math, etc.) ----
@@ -110,88 +138,88 @@ figure.ag-container-block pre,
 figure.ag-container-block pre[class*="language-"],
 figure.ag-container-block code,
 figure.ag-container-block code[class*="language-"] {
-  background: var(--codeBlockBgColor) !important;
-  border: none !important;
-  box-shadow: none !important;
-  text-shadow: none !important;
-  outline: none !important;
-  -webkit-text-stroke: 0 !important;
-  border-radius: 4px;
+	background: var(--codeBlockBgColor) !important;
+	border: none !important;
+	box-shadow: none !important;
+	text-shadow: none !important;
+	outline: none !important;
+	-webkit-text-stroke: 0 !important;
+	border-radius: 4px;
 }
 
 figure.ag-container-block pre code {
-  color: var(--editorColor) !important;
-  font-family: 'DejaVu Sans Mono', 'Courier New', monospace !important;
-  font-size: 14px !important;
+	color: var(--editorColor) !important;
+	font-family: "DejaVu Sans Mono", "Courier New", monospace !important;
+	font-size: 14px !important;
 }
 
 /* Container block and code block: same generous vertical padding */
 figure.ag-container-block pre {
-  padding: 14px 16px !important;
-  min-height: 3.5em;
+	padding: 14px 16px !important;
+	min-height: 3.5em;
 }
 
 /* Also kill text-shadow on ALL Prism tokens in container blocks */
 figure.ag-container-block .token {
-  text-shadow: none !important;
+	text-shadow: none !important;
 }
 
 /* ---- Code block (fence) improvements ---- */
 
 /* Taller code block with generous vertical space */
 pre.ag-paragraph.ag-fence-code {
-  padding: 14px 16px !important;
-  min-height: 3.5em;
+	padding: 14px 16px !important;
+	min-height: 3.5em;
 }
 
 /* Vertically center the copy icon */
 .ag-code-copy {
-  display: flex !important;
-  align-items: center !important;
-  top: 8px !important;
+	display: flex !important;
+	align-items: center !important;
+	top: 8px !important;
 }
 
 /* Hide the "fence" placeholder text that appears when no language is set */
 span.ag-language-input:empty::after {
-  content: '' !important;
+	content: "" !important;
 }
 
 /* If "fence" text is a label, hide it */
 .ag-fence-code > .ag-language {
-  font-size: 0.75em;
-  opacity: 0.5;
+	font-size: 0.75em;
+	opacity: 0.5;
 }
 
 /* ---- Line numbers in editor (scoped to wysiwyg-pane to avoid status bar issues) ---- */
 .wysiwyg-pane.show-line-numbers [contenteditable] {
-  counter-reset: line-number;
+	counter-reset: line-number;
 }
 
 .wysiwyg-pane.show-line-numbers [contenteditable] > .ag-paragraph {
-  counter-increment: line-number;
-  position: relative;
-  padding-left: 3em !important;
+	counter-increment: line-number;
+	position: relative;
+	padding-left: 3em !important;
 }
 
 .wysiwyg-pane.show-line-numbers [contenteditable] > .ag-paragraph::before {
-  content: counter(line-number);
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 2.5em;
-  text-align: right;
-  color: var(--editorColor30, rgba(255, 255, 255, 0.2));
-  font-size: 0.8em;
-  line-height: inherit;
-  user-select: none;
-  pointer-events: none;
+	content: counter(line-number);
+	position: absolute;
+	left: 0;
+	top: 0;
+	width: 2.5em;
+	text-align: right;
+	color: var(--editorColor30, rgba(255, 255, 255, 0.2));
+	font-size: 0.8em;
+	line-height: inherit;
+	user-select: none;
+	pointer-events: none;
 }
 
 /* ---- Horizontal rule visibility for light themes ----
    Muya uses var(--editorColor10) for HR border which is undefined/very faint
    in light/graphite/ulysses themes. Override with a visible color. */
 p[data-role="hr"]::before {
-  border-top-color: var(--editorColor30, rgba(0, 0, 0, 0.2)) !important;
+	border-top-color: var(--editorColor30, rgba(0, 0, 0, 0.2)) !important;
 }
 
 /* ---- Lock (read-only) mode ----
@@ -204,25 +232,25 @@ p[data-role="hr"]::before {
      mouse-selecting reactivates the AG_GRAY class on markers near the
      cursor, leaking ** / ` / # back into the rendered text. */
 body.muya-readonly .ag-float-wrapper {
-  display: none !important;
+	display: none !important;
 }
 body.muya-readonly .ag-remove {
-  display: none !important;
+	display: none !important;
 }
 
 /* ---- Source Code Mode textarea ---- */
 .source-code-editor {
-  flex: 1;
-  padding: 20px 50px;
-  border: none;
-  outline: none;
-  resize: none;
-  background: var(--editorBgColor);
-  color: var(--editorColor);
-  font-family: 'DejaVu Sans Mono', 'Courier New', monospace;
-  font-size: 16px;
-  line-height: 1.6;
-  tab-size: 4;
-  white-space: pre-wrap;
-  word-break: break-word;
+	flex: 1;
+	padding: 20px 50px;
+	border: none;
+	outline: none;
+	resize: none;
+	background: var(--editorBgColor);
+	color: var(--editorColor);
+	font-family: "DejaVu Sans Mono", "Courier New", monospace;
+	font-size: 16px;
+	line-height: 1.6;
+	tab-size: 4;
+	white-space: pre-wrap;
+	word-break: break-word;
 }

@@ -13,7 +13,7 @@ const OUTLINE_CLASS = 'split-click-target';
 
 /** Échappe les caractères spéciaux regex dans une chaîne. */
 function escapeRegex(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+	return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 /**
@@ -27,28 +27,26 @@ function escapeRegex(s: string): string {
  * - occurrenceIndex dépasse le nombre d'occurrences trouvées
  */
 export function findTextOccurrence(root: Node, word: string, occurrenceIndex: number): Range | null {
-  if (!word || word.length === 0) return null;
-  if (occurrenceIndex < 0) return null;
+	if (!word || word.length === 0) return null;
+	if (occurrenceIndex < 0) return null;
 
-  const re = new RegExp('\\b' + escapeRegex(word) + '\\b', 'g');
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-  let count = 0;
-  let node: Node | null;
-  while ((node = walker.nextNode())) {
-    const text = node.textContent || '';
-    re.lastIndex = 0;
-    let m: RegExpExecArray | null;
-    while ((m = re.exec(text)) !== null) {
-      if (count === occurrenceIndex) {
-        const range = document.createRange();
-        range.setStart(node, m.index);
-        range.setEnd(node, m.index + word.length);
-        return range;
-      }
-      count++;
-    }
-  }
-  return null;
+	const re = new RegExp('\\b' + escapeRegex(word) + '\\b', 'g');
+	const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+	let count = 0;
+	for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {
+		const text = node.textContent || '';
+		re.lastIndex = 0;
+		for (let m = re.exec(text); m !== null; m = re.exec(text)) {
+			if (count === occurrenceIndex) {
+				const range = document.createRange();
+				range.setStart(node, m.index);
+				range.setEnd(node, m.index + word.length);
+				return range;
+			}
+			count++;
+		}
+	}
+	return null;
 }
 
 /**
@@ -56,12 +54,12 @@ export function findTextOccurrence(root: Node, word: string, occurrenceIndex: nu
  * Sert à savoir quel index d'occurrence correspond à la position du curseur.
  */
 export function countWordOccurrencesBefore(source: string, word: string, upTo: number): number {
-  if (!word || word.length === 0) return 0;
-  const re = new RegExp('\\b' + escapeRegex(word) + '\\b', 'g');
-  const before = source.substring(0, Math.max(0, upTo));
-  let count = 0;
-  while (re.exec(before) !== null) count++;
-  return count;
+	if (!word || word.length === 0) return 0;
+	const re = new RegExp('\\b' + escapeRegex(word) + '\\b', 'g');
+	const before = source.substring(0, Math.max(0, upTo));
+	let count = 0;
+	while (re.exec(before) !== null) count++;
+	return count;
 }
 
 /**
@@ -71,11 +69,11 @@ export function countWordOccurrencesBefore(source: string, word: string, upTo: n
  * Safe : no-op si span n'a pas de parent (déjà détaché).
  */
 export function unwrapSpan(span: HTMLSpanElement): void {
-  const parent = span.parentNode;
-  if (!parent) return;
-  while (span.firstChild) parent.insertBefore(span.firstChild, span);
-  parent.removeChild(span);
-  if ('normalize' in parent) (parent as Element).normalize();
+	const parent = span.parentNode;
+	if (!parent) return;
+	while (span.firstChild) parent.insertBefore(span.firstChild, span);
+	parent.removeChild(span);
+	if ('normalize' in parent) (parent as Element).normalize();
 }
 
 /**
@@ -91,26 +89,26 @@ export function unwrapSpan(span: HTMLSpanElement): void {
  * avant si nécessaire.
  */
 export function highlightWordInPreview(
-  pane: HTMLElement,
-  source: string,
-  selStart: number,
-  selEnd: number,
+	pane: HTMLElement,
+	source: string,
+	selStart: number,
+	selEnd: number,
 ): HTMLSpanElement | null {
-  const word = source.substring(selStart, selEnd);
-  if (!word.trim() || word.length === 0) return null;
+	const word = source.substring(selStart, selEnd);
+	if (!word.trim() || word.length === 0) return null;
 
-  const occurrenceIndex = countWordOccurrencesBefore(source, word, selStart);
-  const range = findTextOccurrence(pane, word, occurrenceIndex);
-  if (!range) return null;
+	const occurrenceIndex = countWordOccurrencesBefore(source, word, selStart);
+	const range = findTextOccurrence(pane, word, occurrenceIndex);
+	if (!range) return null;
 
-  const span = document.createElement('span');
-  span.className = HIGHLIGHT_CLASS;
-  try {
-    range.surroundContents(span);
-  } catch {
-    return null;
-  }
-  return span;
+	const span = document.createElement('span');
+	span.className = HIGHLIGHT_CLASS;
+	try {
+		range.surroundContents(span);
+	} catch {
+		return null;
+	}
+	return span;
 }
 
 /**
@@ -122,11 +120,11 @@ export function highlightWordInPreview(
  * cross-blocs, etc. No-op si pane est null.
  */
 export function clearAllSplitHighlights(pane: HTMLElement | null): void {
-  if (!pane) return;
-  const wraps = pane.querySelectorAll('.' + HIGHLIGHT_CLASS);
-  wraps.forEach((s) => unwrapSpan(s as HTMLSpanElement));
-  const outlined = pane.querySelectorAll('.' + OUTLINE_CLASS);
-  outlined.forEach((el) => el.classList.remove(OUTLINE_CLASS));
+	if (!pane) return;
+	const wraps = pane.querySelectorAll('.' + HIGHLIGHT_CLASS);
+	wraps.forEach((s) => unwrapSpan(s as HTMLSpanElement));
+	const outlined = pane.querySelectorAll('.' + OUTLINE_CLASS);
+	outlined.forEach((el) => el.classList.remove(OUTLINE_CLASS));
 }
 
 /**
@@ -136,22 +134,18 @@ export function clearAllSplitHighlights(pane: HTMLElement | null): void {
  *
  * Renvoie null si aucun candidat n'est trouvé dans le pane.
  */
-export function findTargetElement(
-  pane: HTMLElement,
-  scrollTop: number,
-  alignOffsetY: number,
-): HTMLElement | null {
-  const targetContentY = scrollTop + alignOffsetY;
-  const candidates = pane.querySelectorAll('h1, h2, h3, h4, h5, h6, p, ul, ol, blockquote, pre, table, hr');
-  let best: HTMLElement | null = null;
-  let bestDistance = Infinity;
-  candidates.forEach((node) => {
-    const el = node as HTMLElement;
-    const distance = Math.abs(el.offsetTop - targetContentY);
-    if (distance < bestDistance) {
-      best = el;
-      bestDistance = distance;
-    }
-  });
-  return best;
+export function findTargetElement(pane: HTMLElement, scrollTop: number, alignOffsetY: number): HTMLElement | null {
+	const targetContentY = scrollTop + alignOffsetY;
+	const candidates = pane.querySelectorAll('h1, h2, h3, h4, h5, h6, p, ul, ol, blockquote, pre, table, hr');
+	let best: HTMLElement | null = null;
+	let bestDistance = Number.POSITIVE_INFINITY;
+	candidates.forEach((node) => {
+		const el = node as HTMLElement;
+		const distance = Math.abs(el.offsetTop - targetContentY);
+		if (distance < bestDistance) {
+			best = el;
+			bestDistance = distance;
+		}
+	});
+	return best;
 }

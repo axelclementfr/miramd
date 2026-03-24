@@ -1,7 +1,7 @@
+use crate::error::AppError;
 use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::PathBuf;
-use crate::error::AppError;
 
 /// Maximum file size for reading (50 MB)
 const MAX_READ_SIZE: u64 = 50 * 1024 * 1024;
@@ -89,7 +89,10 @@ pub fn read_file(path: &str) -> Result<FileInfo, AppError> {
 #[tauri::command]
 pub fn write_file(path: &str, content: &str) -> Result<(), AppError> {
     let path_buf = sanitize_write_path(path)?;
-    let name = path_buf.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+    let name = path_buf
+        .file_name()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_default();
     log::info!("write_file: {}", name);
     fs::write(&path_buf, content)?;
     Ok(())
@@ -162,7 +165,9 @@ pub fn list_directory_entries(
     }
 
     files.sort_by(|a, b| {
-        b.is_dir.cmp(&a.is_dir).then(a.name.to_lowercase().cmp(&b.name.to_lowercase()))
+        b.is_dir
+            .cmp(&a.is_dir)
+            .then(a.name.to_lowercase().cmp(&b.name.to_lowercase()))
     });
 
     let total = files.len();

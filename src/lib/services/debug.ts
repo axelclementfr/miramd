@@ -1,9 +1,5 @@
+import { type DebugSubject, debugFlags, persistFlags } from '$lib/stores/debug';
 import { get, writable } from 'svelte/store';
-import {
-  debugFlags,
-  persistFlags,
-  type DebugSubject,
-} from '$lib/stores/debug';
 
 /**
  * Verbose log gated by per-subject flag.
@@ -15,21 +11,21 @@ import {
  * and debounced timer paths are fine.
  */
 export function dlog(subject: DebugSubject, ...args: unknown[]): void {
-  const flags = get(debugFlags);
-  if (!flags[subject]) return;
-  // eslint-disable-next-line no-console
-  console.log(`[${subject}]`, ...args);
+	const flags = get(debugFlags);
+	if (!flags[subject]) return;
+	// eslint-disable-next-line no-console
+	console.log(`[${subject}]`, ...args);
 }
 
 /**
  * Toggle a debug subject. Persists to localStorage immediately.
  */
 export function setDebugFlag(subject: DebugSubject, enabled: boolean): void {
-  debugFlags.update((flags) => {
-    const next = { ...flags, [subject]: enabled };
-    persistFlags(next);
-    return next;
-  });
+	debugFlags.update((flags) => {
+		const next = { ...flags, [subject]: enabled };
+		persistFlags(next);
+		return next;
+	});
 }
 
 export const debugPanelOpen = writable<boolean>(false);
@@ -39,14 +35,14 @@ export const debugPanelOpen = writable<boolean>(false);
  * Returns an unsubscribe function to remove the listener.
  */
 export function setupDebugShortcut(): () => void {
-  function handler(e: KeyboardEvent): void {
-    if (e.repeat) return;
-    const mod = e.ctrlKey || e.metaKey;
-    if (mod && e.shiftKey && (e.key === 'D' || e.key === 'd')) {
-      e.preventDefault();
-      debugPanelOpen.update((v) => !v);
-    }
-  }
-  window.addEventListener('keydown', handler);
-  return () => window.removeEventListener('keydown', handler);
+	function handler(e: KeyboardEvent): void {
+		if (e.repeat) return;
+		const mod = e.ctrlKey || e.metaKey;
+		if (mod && e.shiftKey && (e.key === 'D' || e.key === 'd')) {
+			e.preventDefault();
+			debugPanelOpen.update((v) => !v);
+		}
+	}
+	window.addEventListener('keydown', handler);
+	return () => window.removeEventListener('keydown', handler);
 }

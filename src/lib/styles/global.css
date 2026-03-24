@@ -1,163 +1,243 @@
-@import './themes.css';
-@import './file-icons.css';
+@import "./themes.css";
+@import "./file-icons.css";
 
 /* MarkText exact fonts — Open Sans (copied from muya/themes/default.css) */
-@font-face { font-family: 'Open Sans'; font-style: normal; font-weight: 300; src: local('Open Sans Light'), url('/fonts/open-sans-v27-latin-ext_latin-300.woff') format('woff'); }
-@font-face { font-family: 'Open Sans'; font-style: italic; font-weight: 300; src: local('Open Sans Light Italic'), url('/fonts/open-sans-v27-latin-ext_latin-300italic.woff') format('woff'); }
-@font-face { font-family: 'Open Sans'; font-style: normal; font-weight: 400; src: local('Open Sans Regular'), url('/fonts/open-sans-v27-latin-ext_latin-regular.woff') format('woff'); }
-@font-face { font-family: 'Open Sans'; font-style: italic; font-weight: 400; src: local('Open Sans Italic'), url('/fonts/open-sans-v27-latin-ext_latin-italic.woff') format('woff'); }
-@font-face { font-family: 'Open Sans'; font-style: normal; font-weight: 600; src: local('Open Sans SemiBold'), url('/fonts/open-sans-v27-latin-ext_latin-600.woff') format('woff'); }
-@font-face { font-family: 'Open Sans'; font-style: italic; font-weight: 600; src: local('Open Sans SemiBold Italic'), url('/fonts/open-sans-v27-latin-ext_latin-600italic.woff') format('woff'); }
-@font-face { font-family: 'Open Sans'; font-style: normal; font-weight: 700; src: local('Open Sans Bold'), url('/fonts/open-sans-v27-latin-ext_latin-700.woff') format('woff'); }
-@font-face { font-family: 'Open Sans'; font-style: italic; font-weight: 700; src: local('Open Sans Bold Italic'), url('/fonts/open-sans-v27-latin-ext_latin-700italic.woff') format('woff'); }
-@font-face { font-family: 'DejaVu Sans Mono'; font-style: normal; font-weight: 400; src: local('DejaVu Sans Mono'), url('/fonts/DejaVuSansMono.ttf') format('truetype'); }
-@font-face { font-family: 'DejaVu Sans Mono'; font-style: normal; font-weight: 700; src: local('DejaVu Sans Mono Bold'), url('/fonts/DejaVuSansMono-Bold.ttf') format('truetype'); }
+@font-face {
+	font-family: "Open Sans";
+	font-style: normal;
+	font-weight: 300;
+	src:
+		local("Open Sans Light"),
+		url("/fonts/open-sans-v27-latin-ext_latin-300.woff") format("woff");
+}
+@font-face {
+	font-family: "Open Sans";
+	font-style: italic;
+	font-weight: 300;
+	src:
+		local("Open Sans Light Italic"),
+		url("/fonts/open-sans-v27-latin-ext_latin-300italic.woff") format("woff");
+}
+@font-face {
+	font-family: "Open Sans";
+	font-style: normal;
+	font-weight: 400;
+	src:
+		local("Open Sans Regular"),
+		url("/fonts/open-sans-v27-latin-ext_latin-regular.woff") format("woff");
+}
+@font-face {
+	font-family: "Open Sans";
+	font-style: italic;
+	font-weight: 400;
+	src:
+		local("Open Sans Italic"),
+		url("/fonts/open-sans-v27-latin-ext_latin-italic.woff") format("woff");
+}
+@font-face {
+	font-family: "Open Sans";
+	font-style: normal;
+	font-weight: 600;
+	src:
+		local("Open Sans SemiBold"),
+		url("/fonts/open-sans-v27-latin-ext_latin-600.woff") format("woff");
+}
+@font-face {
+	font-family: "Open Sans";
+	font-style: italic;
+	font-weight: 600;
+	src:
+		local("Open Sans SemiBold Italic"),
+		url("/fonts/open-sans-v27-latin-ext_latin-600italic.woff") format("woff");
+}
+@font-face {
+	font-family: "Open Sans";
+	font-style: normal;
+	font-weight: 700;
+	src:
+		local("Open Sans Bold"),
+		url("/fonts/open-sans-v27-latin-ext_latin-700.woff") format("woff");
+}
+@font-face {
+	font-family: "Open Sans";
+	font-style: italic;
+	font-weight: 700;
+	src:
+		local("Open Sans Bold Italic"),
+		url("/fonts/open-sans-v27-latin-ext_latin-700italic.woff") format("woff");
+}
+@font-face {
+	font-family: "DejaVu Sans Mono";
+	font-style: normal;
+	font-weight: 400;
+	src:
+		local("DejaVu Sans Mono"),
+		url("/fonts/DejaVuSansMono.ttf") format("truetype");
+}
+@font-face {
+	font-family: "DejaVu Sans Mono";
+	font-style: normal;
+	font-weight: 700;
+	src:
+		local("DejaVu Sans Mono Bold"),
+		url("/fonts/DejaVuSansMono-Bold.ttf") format("truetype");
+}
 
 /* Base defaults (dark fallback — matches MarkText dark) */
 :root {
-  --themeColor: #409eff;
-  --highlightColor: rgba(102, 177, 255, .6);
-  --selectionColor: rgba(102, 177, 255, .3);
+	--themeColor: #409eff;
+	--highlightColor: rgba(102, 177, 255, 0.6);
+	--selectionColor: rgba(102, 177, 255, 0.3);
 
-  --bg-primary: #282828;
-  --bg-secondary: #1e1e1e;
-  --bg-sidebar: #1e1e1e;
-  --bg-sidebar-icons: #191919;
-  --bg-tab: #282828;
-  --bg-tab-active: #282828;
-  --bg-hover: rgba(255, 255, 255, .03);
-  --text-primary: rgba(255, 255, 255, .7);
-  --text-secondary: rgba(255, 255, 255, .5);
-  --text-muted: rgba(255, 255, 255, .3);
-  --border: #1d1d1d;
-  --accent: #409eff;
-  --accent-hover: #5aabff;
-  --danger: #ff6969;
-  --success: #409eff;
-  --warning: #ff8800;
-  --scrollbar-thumb: rgba(255, 255, 255, .1);
-  --scrollbar-track: transparent;
+	--bg-primary: #282828;
+	--bg-secondary: #1e1e1e;
+	--bg-sidebar: #1e1e1e;
+	--bg-sidebar-icons: #191919;
+	--bg-tab: #282828;
+	--bg-tab-active: #282828;
+	--bg-hover: rgba(255, 255, 255, 0.03);
+	--text-primary: rgba(255, 255, 255, 0.7);
+	--text-secondary: rgba(255, 255, 255, 0.5);
+	--text-muted: rgba(255, 255, 255, 0.3);
+	--border: #1d1d1d;
+	--accent: #409eff;
+	--accent-hover: #5aabff;
+	--danger: #ff6969;
+	--success: #409eff;
+	--warning: #ff8800;
+	--scrollbar-thumb: rgba(255, 255, 255, 0.1);
+	--scrollbar-track: transparent;
 
-  --iconColor: rgba(255, 255, 255, .56);
-  --sideBarColor: rgba(255, 255, 255, .6);
-  --sideBarTitleColor: rgba(255, 255, 255, .8);
-  --sideBarTextColor: rgba(255, 255, 255, .4);
-  --sideBarItemHoverBgColor: rgba(255, 255, 255, .03);
-  --itemBgColor: #3f3f3f;
-  --floatBgColor: #3f3f3f;
-  --floatHoverColor: rgba(255, 255, 255, .04);
-  --floatBorderColor: rgba(0, 0, 0, .05);
+	--iconColor: rgba(255, 255, 255, 0.56);
+	--sideBarColor: rgba(255, 255, 255, 0.6);
+	--sideBarTitleColor: rgba(255, 255, 255, 0.8);
+	--sideBarTextColor: rgba(255, 255, 255, 0.4);
+	--sideBarItemHoverBgColor: rgba(255, 255, 255, 0.03);
+	--itemBgColor: #3f3f3f;
+	--floatBgColor: #3f3f3f;
+	--floatHoverColor: rgba(255, 255, 255, 0.04);
+	--floatBorderColor: rgba(0, 0, 0, 0.05);
 
-  --codeBgColor: #424344;
-  --codeBlockBgColor: #424344;
-  --inputBgColor: #2f3336;
+	--codeBgColor: #424344;
+	--codeBlockBgColor: #424344;
+	--inputBgColor: #2f3336;
 
-  /* MarkText exact font: Open Sans */
-  --font-family: 'Open Sans', 'Clear Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  --font-mono: 'DejaVu Sans Mono', 'Source Code Pro', 'Droid Sans Mono', 'Consolas', monospace;
-  --font-size: 16px;
-  --line-height: 1.6;
-  --titleBarHeight: 32px;
-  --tab-height: 35px;
-  --statusbar-height: 22px;
-  --editorAreaWidth: 750px;
-  --transition: 150ms ease;
+	/* MarkText exact font: Open Sans */
+	--font-family: "Open Sans", "Clear Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+	--font-mono: "DejaVu Sans Mono", "Source Code Pro", "Droid Sans Mono", "Consolas", monospace;
+	--font-size: 16px;
+	--line-height: 1.6;
+	--titleBarHeight: 32px;
+	--tab-height: 35px;
+	--statusbar-height: 22px;
+	--editorAreaWidth: 750px;
+	--transition: 150ms ease;
 }
 
 * {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
 }
 
 /* Force dark form controls on dark themes */
-:root[data-theme='dark'],
-:root[data-theme='one-dark'],
-:root[data-theme='material-dark'] {
-  color-scheme: dark;
+:root[data-theme="dark"],
+:root[data-theme="one-dark"],
+:root[data-theme="material-dark"] {
+	color-scheme: dark;
 }
 
-:root[data-theme='light'],
-:root[data-theme='graphite'],
-:root[data-theme='ulysses'] {
-  color-scheme: light;
+:root[data-theme="light"],
+:root[data-theme="graphite"],
+:root[data-theme="ulysses"] {
+	color-scheme: light;
 }
 
-html, body {
-  height: 100%;
-  overflow: hidden;
-  font-family: var(--font-family);
-  font-size: var(--font-size);
-  line-height: var(--line-height);
-  color: var(--text-primary);
-  background: var(--bg-primary);
-  -webkit-font-smoothing: antialiased;
-  user-select: none;
-  -webkit-user-select: none;
-  caret-color: var(--text-primary);
+html,
+body {
+	height: 100%;
+	overflow: hidden;
+	font-family: var(--font-family);
+	font-size: var(--font-size);
+	line-height: var(--line-height);
+	color: var(--text-primary);
+	background: var(--bg-primary);
+	-webkit-font-smoothing: antialiased;
+	user-select: none;
+	-webkit-user-select: none;
+	caret-color: var(--text-primary);
 }
 
 /* Allow text selection in editor areas and inputs */
-[contenteditable="true"], input, textarea, .source-code-editor {
-  user-select: text;
-  -webkit-user-select: text;
+[contenteditable="true"],
+input,
+textarea,
+.source-code-editor {
+	user-select: text;
+	-webkit-user-select: text;
 }
 
 :focus {
-  outline: none;
+	outline: none;
 }
 
 /* MarkText scrollbar style */
 ::-webkit-scrollbar,
 ::-webkit-scrollbar-corner {
-  background: transparent !important;
+	background: transparent !important;
 }
 
 ::-webkit-scrollbar:vertical {
-  width: 8px;
+	width: 8px;
 }
 
 ::-webkit-scrollbar:horizontal {
-  height: 8px;
+	height: 8px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb);
-  border-radius: 4px;
+	background: var(--scrollbar-thumb);
+	border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
+	background: var(--text-muted);
 }
 
 /* Hide scrollbar mode */
 .hide-scrollbar ::-webkit-scrollbar {
-  display: none !important;
+	display: none !important;
 }
 
 .hide-scrollbar {
-  scrollbar-width: none;
+	scrollbar-width: none;
 }
 
 .hide-scrollbar * {
-  scrollbar-width: none;
+	scrollbar-width: none;
 }
 
 a {
-  color: var(--accent);
-  text-decoration: none;
+	color: var(--accent);
+	text-decoration: none;
 }
 
 a:hover {
-  color: var(--accent-hover);
+	color: var(--accent-hover);
 }
 
 ::selection {
-  background: var(--selectionColor, rgba(124, 156, 238, 0.3));
+	background: var(--selectionColor, rgba(124, 156, 238, 0.3));
 }
 
-
 /* Global smooth transitions for interactive elements */
-button, a, [role="button"], [role="tab"] {
-  transition: background 0.15s ease, color 0.15s ease, opacity 0.15s ease, border-color 0.15s ease;
+button,
+a,
+[role="button"],
+[role="tab"] {
+	transition:
+		background 0.15s ease,
+		color 0.15s ease,
+		opacity 0.15s ease,
+		border-color 0.15s ease;
 }

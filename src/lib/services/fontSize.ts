@@ -14,34 +14,34 @@ import { muyaService } from './muya';
  * That keeps the effect scoped to the editor only.
  */
 class FontSizeService {
-  private unsub: (() => void) | null = null;
+	private unsub: (() => void) | null = null;
 
-  init(): void {
-    this.unsub = preferences.subscribe((p) => {
-      const fontSize = p.fontSize || 16;
-      const lineHeight = p.lineHeight || 1.6;
+	init(): void {
+		this.unsub = preferences.subscribe((p) => {
+			const fontSize = p.fontSize || 16;
+			const lineHeight = p.lineHeight || 1.6;
 
-      if (muyaService.isReady()) {
-        muyaService.setFont({ fontSize, lineHeight });
-        const muya = muyaService.getInstance();
-        if (muya?.container) {
-          muya.container.style.fontSize = `${fontSize}px`;
-          muya.container.style.lineHeight = `${lineHeight}`;
-        }
-      }
+			if (muyaService.isReady()) {
+				muyaService.setFont({ fontSize, lineHeight });
+				const muya = muyaService.getInstance();
+				if (muya?.container) {
+					muya.container.style.fontSize = `${fontSize}px`;
+					muya.container.style.lineHeight = `${lineHeight}`;
+				}
+			}
 
-      if (p.editorLineWidth) {
-        document.documentElement.style.setProperty('--editorAreaWidth', p.editorLineWidth);
-      } else {
-        document.documentElement.style.removeProperty('--editorAreaWidth');
-      }
-    });
-  }
+			if (p.editorLineWidth) {
+				document.documentElement.style.setProperty('--editorAreaWidth', p.editorLineWidth);
+			} else {
+				document.documentElement.style.removeProperty('--editorAreaWidth');
+			}
+		});
+	}
 
-  destroy(): void {
-    this.unsub?.();
-    this.unsub = null;
-  }
+	destroy(): void {
+		this.unsub?.();
+		this.unsub = null;
+	}
 }
 
 export const fontSizeService = new FontSizeService();

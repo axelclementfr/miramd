@@ -33,12 +33,12 @@ export const DEFAULT_AUTO_SAVE_DELAY = 5000;
 
 /** Background color map per theme — prevents white flash on resize (WebKitGTK issue) */
 export const THEME_BG_MAP: Record<string, string> = {
-  dark: '#282828',
-  'one-dark': '#282c34',
-  'material-dark': '#34393f',
-  light: '#ffffff',
-  graphite: '#f7f7f7',
-  ulysses: '#f3f3f3',
+	dark: '#282828',
+	'one-dark': '#282c34',
+	'material-dark': '#34393f',
+	light: '#ffffff',
+	graphite: '#f7f7f7',
+	ulysses: '#f3f3f3',
 };
 
 /** Default background fallback */

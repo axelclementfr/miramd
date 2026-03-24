@@ -108,33 +108,75 @@ pub struct Preferences {
 /// matching step in `migrate_preferences` below.
 pub const CURRENT_PREFS_VERSION: u32 = 1;
 
-fn default_prefs_version() -> u32 { CURRENT_PREFS_VERSION }
-fn default_true() -> bool { true }
-fn default_code_font_family() -> String { "DejaVu Sans Mono".to_string() }
-fn default_code_font_size() -> u32 { 14 }
-fn default_tab_size() -> u32 { 4 }
-fn default_end_of_line() -> String { "default".to_string() }
-fn default_text_direction() -> String { "ltr".to_string() }
-fn default_trim_trailing_newline() -> u32 { 2 }
-fn default_bullet_list_marker() -> String { "-".to_string() }
-fn default_order_list_delimiter() -> String { ".".to_string() }
-fn default_prefer_heading_style() -> String { "atx".to_string() }
-fn default_list_indentation() -> u32 { 1 }
-fn default_frontmatter_type() -> String { "-".to_string() }
-fn default_sequence_theme() -> String { "hand".to_string() }
-fn default_mermaid_theme() -> String { "default".to_string() }
-fn default_vega_theme() -> String { "latimes".to_string() }
-fn default_start_up_action() -> String { "blank".to_string() }
-fn default_zoom() -> f64 { 1.0 }
-fn default_typewriter_sounds_volume() -> f64 { 1.0 }
-fn default_file_sort_by() -> String { "modified".to_string() }
+fn default_prefs_version() -> u32 {
+    CURRENT_PREFS_VERSION
+}
+fn default_true() -> bool {
+    true
+}
+fn default_code_font_family() -> String {
+    "DejaVu Sans Mono".to_string()
+}
+fn default_code_font_size() -> u32 {
+    14
+}
+fn default_tab_size() -> u32 {
+    4
+}
+fn default_end_of_line() -> String {
+    "default".to_string()
+}
+fn default_text_direction() -> String {
+    "ltr".to_string()
+}
+fn default_trim_trailing_newline() -> u32 {
+    2
+}
+fn default_bullet_list_marker() -> String {
+    "-".to_string()
+}
+fn default_order_list_delimiter() -> String {
+    ".".to_string()
+}
+fn default_prefer_heading_style() -> String {
+    "atx".to_string()
+}
+fn default_list_indentation() -> u32 {
+    1
+}
+fn default_frontmatter_type() -> String {
+    "-".to_string()
+}
+fn default_sequence_theme() -> String {
+    "hand".to_string()
+}
+fn default_mermaid_theme() -> String {
+    "default".to_string()
+}
+fn default_vega_theme() -> String {
+    "latimes".to_string()
+}
+fn default_start_up_action() -> String {
+    "blank".to_string()
+}
+fn default_zoom() -> f64 {
+    1.0
+}
+fn default_typewriter_sounds_volume() -> f64 {
+    1.0
+}
+fn default_file_sort_by() -> String {
+    "modified".to_string()
+}
 
 impl Default for Preferences {
     fn default() -> Self {
         Self {
             prefs_version: default_prefs_version(),
             theme: "dark".to_string(),
-            font_family: "'Open Sans', 'Clear Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif".to_string(),
+            font_family:
+                "'Open Sans', 'Clear Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif"
+                    .to_string(),
             font_size: 16,
             line_height: 1.6,
             auto_save: false,
@@ -230,14 +272,20 @@ pub fn migrate_preferences(prefs: &mut Preferences) -> MigrationResult {
         Ordering::Equal => MigrationResult::AlreadyCurrent,
         Ordering::Less => {
             let from = prefs.prefs_version;
-            log::info!("Migrating preferences from v{} to v{}", from, CURRENT_PREFS_VERSION);
+            log::info!(
+                "Migrating preferences from v{} to v{}",
+                from,
+                CURRENT_PREFS_VERSION
+            );
             // Future migrations chain here:
             //   if from < 2 { migrate_v1_to_v2(prefs); }
             //   if from < 3 { migrate_v2_to_v3(prefs); }
             prefs.prefs_version = CURRENT_PREFS_VERSION;
             MigrationResult::Migrated { from }
         }
-        Ordering::Greater => MigrationResult::FutureVersion { actual: prefs.prefs_version },
+        Ordering::Greater => MigrationResult::FutureVersion {
+            actual: prefs.prefs_version,
+        },
     }
 }
 
@@ -427,7 +475,12 @@ mod tests {
         let mut prefs = Preferences::default();
         prefs.prefs_version = CURRENT_PREFS_VERSION + 5;
         let result = migrate_preferences(&mut prefs);
-        assert_eq!(result, MigrationResult::FutureVersion { actual: CURRENT_PREFS_VERSION + 5 });
+        assert_eq!(
+            result,
+            MigrationResult::FutureVersion {
+                actual: CURRENT_PREFS_VERSION + 5
+            }
+        );
         // Should not be touched — we don't know how to "downgrade" a newer file
         assert_eq!(prefs.prefs_version, CURRENT_PREFS_VERSION + 5);
     }

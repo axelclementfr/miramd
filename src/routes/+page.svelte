@@ -76,10 +76,17 @@
       document.body.classList.toggle('hide-scrollbar', p.hideScrollbar);
     }));
 
-    // Auto-save
+    // Auto-save : on ne déclenche un write disque que si l'onglet a un path
+    // ET qu'il y a des modifs non sauvegardées. Sinon on signale 'unchanged'
+    // pour que le timer ne réinitialise pas son backoff sur des ticks vides.
     const stopAutoSave = startAutoSave(
       () => get(preferences),
-      () => { const tab = getCurrentTab(); if (tab?.isModified) saveCurrentFile(tr); },
+      async () => {
+        const tab = getCurrentTab();
+        if (!tab || !tab.path || !tab.isModified) return 'unchanged';
+        const ok = await saveCurrentFile(tr);
+        return ok ? 'saved' : 'failed';
+      },
     );
     unsubs.push(stopAutoSave);
 

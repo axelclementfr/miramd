@@ -1,7 +1,7 @@
 export interface ShortcutHandlers {
 	newFile: () => void;
 	openFile: () => Promise<void>;
-	saveFile: () => Promise<void>;
+	saveFile: () => Promise<unknown>;
 	closeTab: () => Promise<void>;
 	toggleSidebar: () => void;
 	openSettings: () => void;

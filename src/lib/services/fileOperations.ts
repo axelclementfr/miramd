@@ -39,10 +39,11 @@ export async function openFileDialog(tr: (k: TranslationKey) => string) {
 	}
 }
 
-/** Saves the active tab's content to disk, prompting for a path if the file is new. */
-export async function saveCurrentFile(tr: (k: TranslationKey) => string) {
+/** Saves the active tab's content to disk, prompting for a path if the file is new.
+ * Returns `true` on success, `false` on user-visible failure (or cancelled dialog). */
+export async function saveCurrentFile(tr: (k: TranslationKey) => string): Promise<boolean> {
 	const tab = getCurrentTab();
-	if (!tab) return;
+	if (!tab) return false;
 
 	const content = muyaService.isReady() ? muyaService.getMarkdown() : tab.content;
 
@@ -50,27 +51,29 @@ export async function saveCurrentFile(tr: (k: TranslationKey) => string) {
 		try {
 			await invokeWithTimeout('write_file', { path: tab.path, content });
 			editor.markSaved(tab.id, content);
+			return true;
 		} catch (err) {
 			console.error('Failed to save:', err);
 			showToast(tr('error_save_file'), 'error');
+			return false;
 		}
-	} else {
-		const path = await save({
-			filters: [{ name: 'Markdown', extensions: ['md', 'markdown'] }],
-			defaultPath: tab.name,
-		});
-		if (path) {
-			try {
-				await invokeWithTimeout('write_file', { path, content });
-				editor.markSaved(tab.id, content);
-				editor.tabs.update((t) =>
-					t.map((tt) => (tt.id === tab.id ? { ...tt, path, name: path.split('/').pop() || tab.name } : tt)),
-				);
-			} catch (err) {
-				console.error('Failed to save:', err);
-				showToast(tr('error_save_file'), 'error');
-			}
-		}
+	}
+	const path = await save({
+		filters: [{ name: 'Markdown', extensions: ['md', 'markdown'] }],
+		defaultPath: tab.name,
+	});
+	if (!path) return false;
+	try {
+		await invokeWithTimeout('write_file', { path, content });
+		editor.markSaved(tab.id, content);
+		editor.tabs.update((t) =>
+			t.map((tt) => (tt.id === tab.id ? { ...tt, path, name: path.split('/').pop() || tab.name } : tt)),
+		);
+		return true;
+	} catch (err) {
+		console.error('Failed to save:', err);
+		showToast(tr('error_save_file'), 'error');
+		return false;
 	}
 }
 

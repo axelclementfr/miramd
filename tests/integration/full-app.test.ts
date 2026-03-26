@@ -351,8 +351,10 @@ describe('Toast notifications', () => {
 describe('Muya dist API — method verification', () => {
   it('has all required public methods', async () => {
     const fs = await import('fs');
+    const path = await import('path');
     const dist = fs.readFileSync(
-      '/home/axel/Documents/Projets/Marktext/MiraMD/src/lib/muya/dist/index.min.js', 'utf-8'
+      path.resolve(process.cwd(), 'src/lib/muya/dist/index.min.js'),
+      'utf-8',
     );
 
     // Core editing

@@ -97,8 +97,9 @@ describe('Keyboard shortcut wiring', () => {
     it('Muya dist exports undo method', async () => {
       // Verify the dist file contains the undo method
       const fs = await import('fs');
+      const path = await import('path');
       const dist = fs.readFileSync(
-        '/home/axel/Documents/Projets/Marktext/MiraMD/src/lib/muya/dist/index.min.js',
+        path.resolve(process.cwd(), 'src/lib/muya/dist/index.min.js'),
         'utf-8'
       );
       expect(dist).toContain('undo()');

@@ -10,6 +10,7 @@
   import { fontSizeService } from '$lib/services/fontSize';
   import { lineNumbersService } from '$lib/services/lineNumbers';
   import { historyCache } from '$lib/services/historyCache';
+  import { scheduleWarmup } from '$lib/services/prismWarmup';
   import { initTypewriterScroller, computeTypewriterOffset } from '$lib/services/typewriterScroller';
   import { initTypewriterPadding } from '$lib/services/typewriterPadding';
   import { typewriterSound } from '$lib/services/typewriterSound';
@@ -33,6 +34,11 @@
     // Initialize Muya via service
     const editor = muyaService.init(editorElement, prefs);
     if (!editor) return;
+
+    // Pré-chauffe Prism en idle pour réduire le freeze cold du premier
+    // setMarkdown sur un fichier avec des codeblocks (~250ms → ~130ms en
+    // pratique). Schedulé après l'init, ne bloque jamais le premier paint.
+    scheduleWarmup();
 
     // Suppress change events during initial load
     setTimeout(() => { loadingTab = false; }, 50);
@@ -242,24 +248,39 @@
           try { historyCache.set(prevTabId, muya.getHistory()); } catch (e) { dlog('muya', 'getHistory:', e); }
         }
 
+        const loadingForTabId = tab.id;
         prevTabId = tab.id;
         loadingTab = true;
 
-        // Load new tab content
-        muya.setMarkdown(tab.content);
+        // Defer le `setMarkdown` (qui bloque pendant la parse — coût ∝ taille
+        // du doc) à un rAF, sinon la barre de chargement `loadingTab` ne
+        // peint jamais : Svelte queue l'update DOM en microtask, mais
+        // setMarkdown bloque le thread avant le prochain paint. En rAF, le
+        // browser paint d'abord (loading bar visible), puis on parse.
+        requestAnimationFrame(() => {
+          // Si l'utilisateur a re-switché de tab pendant le rAF, abandonne.
+          if (prevTabId !== loadingForTabId) return;
 
-        // Restore history if available, otherwise start fresh
-        const cached = historyCache.get(tab.id);
-        if (cached) {
-          try { muya.setHistory(cached); } catch { muya.clearHistory(); }
-        } else {
-          muya.clearHistory();
-        }
+          // Perf timer (visible via debug subject 'muya') : mesure le coût
+          // réel de setMarkdown selon la taille du document. À retirer si le
+          // bruit devient gênant — c'est un log unique par tab switch.
+          const t0 = performance.now();
+          muya.setMarkdown(tab.content);
+          const t1 = performance.now();
+          dlog('muya', `setMarkdown ${tab.content.length} chars: ${(t1 - t0).toFixed(1)}ms`);
 
-        if (!tab.isModified) {
-          try { editorStore.markSaved(tab.id, muya.getMarkdown()); } catch (e) { console.warn('[Muya] markSaved sync:', e); }
-        }
-        setTimeout(() => { loadingTab = false; }, 50);
+          const cached = historyCache.get(tab.id);
+          if (cached) {
+            try { muya.setHistory(cached); } catch { muya.clearHistory(); }
+          } else {
+            muya.clearHistory();
+          }
+
+          if (!tab.isModified) {
+            try { editorStore.markSaved(tab.id, muya.getMarkdown()); } catch (e) { console.warn('[Muya] markSaved sync:', e); }
+          }
+          setTimeout(() => { loadingTab = false; }, 50);
+        });
       }
     }));
 

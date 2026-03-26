@@ -14,3 +14,7 @@ coverage/
 # Tooling artifacts (Playwright MCP, Claude scheduled tasks)
 /.playwright-mcp/
 /.claude/scheduled_tasks.lock
+
+# Tauri-generated mobile icons (MiraMD is desktop-only)
+src-tauri/icons/android/
+src-tauri/icons/ios/

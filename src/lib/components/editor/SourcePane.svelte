@@ -38,10 +38,12 @@
   let scrollAnchor: { srcScroll: number; dstScroll: number } | null = null;
   let unsubs: (() => void)[] = [];
 
+  let prevTabId: string | null = null;
+
   onMount(() => {
-    // Load content into textarea directly (uncontrolled)
+    // Load content into textarea (uncontrolled). Skip si focused : sinon écrase
+    // la saisie en cours après une édition partielle. Tab switch est géré séparément.
     unsubs.push(editorModes.sourceContent.subscribe((c) => {
-      // Only set value if textarea is not focused (user not typing)
       if (textareaEl && document.activeElement !== textareaEl) {
         textareaEl.value = c;
       }
@@ -53,8 +55,20 @@
 
     unsubs.push(editorStore.activeTab.subscribe((tab) => {
       readOnly = !!tab?.readOnly;
-      // Tab switch : contenu potentiellement très différent, anchor obsolète.
       scrollAnchor = null;
+
+      // Tab switch : force-update textarea même si focused. Avant ça, flush
+      // la pending store update vers l'ANCIEN tab (sinon les dernières lettres
+      // tapées avant le switch atterrissent dans le mauvais tab via le timer).
+      if (tab && tab.id !== prevTabId) {
+        if (storeTimer && prevTabId !== null && textareaEl) {
+          clearTimeout(storeTimer);
+          storeTimer = null;
+          editorStore.updateContent(prevTabId, textareaEl.value);
+        }
+        prevTabId = tab.id;
+        if (textareaEl) textareaEl.value = tab.content;
+      }
     }));
   });
 
@@ -247,13 +261,16 @@
 
   function handleInput() {
     const value = textareaEl.value;
+    // Capture le tabId MAINTENANT, pas au flush. Sinon un tab switch dans la
+    // fenêtre des 150ms enverrait les dernières lettres dans le mauvais tab
+    // (le timeout liroit l'activeTabId après le switch).
+    const tabIdAtInput = get(editorStore.activeTabId);
 
     // Debounce store update — textarea is instant, store can wait
     if (storeTimer) clearTimeout(storeTimer);
     storeTimer = setTimeout(() => {
       editorModes.sourceContent.set(value);
-      const tabId = get(editorStore.activeTabId);
-      if (tabId) editorStore.updateContent(tabId, value);
+      if (tabIdAtInput) editorStore.updateContent(tabIdAtInput, value);
       updateStats(value, true);
     }, 150);
 
@@ -300,5 +317,9 @@
     flex-direction: column;
     overflow: hidden;
     min-width: 0;
+    /* bg solide ici (au lieu de sur .source-code-editor) pour que le
+       find-overlay-source positionné derrière la textarea soit visible. */
+    background: var(--editorBgColor);
+    position: relative;
   }
 </style>

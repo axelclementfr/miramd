@@ -7,6 +7,9 @@
   import { message } from '@tauri-apps/plugin-dialog';
   import { showToast } from '$lib/stores/toast';
   import { t, type TranslationKey } from '$lib/i18n/index';
+  import { computeTabWheelScroll } from '$lib/services/tabWheelScroll';
+  import { buildContextMenuItems } from '$lib/services/contextMenuItems';
+  import ContextMenu, { type ContextMenuItem } from '$lib/components/ContextMenu.svelte';
 
   let tabs: Tab[] = $state([]);
   let activeTabId: string | null = $state(null);
@@ -63,10 +66,34 @@
       closeTab(e, id);
     }
   }
+
+  let ctxMenuPos: { x: number; y: number } | null = $state(null);
+  let ctxMenuItems: ContextMenuItem[] = $state([]);
+
+  function openCtxMenu(e: MouseEvent, tabId: string) {
+    e.preventDefault();
+    e.stopPropagation();
+    ctxMenuItems = buildContextMenuItems({ tr, tabId });
+    ctxMenuPos = { x: e.clientX, y: e.clientY };
+  }
+  function closeCtxMenu() { ctxMenuPos = null; }
+
+  function handleWheel(e: WheelEvent) {
+    const el = e.currentTarget as HTMLDivElement;
+    const r = computeTabWheelScroll({
+      scrollLeft: el.scrollLeft,
+      scrollWidth: el.scrollWidth,
+      clientWidth: el.clientWidth,
+      deltaY: e.deltaY,
+      deltaX: e.deltaX,
+    });
+    if (r.preventDefault) e.preventDefault();
+    if (r.newScrollLeft !== el.scrollLeft) el.scrollLeft = r.newScrollLeft;
+  }
 </script>
 
 <div class="editor-tabs">
-  <div class="scrollable-tabs">
+  <div class="scrollable-tabs" onwheel={handleWheel}>
     <ul class="tabs-container">
       {#each tabs as tab (tab.id)}
         <li
@@ -75,8 +102,9 @@
           class:unsaved={tab.isModified}
           title={tab.path ?? tab.name}
           onclick={() => selectTab(tab.id)}
-          onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectTab(tab.id); } }}
+          onkeydown={(e) => { if (e.currentTarget !== e.target) return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectTab(tab.id); } }}
           onauxclick={(e) => handleMiddleClick(e, tab.id)}
+          oncontextmenu={(e) => openCtxMenu(e, tab.id)}
           role="tab"
           tabindex="0"
         >
@@ -103,6 +131,8 @@
   </button>
 </div>
 
+<ContextMenu position={ctxMenuPos} items={ctxMenuItems} onclose={closeCtxMenu} />
+
 <style>
   /* MarkText exact tab styling */
   .close-icon .unsaved-circle {
@@ -126,7 +156,13 @@
   .scrollable-tabs {
     flex: 0 1 auto;
     height: 35px;
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+
+  .scrollable-tabs::-webkit-scrollbar {
+    display: none;
   }
 
   .tabs-container {
@@ -140,10 +176,6 @@
     flex-direction: row;
     overflow-y: hidden;
     z-index: 2;
-  }
-
-  .tabs-container::-webkit-scrollbar:horizontal {
-    display: none;
   }
 
   .tabs-container > li {

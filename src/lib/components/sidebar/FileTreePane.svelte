@@ -2,18 +2,37 @@
   import { onMount, onDestroy } from 'svelte';
   import { fly, slide, fade } from 'svelte/transition';
   import { invokeWithTimeout } from '$lib/services/ipc';
+  import { openFileFromPath } from '$lib/services/fileOperations';
+  import { buildContextMenuItems } from '$lib/services/contextMenuItems';
+  import ContextMenu, { type ContextMenuItem } from '$lib/components/ContextMenu.svelte';
   import { editor } from '$lib/stores/editor';
+  import { openedProjects as openedProjectsStore, openedFilesCollapsed as openedFilesCollapsedStore } from '$lib/stores/sidebarFileTree';
   import type { Tab } from '$lib/types/editor';
-  import type { FileEntry, DirectoryListing, FolderNode, OpenedProject } from '$lib/types/filesystem';
+  import type { FileEntry, DirectoryListing, FolderNode } from '$lib/types/filesystem';
   import { t, type TranslationKey } from '$lib/i18n/index';
   import { showToast } from '$lib/stores/toast';
+  import { get } from 'svelte/store';
   import fileIcons from '@marktext/file-icons';
 
-  let openedProjects: OpenedProject[] = $state([]);
+  // openedProjects + openedFilesCollapsed sont des stores persistants : Sidebar
+  // utilise `{#key rightColumn}` qui destroy/recrée ce composant à chaque switch
+  // entre Files/Search/TOC. Sans stores, les dossiers ouverts disparaissaient.
+  let openedProjects = $state(get(openedProjectsStore));
+  let openedFilesCollapsed = $state(get(openedFilesCollapsedStore));
   let loading: boolean = $state(false);
   let openedTabs: Tab[] = $state([]);
   let activeTabId: string | null = $state(null);
-  let openedFilesCollapsed: boolean = $state(false);
+  let ctxMenuPos: { x: number; y: number } | null = $state(null);
+  let ctxMenuItems: ContextMenuItem[] = $state([]);
+
+  /** Ouvre le menu : `tabId` non-undefined ajoute Dupliquer + Fermer onglet. */
+  function openCtxMenu(e: MouseEvent, tabId?: string) {
+    e.preventDefault();
+    e.stopPropagation();
+    ctxMenuItems = buildContextMenuItems({ tr, tabId });
+    ctxMenuPos = { x: e.clientX, y: e.clientY };
+  }
+  function closeCtxMenu() { ctxMenuPos = null; }
 
   let unsubs: (() => void)[] = [];
   let tr: (key: TranslationKey) => string = $state((k: TranslationKey) => k);
@@ -22,9 +41,26 @@
     unsubs.push(t.subscribe((fn) => (tr = fn)));
     unsubs.push(editor.tabs.subscribe((tabs) => (openedTabs = tabs)));
     unsubs.push(editor.activeTabId.subscribe((id) => (activeTabId = id)));
+    // Sync local state ← stores. La synchronisation inverse (local → store)
+    // se fait via les helpers setOpenedProjects / setOpenedFilesCollapsed
+    // déclenchés explicitement à chaque mutation (pas via $effect — trop
+    // d'allers-retours réactifs sur des objets profonds = ralentissements).
+    unsubs.push(openedProjectsStore.subscribe((v) => { openedProjects = v; }));
+    unsubs.push(openedFilesCollapsedStore.subscribe((v) => { openedFilesCollapsed = v; }));
   });
 
   onDestroy(() => unsubs.forEach((u) => u()));
+
+  /** Propage les changements de `openedProjects` au store partagé.
+   *  À appeler après TOUTE mutation locale (push, filter, etc.). */
+  function setOpenedProjects(v: typeof openedProjects) {
+    openedProjects = v;
+    openedProjectsStore.set(v);
+  }
+  function setOpenedFilesCollapsed(v: boolean) {
+    openedFilesCollapsed = v;
+    openedFilesCollapsedStore.set(v);
+  }
 
   function selectOpenedTab(id: string) { editor.activeTabId.set(id); }
 
@@ -48,7 +84,7 @@
   }
 
   function closeProject(dir: string) {
-    openedProjects = openedProjects.filter(p => p.dir !== dir);
+    setOpenedProjects(openedProjects.filter(p => p.dir !== dir));
   }
 
   async function closeAllTabs() {
@@ -97,7 +133,7 @@
       }
     }
     folder.collapsed = !folder.collapsed;
-    openedProjects = [...openedProjects];
+    setOpenedProjects([...openedProjects]);
   }
 
   export async function openDirectory(dir: string) {
@@ -107,7 +143,7 @@
       const listing = await invokeWithTimeout<DirectoryListing>('list_directory_entries', { dir });
       const tree = buildFolderTree(listing.entries);
       const name = dir.split('/').pop() || dir;
-      openedProjects = [...openedProjects, { dir, name, files: listing.entries.filter(e => !e.is_dir), folders: tree.folders, collapsed: false }];
+      setOpenedProjects([...openedProjects, { dir, name, files: listing.entries.filter(e => !e.is_dir), folders: tree.folders, collapsed: false }]);
     }
     catch (err) {
       console.error('Failed to list directory:', err);
@@ -118,13 +154,10 @@
 
   async function openFile(entry: FileEntry) {
     if (entry.is_dir) { await openDirectory(entry.path); return; }
-    try {
-      const file = await invokeWithTimeout<{ path: string; name: string; content: string; size: number }>('read_file', { path: entry.path });
-      editor.addTab(file.path, file.name, file.content);
-    } catch (err) {
-      console.error('Failed to open file:', err);
-      showToast(tr('error_open_file'), 'error');
-    }
+    // Délègue à openFileFromPath qui gère : read_file + addTab + pushRecent +
+    // forceSourceMode pour les .txt. Évite la divergence avec les autres
+    // points d'ouverture (dialog, drag-drop, CLI).
+    await openFileFromPath(entry.path, tr);
   }
 
   function getFileIconClasses(name: string): string {
@@ -142,8 +175,8 @@
 <div class="tree-view">
   <!-- OPENED FILES -->
   <div class="opened-files">
-    <div class="of-title">
-      <button class="tree-toggle-btn" onclick={() => (openedFilesCollapsed = !openedFilesCollapsed)} aria-label="Toggle opened files">
+    <div class="of-title" oncontextmenu={(e) => openCtxMenu(e)} role="group">
+      <button class="tree-toggle-btn" onclick={() => setOpenedFilesCollapsed(!openedFilesCollapsed)} aria-label="Toggle opened files">
         <svg class="icon-arrow" class:collapsed={openedFilesCollapsed} width="10" height="10" viewBox="0 0 6 8">
           <polygon points="0,0 6,4 0,8" fill="currentColor"/>
         </svg>
@@ -168,8 +201,9 @@
         {#each openedTabs as tab (tab.id)}
           <div class="opened-file" class:active={tab.id === activeTabId} class:unsaved={tab.isModified}
             onclick={() => selectOpenedTab(tab.id)} title={tab.path ?? tab.name}
+            oncontextmenu={(e) => openCtxMenu(e, tab.id)}
             role="option" aria-selected={tab.id === activeTabId} tabindex="0"
-            onkeydown={(e) => { if (e.key === 'Enter') selectOpenedTab(tab.id); }}
+            onkeydown={(e) => { if (e.currentTarget !== e.target) return; if (e.key === 'Enter') selectOpenedTab(tab.id); }}
             transition:fly={{ x: -50, duration: 200 }}>
             <button class="of-close-btn" aria-label="Close tab" onclick={(e) => { e.stopPropagation(); closeOpenedTab(tab.id); }}>
               <svg class="of-close-icon" viewBox="0 0 12 12" width="10" height="10">
@@ -242,6 +276,8 @@
     </div>
   {/if}
 </div>
+
+<ContextMenu position={ctxMenuPos} items={ctxMenuItems} onclose={closeCtxMenu} />
 
 {#snippet fileIcon(name: string)}
   <span class="file-icon-scope"><span class="icon {getFileIconClasses(name)}"></span></span>
@@ -343,14 +379,17 @@
     font-weight: 600;
   }
 
+  /* Toujours occuper l'espace (visibility plutôt que display:none) pour éviter
+     que le texte du titre se décale latéralement quand les icônes apparaissent
+     au hover. C'était ce que le user percevait comme "le padding disparaît". */
   .of-action {
-    display: none;
+    visibility: hidden;
     text-decoration: none;
     color: var(--sideBarColor, var(--text-secondary));
     margin-left: 8px;
   }
   .of-title:hover .of-action,
-  .pt-title:hover .of-action { display: block; }
+  .pt-title:hover .of-action { visibility: visible; }
   .of-action:hover { color: var(--accent); }
 
   .opened-files-list {
@@ -439,6 +478,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+
 
   .tree-wrapper { overflow: hidden; }
   .tree-wrapper::-webkit-scrollbar:vertical { width: 8px; }

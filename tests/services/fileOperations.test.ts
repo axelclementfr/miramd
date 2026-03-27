@@ -260,7 +260,8 @@ describe('fileOperations', () => {
       ['/foo/bar.mdx', true],
       ['/foo/bar.mkd', true],
       ['/foo/bar.MD', true],
-      ['/foo/bar.txt', false],
+      ['/foo/bar.txt', true],
+      ['/foo/bar.TXT', true],
       ['/foo/bar', false],
       ['/foo/bar.markdown.bak', false],
       ['', false],
@@ -279,20 +280,22 @@ describe('fileOperations', () => {
       }));
 
       const opened = await openDroppedMarkdownFiles(
-        ['/a.md', '/b.txt', '/c.markdown', '/d', '/e.MDX'],
+        ['/a.md', '/b.txt', '/c.markdown', '/d', '/e.MDX', '/f.png'],
         tr,
       );
 
-      expect(opened).toBe(3);
+      // .txt now accepted (added 2026-05-13 — markdown app friendly to plain text)
+      expect(opened).toBe(4);
       expect(mockInvoke).toHaveBeenCalledWith('read_file', { path: '/a.md' });
+      expect(mockInvoke).toHaveBeenCalledWith('read_file', { path: '/b.txt' });
       expect(mockInvoke).toHaveBeenCalledWith('read_file', { path: '/c.markdown' });
       expect(mockInvoke).toHaveBeenCalledWith('read_file', { path: '/e.MDX' });
-      expect(mockInvoke).not.toHaveBeenCalledWith('read_file', { path: '/b.txt' });
       expect(mockInvoke).not.toHaveBeenCalledWith('read_file', { path: '/d' });
+      expect(mockInvoke).not.toHaveBeenCalledWith('read_file', { path: '/f.png' });
     });
 
     it('returns 0 when no path is markdown', async () => {
-      const opened = await openDroppedMarkdownFiles(['/a.txt', '/b.png'], tr);
+      const opened = await openDroppedMarkdownFiles(['/a.png', '/b.zip'], tr);
       expect(opened).toBe(0);
       expect(mockInvoke).not.toHaveBeenCalled();
     });

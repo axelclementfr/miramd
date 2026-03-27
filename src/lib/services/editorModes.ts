@@ -3,6 +3,15 @@ import { type Preferences, preferences } from '$lib/stores/preferences';
 import { derived, get, writable } from 'svelte/store';
 import { muyaService } from './muya';
 
+/** Inline plutôt que d'importer depuis fileOperations pour éviter une chaîne
+ *  de deps entre services (fileOperations ↔ editorModes). Doublon assumé,
+ *  ces extensions changent rarement. */
+function isPlainTextPath(path: string | null | undefined): boolean {
+	if (!path) return false;
+	const ext = path.split('.').pop()?.toLowerCase();
+	return ext === 'txt';
+}
+
 export interface EditorState {
 	readOnly: boolean;
 	sourceCode: boolean;
@@ -90,11 +99,24 @@ class EditorModes {
 	init(): () => void {
 		const unsubs: (() => void)[] = [];
 
-		// Sync source content when active tab changes (but NOT when in source mode — textarea is source of truth)
+		// Sync source content quand l'onglet actif change. On garde un prevTabId
+		// pour distinguer "tab switch" (=> force update) de "tab content edit"
+		// (=> skip, le textarea pousse déjà ses propres updates via handleInput).
+		// Sans ce flag, l'update se déclencherait à chaque keystroke en source
+		// mode et écraserait la position du curseur de l'utilisateur.
+		let prevTabId: string | null = null;
 		unsubs.push(
 			editorStore.activeTab.subscribe((tab) => {
-				if (tab && !this.prevSourceCode) {
+				if (!tab) return;
+				if (tab.id !== prevTabId) {
+					prevTabId = tab.id;
 					this.sourceContent.set(tab.content);
+					// Lock source mode pour les .txt : à chaque tab switch, si on
+					// arrive sur un .txt, on force sourceCodeMode=true. Couplé au
+					// disable du toggle dans StatusBar, ça verrouille complètement.
+					if (isPlainTextPath(tab.path) && !get(preferences).sourceCodeMode) {
+						preferences.patch({ sourceCodeMode: true });
+					}
 				}
 			}),
 		);

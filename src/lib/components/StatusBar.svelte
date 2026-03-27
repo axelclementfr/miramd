@@ -7,19 +7,32 @@
   import { debugFlags, ALL_SUBJECTS, type DebugSubject } from '$lib/stores/debug';
   import { debugPanelOpen } from '$lib/services/debug';
   import { editorModes, canToggleMode } from '$lib/services/editorModes';
+  import { computeTabWheelScroll } from '$lib/services/tabWheelScroll';
 
   let stats: DocumentStats = $state({ words: 0, chars: 0, lines: 0, paragraphs: 0 });
   let prefs: Preferences = $state({} as Preferences);
   let tr: (key: TranslationKey) => string = $state((k: TranslationKey) => k);
   let activeTabReadOnly: boolean = $state(false);
+  let activeTabPath: string | null = $state(null);
   let activeDebugSubjects: DebugSubject[] = $state([]);
+
+  /** True si l'onglet actif force source mode (extension .txt). Désactive le
+   *  bouton Source dans la status bar pour empêcher l'utilisateur de le toggle. */
+  function isSourceLocked(): boolean {
+    if (!activeTabPath) return false;
+    const ext = activeTabPath.split('.').pop()?.toLowerCase();
+    return ext === 'txt';
+  }
 
   let unsubs: (() => void)[] = [];
 
   onMount(() => {
     unsubs.push(editor.stats.subscribe((s) => (stats = s)));
     unsubs.push(preferences.subscribe((p) => (prefs = { ...p })));
-    unsubs.push(editor.activeTab.subscribe((tab) => (activeTabReadOnly = !!tab?.readOnly)));
+    unsubs.push(editor.activeTab.subscribe((tab) => {
+      activeTabReadOnly = !!tab?.readOnly;
+      activeTabPath = tab?.path ?? null;
+    }));
     unsubs.push(t.subscribe((fn) => (tr = fn)));
     unsubs.push(
       debugFlags.subscribe((f) => {
@@ -49,9 +62,22 @@
   function openDebugPanel(): void {
     debugPanelOpen.set(true);
   }
+
+  function handleWheel(e: WheelEvent) {
+    const el = e.currentTarget as HTMLElement;
+    const r = computeTabWheelScroll({
+      scrollLeft: el.scrollLeft,
+      scrollWidth: el.scrollWidth,
+      clientWidth: el.clientWidth,
+      deltaY: e.deltaY,
+      deltaX: e.deltaX,
+    });
+    if (r.preventDefault) e.preventDefault();
+    if (r.newScrollLeft !== el.scrollLeft) el.scrollLeft = r.newScrollLeft;
+  }
 </script>
 
-<footer class="statusbar">
+<footer class="statusbar" onwheel={handleWheel}>
   <div class="statusbar-left">
     <span class="stat">{stats.words} {tr('words')}</span>
     <span class="sep">|</span>
@@ -85,8 +111,9 @@
     <button
       class="mode-btn"
       class:active={prefs.sourceCodeMode}
+      disabled={isSourceLocked()}
       onclick={() => toggleMode('sourceCodeMode')}
-      title={tr('source_tooltip')}
+      title={isSourceLocked() ? tr('source_locked_txt') : tr('source_tooltip')}
     >
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
       <span>{tr('source')}</span>
@@ -156,13 +183,17 @@
     border-top: 1px solid var(--border);
     position: relative;
     z-index: 50;
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
   }
+  .statusbar::-webkit-scrollbar { display: none; }
 
   .statusbar-left, .statusbar-right {
     display: flex;
     align-items: center;
     gap: 6px;
+    flex-shrink: 0;
   }
 
   .stat { white-space: nowrap; }

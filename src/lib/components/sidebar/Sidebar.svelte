@@ -1,11 +1,16 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { fly } from 'svelte/transition';
+  import { uiActions } from '$lib/stores/uiActions';
   import FileTreePane from './FileTreePane.svelte';
   import SearchPane from './SearchPane.svelte';
   import TocPane from './TocPane.svelte';
 
   interface SidebarProps { onsettings?: () => void; ontoggle?: () => void; }
   let { onsettings, ontoggle }: SidebarProps = $props();
+
+  const MIN_WIDTH = 230;
+  const MAX_WIDTH = 1200;
 
   let rightColumn: 'files' | 'search' | 'toc' | '' = $state('files');
   let isDragging: boolean = $state(false);
@@ -29,7 +34,7 @@
 
     const onMove = (ev: MouseEvent) => {
       ev.preventDefault();
-      targetWidth = Math.max(230, startWidth + ev.clientX - startX);
+      targetWidth = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, startWidth + ev.clientX - startX));
       if (!rafId) {
         rafId = requestAnimationFrame(() => {
           sideBarViewWidth = targetWidth;
@@ -50,6 +55,18 @@
     document.addEventListener('mouseup', onUp);
   }
 
+  function onDragBarKey(e: KeyboardEvent) {
+    const step = e.shiftKey ? 50 : 10;
+    let next = sideBarViewWidth;
+    if (e.key === 'ArrowLeft') next = sideBarViewWidth - step;
+    else if (e.key === 'ArrowRight') next = sideBarViewWidth + step;
+    else if (e.key === 'Home') next = MIN_WIDTH;
+    else if (e.key === 'End') next = MAX_WIDTH;
+    else return;
+    e.preventDefault();
+    sideBarViewWidth = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, next));
+  }
+
   async function openFolder() {
     const { open } = await import('@tauri-apps/plugin-dialog');
     const selected = await open({ directory: true });
@@ -63,6 +80,13 @@
     rightColumn = 'files';
     await fileTreePane.openDirectory(dir);
   }
+
+  onMount(() => {
+    // Expose openFolder pour les context menus (FileTreePane, TabBar) qui en
+    // ont besoin sans avoir de ref directe vers Sidebar.
+    uiActions.update((a) => ({ ...a, openFolder }));
+    return () => uiActions.update((a) => ({ ...a, openFolder: undefined }));
+  });
 </script>
 
 <div
@@ -124,9 +148,21 @@
     </div>
   {/if}
 
-  <!-- Drag bar for resize -->
+  <!-- Drag bar for resize — interactive separator (window splitter pattern) -->
   {#if rightColumn}
-    <div class="drag-bar" role="separator" aria-orientation="vertical" onmousedown={onDragBarDown}></div>
+    <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+    <div
+      class="drag-bar"
+      role="separator"
+      aria-orientation="vertical"
+      aria-label="Sidebar width"
+      aria-valuenow={sideBarViewWidth}
+      aria-valuemin={MIN_WIDTH}
+      aria-valuemax={MAX_WIDTH}
+      tabindex="0"
+      onmousedown={onDragBarDown}
+      onkeydown={onDragBarKey}></div>
   {/if}
 </div>
 
@@ -243,6 +279,13 @@
   .drag-bar:hover:not(:active) {
     background: var(--accent, var(--iconColor));
     opacity: 0.5;
+  }
+
+  .drag-bar:focus-visible {
+    background: var(--accent, var(--iconColor));
+    opacity: 1;
+    width: 6px;
+    right: -3px;
   }
 
   :global(.toc-highlight) { background: rgba(124, 156, 238, 0.2) !important; transition: background 0.3s ease; }

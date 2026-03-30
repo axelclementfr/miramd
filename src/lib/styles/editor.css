@@ -184,10 +184,16 @@ span.ag-language-input:empty::after {
 	content: "" !important;
 }
 
-/* If "fence" text is a label, hide it */
-.ag-fence-code > .ag-language {
+/* Language label / input ("bash", "js"…) au-dessus du bloc fence.
+   Muya base style : font-weight 600 + var(--themeColor). On neutralise à la
+   fois le label statique `.ag-language` ET l'input éditable `.ag-language-input`
+   (visible quand le fence est actif), sinon le mot "bash" reste en gras coloré
+   alors que le contenu du bloc a déjà été normalisé. */
+.ag-fence-code > .ag-language,
+.ag-fence-code .ag-language-input {
 	font-size: 0.75em;
 	opacity: 0.5;
+	font-weight: normal !important;
 }
 
 /* ---- Line numbers in editor (scoped to wysiwyg-pane to avoid status bar issues) ---- */
@@ -245,7 +251,11 @@ body.muya-readonly .ag-remove {
 	border: none;
 	outline: none;
 	resize: none;
-	background: var(--editorBgColor);
+	/* Background transparent : laisse passer le find-overlay-source qui est
+	   positionné derrière (z-index plus bas). Le bg solide est sur .source-pane. */
+	background: transparent;
+	position: relative;
+	z-index: 1;
 	color: var(--editorColor);
 	font-family: "DejaVu Sans Mono", "Courier New", monospace;
 	font-size: 16px;
@@ -253,4 +263,38 @@ body.muya-readonly .ag-remove {
 	tab-size: 4;
 	white-space: pre-wrap;
 	word-break: break-word;
+}
+
+/* Layer de highlights pour Ctrl+F en source mode (le textarea ne supporte pas
+   CSS.highlights). Position absolue derrière la textarea, métriques identiques,
+   scroll synchronisé via translateY. Le contenu interne est color:transparent ;
+   seuls les <mark> ont un bg jaune visible sous le texte (transparent) du
+   textarea. Créé/géré dynamiquement par FindBar.svelte. */
+.find-overlay-source {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	z-index: 0;
+	overflow: hidden;
+	pointer-events: none;
+	padding: 20px 50px;
+	font-family: "DejaVu Sans Mono", "Courier New", monospace;
+	font-size: 16px;
+	line-height: 1.6;
+	tab-size: 4;
+	white-space: pre-wrap;
+	word-break: break-word;
+	color: transparent;
+	box-sizing: border-box;
+}
+.find-overlay-source-content { will-change: transform; }
+.find-overlay-source mark {
+	background: rgba(255, 213, 0, 0.4);
+	color: transparent;
+	border-radius: 2px;
+}
+.find-overlay-source mark.active {
+	background: rgba(255, 165, 0, 0.85);
 }

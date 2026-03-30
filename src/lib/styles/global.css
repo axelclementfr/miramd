@@ -181,27 +181,42 @@ textarea,
 	outline: none;
 }
 
+:focus-visible {
+	outline: 1px solid red;
+	outline-offset: 1px;
+	border-radius: 2px;
+}
+
 /* MarkText scrollbar style */
 ::-webkit-scrollbar,
 ::-webkit-scrollbar-corner {
 	background: transparent !important;
 }
 
+/* Hitbox de la scrollbar = 16px ; thumb VISIBLE = 8px (rendu identique à avant).
+   Trick : `::-webkit-scrollbar` définit la zone cliquable totale, puis on met
+   une bordure transparente de 4px sur le thumb pour ne montrer que 8px au centre
+   (`background-clip: padding-box` empêche le background de déborder). Résultat :
+   l'utilisateur clique dans une zone 2× plus large, mais visuellement c'est le
+   même thumb fin qu'avant. */
 ::-webkit-scrollbar:vertical {
-	width: 8px;
+	width: 16px;
 }
 
 ::-webkit-scrollbar:horizontal {
-	height: 8px;
+	height: 16px;
 }
 
 ::-webkit-scrollbar-thumb {
 	background: var(--scrollbar-thumb);
-	border-radius: 4px;
+	background-clip: padding-box;
+	border: 4px solid transparent;
+	border-radius: 8px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
 	background: var(--text-muted);
+	background-clip: padding-box;
 }
 
 /* Hide scrollbar mode */

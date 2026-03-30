@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { isDragTarget, setupWindowDrag } from '$lib/services/windowDrag';
+import { isDragTarget, isScrollbarHit, setupWindowDrag } from '$lib/services/windowDrag';
 
 function el(html: string): HTMLElement {
   const wrapper = document.createElement('div');
@@ -283,6 +283,85 @@ describe('isDragTarget — real-world MiraMD DOM scenarios', () => {
     document.body.appendChild(wrap);
     expect(isDragTarget(wrap)).toBe(false);
     expect(isDragTarget(wrap.querySelector('.modal-content'))).toBe(false);
+  });
+});
+
+describe('isScrollbarHit — détection des clics sur scrollbar native', () => {
+  /** Construit un MouseEvent avec target + coords absolues clientX/clientY. */
+  function fakeEvent(target: HTMLElement, clientX: number, clientY: number): MouseEvent {
+    const ev = new MouseEvent('mousedown', { button: 0, clientX, clientY });
+    Object.defineProperty(ev, 'target', { value: target, configurable: true });
+    return ev;
+  }
+  /** Crée un div scrollable attaché à la rect (0,0,cw,ch) avec overflow auto. */
+  function scrollable({ cw, ch, sw, sh, overflowY = 'auto', overflowX = 'auto' }: {
+    cw: number; ch: number; sw: number; sh: number; overflowY?: string; overflowX?: string;
+  }): HTMLElement {
+    const d = document.createElement('div');
+    d.style.overflowY = overflowY;
+    d.style.overflowX = overflowX;
+    Object.defineProperty(d, 'clientWidth', { value: cw, configurable: true });
+    Object.defineProperty(d, 'clientHeight', { value: ch, configurable: true });
+    Object.defineProperty(d, 'scrollWidth', { value: sw, configurable: true });
+    Object.defineProperty(d, 'scrollHeight', { value: sh, configurable: true });
+    d.getBoundingClientRect = () => ({
+      left: 0, top: 0, right: cw, bottom: ch, width: cw, height: ch, x: 0, y: 0, toJSON: () => ({}),
+    });
+    document.body.appendChild(d);
+    return d;
+  }
+
+  beforeEach(() => { document.body.innerHTML = ''; });
+
+  it('returns true for vertical scrollbar click', () => {
+    const div = scrollable({ cw: 200, ch: 100, sw: 200, sh: 500 });
+    expect(isScrollbarHit(fakeEvent(div, 210, 50))).toBe(true);
+  });
+
+  it('returns true for horizontal scrollbar click', () => {
+    const div = scrollable({ cw: 200, ch: 100, sw: 500, sh: 100 });
+    expect(isScrollbarHit(fakeEvent(div, 100, 110))).toBe(true);
+  });
+
+  it('returns true within the inside buffer zone (close to content edge)', () => {
+    // Buffer de 4px à l'intérieur de clientWidth aussi compte comme scrollbar.
+    // Évite que des clics pile à la frontière content↔scrollbar passent.
+    const div = scrollable({ cw: 200, ch: 100, sw: 200, sh: 500 });
+    expect(isScrollbarHit(fakeEvent(div, 197, 50))).toBe(true);
+  });
+
+  it('returns false when click is deep in content area', () => {
+    const div = scrollable({ cw: 200, ch: 100, sw: 200, sh: 500 });
+    expect(isScrollbarHit(fakeEvent(div, 100, 50))).toBe(false);
+  });
+
+  it('returns false when element does NOT overflow (no actual scrollbar)', () => {
+    const div = scrollable({ cw: 200, ch: 100, sw: 200, sh: 100 });
+    expect(isScrollbarHit(fakeEvent(div, 210, 50))).toBe(false);
+  });
+
+  it('returns false when overflow is "hidden" even if content overflows', () => {
+    const div = scrollable({ cw: 200, ch: 100, sw: 200, sh: 500, overflowY: 'hidden' });
+    expect(isScrollbarHit(fakeEvent(div, 210, 50))).toBe(false);
+  });
+
+  it('detects scrollbar on an ANCESTOR when target is a nested child', () => {
+    // Le bug réel à corriger : target est un span dans .welcome-screen, mais
+    // le scrollable est un ancêtre. La détection doit remonter l'arbre.
+    const parent = scrollable({ cw: 200, ch: 100, sw: 200, sh: 500 });
+    const child = document.createElement('span');
+    child.getBoundingClientRect = () => ({
+      left: 0, top: 0, right: 50, bottom: 20, width: 50, height: 20, x: 0, y: 0, toJSON: () => ({}),
+    });
+    Object.defineProperty(child, 'clientWidth', { value: 50, configurable: true });
+    Object.defineProperty(child, 'clientHeight', { value: 20, configurable: true });
+    parent.appendChild(child);
+    expect(isScrollbarHit(fakeEvent(child, 210, 50))).toBe(true);
+  });
+
+  it('returns false for null target', () => {
+    const ev = new MouseEvent('mousedown', { button: 0 });
+    expect(isScrollbarHit(ev)).toBe(false);
   });
 });
 

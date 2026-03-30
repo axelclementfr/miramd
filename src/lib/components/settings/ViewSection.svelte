@@ -50,6 +50,7 @@
   <div class="setting-row toggle-row"><div><span class="setting-label">{tr('sidebar_startup')}</span><p class="setting-desc">{tr('sidebar_startup_desc')}</p></div><label class="toggle"><input type="checkbox" bind:checked={prefs.sidebarVisible} onchange={applyPrefs} /><span class="toggle-slider"></span></label></div>
   <div class="setting-row toggle-row"><div><span class="setting-label">{tr('tab_bar')}</span><p class="setting-desc">{tr('tab_bar_desc')}</p></div><label class="toggle"><input type="checkbox" bind:checked={prefs.showTabBar} onchange={applyPrefs} /><span class="toggle-slider"></span></label></div>
   <div class="setting-row toggle-row"><div><span class="setting-label">{tr('status_bar')}</span><p class="setting-desc">{tr('status_bar_desc')}</p></div><label class="toggle"><input type="checkbox" bind:checked={prefs.showStatusBar} onchange={applyPrefs} /><span class="toggle-slider"></span></label></div>
+  <div class="setting-row toggle-row"><div><span class="setting-label">{tr('hide_scrollbar')}</span><p class="setting-desc">{tr('hide_scrollbar_desc')}</p></div><label class="toggle"><input type="checkbox" bind:checked={prefs.hideScrollbar} onchange={applyPrefs} /><span class="toggle-slider"></span></label></div>
 </div>
 
 <style>

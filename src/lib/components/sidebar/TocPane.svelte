@@ -5,6 +5,7 @@
   import { editor } from '$lib/stores/editor';
   import type { TocEntry } from '$lib/types/editor';
   import { extractHeadings } from '$lib/services/toc';
+  import { caretYInTextarea, scrollTextareaToOffset } from '$lib/services/textareaCaret';
   import { dlog } from '$lib/services/debug';
   import { t, type TranslationKey } from '$lib/i18n/index';
 
@@ -71,31 +72,78 @@
       return;
     }
 
+    // 3 modes possibles : WYSIWYG seul, source seul, split (les 2 côte à côte).
+    // On agit sur CHAQUE pane visible séparément. Détection :
+    //  - textarea présente → source (pur ou split)
+    //  - .wysiwyg-pane sans .hidden → WYSIWYG (pur ou split)
     const container = document.querySelector('.muya-editor');
-    if (!container) {
-      dlog('toc', 'scrollToHeading: .muya-editor not found in DOM');
+    const wysiwygPane = container?.closest('.wysiwyg-pane');
+    const wysiwygVisible = !!container && !wysiwygPane?.classList.contains('hidden');
+    const ta = document.querySelector<HTMLTextAreaElement>('.source-code-editor');
+    const sourceVisible = !!ta;
+    const splitMode = sourceVisible && wysiwygVisible;
+
+    if (!sourceVisible && !wysiwygVisible) {
+      dlog('toc', 'scrollToHeading: no visible pane found');
       return;
     }
 
-    // Detect hidden Muya (pure source mode). scrollIntoView on hidden = no-op,
-    // and the user gets no feedback. Log it so debug-mode users see why.
-    const wysiwygPane = container.closest('.wysiwyg-pane');
-    if (wysiwygPane?.classList.contains('hidden')) {
-      dlog('toc', 'scrollToHeading: .wysiwyg-pane is hidden (source mode), skipping. Switch to normal/split view to navigate via TOC.');
-      return;
+    dlog('toc', 'scrollToHeading: navigating to pos', targetPos,
+      'source:', sourceVisible, 'wysiwyg:', wysiwygVisible);
+
+    // Source pane : scroll + caret + flash. On focus uniquement en mode source
+    // pur ; en split, on évite de voler le focus à la preview.
+    if (ta && sourceVisible) {
+      scrollTextareaToOffset(ta, targetPos);
+      try {
+        if (!splitMode) ta.focus({ preventScroll: true });
+        ta.setSelectionRange(targetPos, targetPos);
+      } catch {
+        // setSelectionRange peut throw si pos hors range — ignore, le scroll a marché.
+      }
+      flashSourceLine(ta, targetPos);
     }
 
-    const headings = container.querySelectorAll('h1, h2, h3, h4, h5, h6');
-    const target = headings[index];
-    if (!target) {
-      dlog('toc', 'scrollToHeading: heading index', index, 'not found in DOM (rendered count:', headings.length, ')');
-      return;
+    // WYSIWYG pane : scroll au heading rendu + classe .toc-highlight (1.5s).
+    if (container && wysiwygVisible) {
+      const headings = container.querySelectorAll('h1, h2, h3, h4, h5, h6');
+      const target = headings[index];
+      if (!target) {
+        dlog('toc', 'scrollToHeading: heading index', index, 'not in WYSIWYG DOM');
+      } else {
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        target.classList.add('toc-highlight');
+        setTimeout(() => target.classList.remove('toc-highlight'), 1500);
+      }
     }
+  }
 
-    dlog('toc', 'scrollToHeading: navigating to index', index, 'pos', targetPos);
-    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    target.classList.add('toc-highlight');
-    setTimeout(() => target.classList.remove('toc-highlight'), 1500);
+  /** Flash visuel sur la ligne du heading en source mode : équivalent textarea
+   *  de `target.classList.add('toc-highlight')` côté WYSIWYG. On crée un div
+   *  absolument positionné à la même Y que la ligne dans la textarea, fade out
+   *  après 1.5s puis remove. Pas de scroll-sync : si l'user scrolle pendant la
+   *  fade, le flash reste à sa position absolue dans la `.source-pane` (visible
+   *  brièvement, disparaît rapidement, expérience acceptable). */
+  function flashSourceLine(ta: HTMLTextAreaElement, offset: number) {
+    const pane = ta.parentElement;
+    if (!pane) return;
+    const y = caretYInTextarea(ta, offset);
+    if (y < 0) return;
+    const cs = getComputedStyle(ta);
+    const lineHeight = parseFloat(cs.lineHeight);
+    if (!lineHeight || Number.isNaN(lineHeight)) return;
+
+    const flash = document.createElement('div');
+    flash.className = 'toc-source-flash';
+    flash.style.top = `${y - ta.scrollTop}px`;
+    flash.style.height = `${lineHeight}px`;
+    pane.appendChild(flash);
+
+    // Force un reflow pour que la transition fade-out se déclenche bien
+    // (sans ça, opacity passe de 0 à 0 immédiatement).
+    void flash.offsetHeight;
+    flash.classList.add('fade-out');
+    setTimeout(() => flash.remove(), 1600);
   }
 </script>
 
@@ -223,5 +271,22 @@
     width: 120px;
     height: auto;
     opacity: 0.5;
+  }
+
+  /* Flash visuel d'un heading en source mode (équivalent .toc-highlight côté
+     WYSIWYG). Injecté dynamiquement dans .source-pane via flashSourceLine.
+     `:global` parce que l'élément est créé en JS, hors du scope Svelte. */
+  :global(.toc-source-flash) {
+    position: absolute;
+    left: 0;
+    right: 0;
+    background: rgba(124, 156, 238, 0.25);
+    pointer-events: none;
+    z-index: 2;
+    opacity: 1;
+    transition: opacity 1.4s ease-out;
+  }
+  :global(.toc-source-flash.fade-out) {
+    opacity: 0;
   }
 </style>

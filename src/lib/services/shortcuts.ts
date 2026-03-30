@@ -6,6 +6,7 @@ export interface ShortcutHandlers {
 	toggleSidebar: () => void;
 	openSettings: () => void;
 	isSettingsOpen: () => boolean;
+	openFind: () => void;
 }
 
 /**
@@ -46,6 +47,10 @@ export function setupKeyboardShortcuts(handlers: ShortcutHandlers): () => void {
 		} else if (mod && e.key === ',') {
 			e.preventDefault();
 			handlers.openSettings();
+		} else if (mod && (e.key === 'f' || e.key === 'F')) {
+			e.preventDefault();
+			e.stopImmediatePropagation();
+			handlers.openFind();
 		}
 	}
 

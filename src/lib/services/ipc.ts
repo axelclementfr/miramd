@@ -2,7 +2,7 @@ import { type InvokeArgs, invoke as tauriInvoke } from '@tauri-apps/api/core';
 
 /** Default timeout (30 s) for user-blocking IPC calls. Generous on purpose:
  * the goal is to surface a hung command, not to abort slow disks. */
-export const DEFAULT_IPC_TIMEOUT_MS = 30_000;
+const DEFAULT_IPC_TIMEOUT_MS = 30_000;
 
 /** Error raised when an IPC call exceeds its timeout. The Rust side keeps
  * running — the promise simply rejects so the UI can react. */

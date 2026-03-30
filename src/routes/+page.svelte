@@ -11,6 +11,7 @@
   import TabBar from '$lib/components/TabBar.svelte';
   import Editor from '$lib/components/Editor.svelte';
   import StatusBar from '$lib/components/StatusBar.svelte';
+  import FindBar from '$lib/components/FindBar.svelte';
   import SettingsModal from '$lib/components/settings/SettingsModal.svelte';
   import Toast from '$lib/components/Toast.svelte';
   import WindowResizeEdges from '$lib/components/WindowResizeEdges.svelte';
@@ -40,6 +41,8 @@
   let hasActiveTab: boolean = $state(false);
   let settingsOpen: boolean = $state(false);
   let isMaximized: boolean = $state(false);
+  let isDragOver: boolean = $state(false);
+  let findOpen: boolean = $state(false);
 
   let unsubs: (() => void)[] = [];
 
@@ -54,9 +57,16 @@
     }));
     unsubs.push(editor.activeTabId.subscribe((id) => (hasActiveTab = id !== null)));
 
-    // Window init: dynamic min size + maximized state tracking
-    const windowInit = await initWindow((maximized) => { isMaximized = maximized; });
-    unsubs.push(windowInit.destroy);
+    // Window init: dynamic min size + maximized state tracking.
+    // Try/catch parce que `getCurrentWindow()` Tauri throw en mode browser pur
+    // (sans Tauri webview) ; sans try/catch, l'erreur bail out tout l'onMount
+    // et casse les shortcuts/drop/etc. Pas bloquant en prod Tauri.
+    try {
+      const windowInit = await initWindow((maximized) => { isMaximized = maximized; });
+      unsubs.push(windowInit.destroy);
+    } catch (err) {
+      console.warn('[+page] initWindow skipped (likely browser mode):', err);
+    }
 
     // Global drag : any non-interactive area moves the window (Linux/WebKitGTK ne supporte pas -webkit-app-region)
     unsubs.push(setupWindowDrag());
@@ -102,17 +112,28 @@
       showToast(tr('error_cli_file'), 'error');
     }
 
-    // Listen for files opened from 2nd instance (single-instance plugin)
-    const unlistenOpenFile = await listen<string>('open-file', (event) => openFileFromPath(event.payload, tr));
-    unsubs.push(unlistenOpenFile);
+    // Tauri event listeners (open-file, drag-drop) : try/catch parce que les
+    // API Tauri throw en mode browser pur. Comme initWindow ci-dessus, c'est
+    // un no-op en browser et fonctionne en prod Tauri.
+    try {
+      const unlistenOpenFile = await listen<string>('open-file', (event) => openFileFromPath(event.payload, tr));
+      unsubs.push(unlistenOpenFile);
 
-    // Drag-and-drop: open .md files dropped onto the window
-    const unlistenDragDrop = await getCurrentWebview().onDragDropEvent(async (event) => {
-      if (event.payload.type === 'drop') {
-        await openDroppedMarkdownFiles(event.payload.paths, tr);
-      }
-    });
-    unsubs.push(unlistenDragDrop);
+      const unlistenDragDrop = await getCurrentWebview().onDragDropEvent(async (event) => {
+        const type = event.payload.type;
+        if (type === 'enter' || type === 'over') {
+          isDragOver = true;
+        } else if (type === 'leave') {
+          isDragOver = false;
+        } else if (type === 'drop') {
+          isDragOver = false;
+          await openDroppedMarkdownFiles(event.payload.paths, tr);
+        }
+      });
+      unsubs.push(unlistenDragDrop);
+    } catch (err) {
+      console.warn('[+page] Tauri event listeners skipped (likely browser mode):', err);
+    }
 
     unsubs.push(t.subscribe((fn) => (tr = fn)));
 
@@ -125,6 +146,7 @@
       toggleSidebar,
       openSettings: () => { settingsOpen = true; },
       isSettingsOpen: () => settingsOpen,
+      openFind: () => { if (hasActiveTab) findOpen = true; },
     });
     unsubs.push(removeShortcuts);
 
@@ -213,6 +235,7 @@
     {#if hasActiveTab}
       <div class="editor-area">
         <Editor />
+        <FindBar open={findOpen} onclose={() => (findOpen = false)} />
       </div>
     {:else}
       <WelcomeScreen
@@ -230,6 +253,24 @@
 
 <!-- Settings Modal -->
 <SettingsModal open={settingsOpen} onclose={() => (settingsOpen = false)} />
+
+<!-- Drop overlay : assombrit toute l'app pendant un drag-over de fichier.
+     Tauri émet `enter`/`over`/`leave`/`drop` sur la webview entière (pas un
+     event DOM standard), donc l'overlay est purement visuel — il n'intercepte
+     pas le drop, ne fait que signaler à l'utilisateur où il peut lâcher. -->
+{#if isDragOver}
+  <div class="drop-overlay" role="presentation" aria-hidden="true">
+    <div class="drop-overlay-inner">
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="12" y1="11" x2="12" y2="17"/>
+        <polyline points="9 14 12 17 15 14"/>
+      </svg>
+      <div class="drop-overlay-text">{tr('drop_to_open')}</div>
+    </div>
+  </div>
+{/if}
 
 <!-- Toast notifications -->
 <Toast />
@@ -280,5 +321,40 @@
     flex: 1;
     overflow: hidden;
     display: flex;
+    position: relative;
+  }
+
+  .drop-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    animation: drop-overlay-fade-in 120ms ease-out;
+  }
+  .drop-overlay-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 32px 48px;
+    border: 2px dashed rgba(255, 255, 255, 0.5);
+    border-radius: 12px;
+    color: rgba(255, 255, 255, 0.9);
+    background: rgba(0, 0, 0, 0.2);
+  }
+  .drop-overlay-text {
+    font-size: 16px;
+    font-weight: 500;
+    font-family: var(--font-family);
+  }
+  @keyframes drop-overlay-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
   }
 </style>

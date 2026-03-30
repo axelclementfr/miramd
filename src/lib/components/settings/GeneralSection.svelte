@@ -78,10 +78,6 @@
     />
   </div>
   <div class="setting-row toggle-row">
-    <div><span class="setting-label">{tr('hide_scrollbar')}</span><p class="setting-desc">{tr('hide_scrollbar_desc')}</p></div>
-    <label class="toggle"><input type="checkbox" bind:checked={prefs.hideScrollbar} onchange={applyPrefs} /><span class="toggle-slider"></span></label>
-  </div>
-  <div class="setting-row toggle-row">
     <div><span class="setting-label">{tr('word_wrap_in_toc')}</span><p class="setting-desc">{tr('word_wrap_in_toc_desc')}</p></div>
     <label class="toggle"><input type="checkbox" bind:checked={prefs.wordWrapInToc} onchange={applyPrefs} /><span class="toggle-slider"></span></label>
   </div>

@@ -180,6 +180,16 @@ const translations: Record<string, string> = {
 	warning_prefs_backup_failed: 'Could not back up preferences before saving',
 	warning_prefs_future_version:
 		'Preferences were saved by a newer version of MiraMD — some settings may behave unexpectedly',
+	new_tab: 'New tab',
+	save_as: 'Save as',
+	recent: 'Recent',
+	no_recent_files: 'No recent files',
+	duplicate: 'Duplicate',
+	close_tab: 'Close tab',
+	drop_to_open: 'Drop to open',
+	find_placeholder: 'Find in document',
+	find_no_matches: 'No matches',
+	source_locked_txt: 'Source mode locked for .txt files',
 };
 
 export default translations;

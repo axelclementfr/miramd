@@ -133,7 +133,7 @@ fn is_markdown_file(path: &std::path::Path) -> bool {
             .and_then(|e| e.to_str())
             .map(|e| e.to_lowercase())
             .as_deref(),
-        Some("md" | "markdown" | "mmd" | "mdx" | "mkd")
+        Some("md" | "markdown" | "mmd" | "mdx" | "mkd" | "txt")
     )
 }
 

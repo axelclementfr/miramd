@@ -30,7 +30,13 @@ The name comes from Latin *mira* ("wonderful") + *MD* (Markdown).
 
 ## Screenshots
 
-<!-- TODO: add screenshots showing WYSIWYG mode, split view, themes -->
+<p align="center">
+  <img src="screenshots/welcome.png" alt="MiraMD welcome screen (Material Dark theme)" width="48%">
+  &nbsp;
+  <img src="screenshots/editor.png" alt="MiraMD WYSIWYG editor rendering markdown" width="48%">
+</p>
+
+<p align="center"><em>Welcome screen on the left, WYSIWYG editor on the right — Material Dark theme.</em></p>
 
 ## Installation
 

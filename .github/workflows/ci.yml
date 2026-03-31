@@ -3,8 +3,28 @@ name: CI
 on:
   push:
     branches: [main, develop]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'docs.public/**'
+      - 'screenshots/**'
+      - 'LICENSE'
+      - '.gitignore'
+      - 'src-tauri/icons/**'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/PULL_REQUEST_TEMPLATE.md'
   pull_request:
     branches: [main, develop]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'docs.public/**'
+      - 'screenshots/**'
+      - 'LICENSE'
+      - '.gitignore'
+      - 'src-tauri/icons/**'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/PULL_REQUEST_TEMPLATE.md'
 
 jobs:
   check:

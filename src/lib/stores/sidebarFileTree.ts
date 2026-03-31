@@ -1,5 +1,5 @@
-import { writable } from 'svelte/store';
 import type { OpenedProject } from '$lib/types/filesystem';
+import { writable } from 'svelte/store';
 
 /** État persistant du panneau Files dans la sidebar. Promu en stores parce que
  *  `Sidebar.svelte` utilise `{#key rightColumn}` qui détruit/recrée FileTreePane

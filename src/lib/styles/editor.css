@@ -289,7 +289,9 @@ body.muya-readonly .ag-remove {
 	color: transparent;
 	box-sizing: border-box;
 }
-.find-overlay-source-content { will-change: transform; }
+.find-overlay-source-content {
+	will-change: transform;
+}
 .find-overlay-source mark {
 	background: rgba(255, 213, 0, 0.4);
 	color: transparent;

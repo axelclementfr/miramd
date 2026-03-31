@@ -1,5 +1,5 @@
-import { get } from 'svelte/store';
 import { preferences } from '$lib/stores/preferences';
+import { get } from 'svelte/store';
 
 const MAX_RECENT = 10;
 
@@ -15,4 +15,3 @@ export function pushRecentFile(path: string): void {
 	if (next.length === current.length && next.every((p, i) => p === current[i])) return;
 	preferences.patch({ recentFiles: next });
 }
-

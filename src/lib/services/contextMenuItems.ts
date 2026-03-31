@@ -1,9 +1,9 @@
-import { get } from 'svelte/store';
-import type { TranslationKey } from '$lib/i18n/index';
 import type { ContextMenuItem } from '$lib/components/ContextMenu.svelte';
+import type { TranslationKey } from '$lib/i18n/index';
 import { editor } from '$lib/stores/editor';
 import { preferences } from '$lib/stores/preferences';
 import { uiActions } from '$lib/stores/uiActions';
+import { get } from 'svelte/store';
 import {
 	closeTabWithConfirm,
 	duplicateTab,
@@ -19,7 +19,8 @@ const ICON_FOLDER = 'M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h
 const ICON_CLOCK = 'M12 6v6l4 2 M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z';
 const ICON_SAVE = 'M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z M17 21v-8H7v8 M7 3v5h8';
 const ICON_SAVE_AS = 'M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z M16 8l2 2-7 7H9v-2z';
-const ICON_DUPLICATE = 'M20 9h-9a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2z M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1';
+const ICON_DUPLICATE =
+	'M20 9h-9a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2z M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1';
 const ICON_X = 'M18 6 6 18 M6 6l12 12';
 
 export interface BuildOptions {
@@ -33,13 +34,14 @@ export function buildContextMenuItems(opts: BuildOptions): ContextMenuItem[] {
 	const { tr, tabId } = opts;
 	const recentFiles = get(preferences).recentFiles ?? [];
 
-	const recentChildren: ContextMenuItem[] = recentFiles.length === 0
-		? [{ type: 'item', label: tr('no_recent_files'), onClick: () => {}, disabled: true }]
-		: recentFiles.map<ContextMenuItem>((path) => ({
-				type: 'item',
-				label: pathToLabel(path),
-				onClick: () => openFileFromPath(path, tr),
-		  }));
+	const recentChildren: ContextMenuItem[] =
+		recentFiles.length === 0
+			? [{ type: 'item', label: tr('no_recent_files'), onClick: () => {}, disabled: true }]
+			: recentFiles.map<ContextMenuItem>((path) => ({
+					type: 'item',
+					label: pathToLabel(path),
+					onClick: () => openFileFromPath(path, tr),
+				}));
 
 	const items: ContextMenuItem[] = [
 		{ type: 'item', label: tr('new_tab'), iconPath: ICON_PLUS, onClick: () => editor.addTab() },

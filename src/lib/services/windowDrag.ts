@@ -74,14 +74,12 @@ export function isScrollbarHit(e: MouseEvent): boolean {
 			continue;
 		}
 		const cs = getComputedStyle(node);
-		const canScrollY =
-			(cs.overflowY === 'auto' || cs.overflowY === 'scroll') && node.scrollHeight > node.clientHeight;
-		const canScrollX =
-			(cs.overflowX === 'auto' || cs.overflowX === 'scroll') && node.scrollWidth > node.clientWidth;
+		const canScrollY = (cs.overflowY === 'auto' || cs.overflowY === 'scroll') && node.scrollHeight > node.clientHeight;
+		const canScrollX = (cs.overflowX === 'auto' || cs.overflowX === 'scroll') && node.scrollWidth > node.clientWidth;
 		if (canScrollY || canScrollX) {
 			const rect = node.getBoundingClientRect();
-			const borderL = parseFloat(cs.borderLeftWidth) || 0;
-			const borderT = parseFloat(cs.borderTopWidth) || 0;
+			const borderL = Number.parseFloat(cs.borderLeftWidth) || 0;
+			const borderT = Number.parseFloat(cs.borderTopWidth) || 0;
 			const x = e.clientX - rect.left - borderL;
 			const y = e.clientY - rect.top - borderT;
 			// Vertical scrollbar zone = au-delà de clientWidth, avec buffer

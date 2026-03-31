@@ -20,11 +20,28 @@ export function caretYInTextarea(ta: HTMLTextAreaElement, offset: number): numbe
 	mirror.style.wordWrap = 'break-word';
 	mirror.style.overflowWrap = 'break-word';
 	const copyProps = [
-		'font', 'lineHeight', 'fontKerning', 'fontFeatureSettings', 'fontVariantLigatures',
-		'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft',
-		'borderTopWidth', 'borderRightWidth', 'borderBottomWidth', 'borderLeftWidth',
-		'borderTopStyle', 'borderRightStyle', 'borderBottomStyle', 'borderLeftStyle',
-		'tabSize', 'letterSpacing', 'wordSpacing', 'textIndent', 'textTransform',
+		'font',
+		'lineHeight',
+		'fontKerning',
+		'fontFeatureSettings',
+		'fontVariantLigatures',
+		'paddingTop',
+		'paddingRight',
+		'paddingBottom',
+		'paddingLeft',
+		'borderTopWidth',
+		'borderRightWidth',
+		'borderBottomWidth',
+		'borderLeftWidth',
+		'borderTopStyle',
+		'borderRightStyle',
+		'borderBottomStyle',
+		'borderLeftStyle',
+		'tabSize',
+		'letterSpacing',
+		'wordSpacing',
+		'textIndent',
+		'textTransform',
 	] as const;
 	for (const p of copyProps) {
 		mirror.style[p] = cs[p];

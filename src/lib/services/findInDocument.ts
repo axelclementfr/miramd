@@ -97,4 +97,3 @@ function findNodeIndex(offsets: number[], nodes: Text[], absolutePos: number): n
 	}
 	return -1;
 }
-

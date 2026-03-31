@@ -4,8 +4,9 @@
   "description": "",
   "type": "module",
   "scripts": {
-    "dev": "vite dev",
-    "dev:fresh": "rm -rf node_modules/.vite .svelte-kit/output && npm run tauri dev",
+    "dev": "rm -rf node_modules/.vite .svelte-kit && vite dev",
+    "dev:nocache": "vite dev",
+    "dev:fresh": "pkill -TERM -f 'tauri dev|vite dev|target/debug/miramd' 2>/dev/null; rm -rf node_modules/.vite .svelte-kit && npm run tauri dev",
     "build": "vite build",
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",

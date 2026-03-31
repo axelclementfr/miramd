@@ -161,6 +161,16 @@ const translations: Record<string, string> = {
 	warning_prefs_backup_failed: '設定のバックアップを作成できませんでした',
 	warning_prefs_future_version:
 		'設定がより新しいバージョンの MiraMD で保存されました — 一部の項目が想定外に動作する可能性があります',
+	new_tab: '新しいタブ',
+	save_as: '名前を付けて保存',
+	recent: '最近使用',
+	no_recent_files: '最近使用したファイルはありません',
+	duplicate: '複製',
+	close_tab: 'タブを閉じる',
+	drop_to_open: 'ドロップして開く',
+	find_placeholder: 'ドキュメント内検索',
+	find_no_matches: '一致なし',
+	source_locked_txt: '.txt ファイルはソースモード固定',
 };
 
 export default translations;

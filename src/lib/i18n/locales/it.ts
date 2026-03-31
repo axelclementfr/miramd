@@ -162,6 +162,16 @@ const translations: Record<string, string> = {
 	warning_prefs_backup_failed: 'Impossibile creare una copia di backup delle preferenze',
 	warning_prefs_future_version:
 		'Preferenze salvate da una versione più recente di MiraMD — alcune impostazioni potrebbero comportarsi in modo imprevisto',
+	new_tab: 'Nuova scheda',
+	save_as: 'Salva con nome',
+	recent: 'Recenti',
+	no_recent_files: 'Nessun file recente',
+	duplicate: 'Duplica',
+	close_tab: 'Chiudi scheda',
+	drop_to_open: 'Rilascia per aprire',
+	find_placeholder: 'Cerca nel documento',
+	find_no_matches: 'Nessun risultato',
+	source_locked_txt: 'Modalità sorgente bloccata per i file .txt',
 };
 
 export default translations;

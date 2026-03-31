@@ -181,6 +181,16 @@ const translations = {
 	warning_prefs_backup_failed: 'Impossible de sauvegarder une copie de secours des préférences',
 	warning_prefs_future_version:
 		'Préférences enregistrées par une version plus récente de MiraMD — certains réglages peuvent se comporter de manière inattendue',
+	new_tab: 'Nouvel onglet',
+	save_as: 'Sauvegarder sous',
+	recent: 'Récent',
+	no_recent_files: 'Aucun fichier récent',
+	duplicate: 'Dupliquer',
+	close_tab: "Fermer l'onglet",
+	drop_to_open: 'Déposer pour ouvrir',
+	find_placeholder: 'Rechercher dans le document',
+	find_no_matches: 'Aucun résultat',
+	source_locked_txt: 'Mode source verrouillé pour les fichiers .txt',
 } as const;
 
 /** Union type of all valid translation keys, derived from the French reference locale. */

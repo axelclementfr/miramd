@@ -43,6 +43,18 @@
         "ext": ["md", "markdown", "mmd", "mdx", "mkd"],
         "mimeType": "text/markdown"
       }
-    ]
+    ],
+    "linux": {
+      "deb": {
+        "files": {
+          "/usr/share/applications/MiraMD.desktop": "MiraMD.desktop"
+        }
+      },
+      "rpm": {
+        "files": {
+          "/usr/share/applications/MiraMD.desktop": "MiraMD.desktop"
+        }
+      }
+    }
   }
 }

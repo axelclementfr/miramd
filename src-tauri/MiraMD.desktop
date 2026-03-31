@@ -1,0 +1,10 @@
+[Desktop Entry]
+Categories=Office;TextEditor;
+Comment=A minimal, elegant Markdown editor
+Exec=miramd %U
+StartupWMClass=miramd
+Icon=miramd
+Name=MiraMD
+Terminal=false
+Type=Application
+MimeType=text/markdown;text/x-markdown;
